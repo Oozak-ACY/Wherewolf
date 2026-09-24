@@ -29,8 +29,22 @@ Join as **2 Werewolves and 1+ Villagers**. Anyone can press the Turn buttons; it
 
 ## Bring back
 
-| Device + browser | Voice audible? | Route / ducking | Works without a tap? | Unlock needed? | Echo when mic on? | Switch latency to Wolves | Back to Day OK? | Surprises |
-|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | |
+## Results: session of 2026-09-24 (4 players, 2 Werewolves)
 
-Agreed fallback if the voice fails on iOS: on-screen text + sound cues only.
+| Device + browser | Voice audible? | Works without a tap? | Unlock needed? | Echo when mic on? | Switch latency | Back to Day OK? |
+|---|---|---|---|---|---|---|
+| Android 17, Firefox 156 (Loan) | yes, voice "français (France)" | yes | ticked, OK | not tested | ~270–475 ms to drop, ~280–440 ms to restore | yes, every time |
+| iPhone iOS 18.7, Safari 26.6 (Anhhh) | yes, voice "Thomas" | yes | ticked, OK | not tested | ~210–450 ms | yes |
+| iPhone iOS 18.1.1, Safari 18.1 (Hitman) | yes, voice "Grandma" (!) | yes | ticked, OK | not tested | ~190–320 ms | yes |
+| iPhone iOS 18.7, Safari 26.6 (Nozzzz) | **no, never starts** | n/a | **unticked → silent** | not tested | ~270 ms | yes |
+
+**Verdict**
+- **Q1, voice: OK, on one condition.** `speechSynthesis` in `fr-FR` plays during a live LiveKit call on iOS Safari and Android Firefox. Later lines play without a tap **only if** a `speak("")` runs inside the Join tap. Without it, iOS stays silent and never fires `onstart`/`onend`. The on-screen text fallback is not needed.
+- **Q2, Turn switch: OK.** Both ADR 0001 levers take effect in ~200–450 ms. The first video frame follows 20–200 ms later, with no visible glitch. Day restored cleanly every time, and "Resubscribe" was never needed.
+
+**Surprises to carry into the real client**
+- iOS returns the *first* `fr-FR` voice, which can be a novelty voice ("Grandma"). Pick the voice explicitly: a preferred list, excluding the novelty voices.
+- When the voice is blocked, `onend` never fires. Anything waiting on it (re-enabling the mic) needs a timeout, or the mic stays muted forever. This likely explains the "mics don't work" report from the first session.
+- Every mic is muted for 2–4 s per Narrator line, which clips the start of Day discussion.
+- Remote `<audio>` elements from the harness are not all cleaned up after resubscribe cycles. This is a bug in the prototype, not a LiveKit finding.
+- Not tested: echo of the Narrator into other players' audio when mics stay on.
