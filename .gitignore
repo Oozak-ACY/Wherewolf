@@ -1,0 +1,6 @@
+/target
+node_modules/
+/client/dist
+.env
+# Local copy of the prototype branch (never merged, see #1)
+/prototype/

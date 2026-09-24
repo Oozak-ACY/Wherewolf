@@ -1,0 +1,9 @@
+[package]
+name = "wherewolf-engine"
+version = "0.1.0"
+edition = "2021"
+description = "The Narrator engine: pure Wherewolf rules, no network, no clock, no media."
+
+[dependencies]
+serde.workspace = true
+ts-rs.workspace = true
