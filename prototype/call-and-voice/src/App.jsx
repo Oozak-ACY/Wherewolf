@@ -12,12 +12,25 @@ const LINES = {
 const log = [];
 let marker = performance.now();
 let bump = () => {};
+let outbox = [];
+let me = 'not-joined';
 function addLog(text) {
   const rel = Math.round(performance.now() - marker);
-  log.unshift(`${new Date().toLocaleTimeString()}  +${rel}ms  ${text}`);
+  const line = `+${rel}ms  ${text}`;
+  log.unshift(`${new Date().toLocaleTimeString()}  ${line}`);
   if (log.length > 300) log.pop();
+  outbox.push(line);
   bump();
 }
+// ship log lines to the server (prototype/call-and-voice/PROTOTYPE-session-logs.txt)
+setInterval(() => {
+  if (!outbox.length) return;
+  const lines = outbox; outbox = [];
+  fetch('/api/log', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ who: me, ua: navigator.userAgent, lines }),
+  }).catch(() => { outbox = lines.concat(outbox); });
+}, 2000);
 
 // ---------- Narrator voice ----------
 function frVoice() {
@@ -57,10 +70,13 @@ export default function App() {
     if (v) u.voice = v;
     const t = performance.now();
     u.onstart = () => addLog(`🔊 speech START after ${Math.round(performance.now() - t)}ms (voice ${v?.name ?? 'default'}, mic muted: ${!!mute})`);
+    let restored = false;
     const done = async (what) => {
       addLog(`🔊 speech ${what}`);
-      if (mute) { await lp.setMicrophoneEnabled(true); addLog('mic re-enabled'); }
+      if (mute && !restored) { restored = true; await lp.setMicrophoneEnabled(true); addLog('mic re-enabled'); }
     };
+    // safety net: some browsers never fire onend/onerror (e.g. after cancel()), which would leave the mic muted
+    setTimeout(() => { if (mute && !restored) done('TIMEOUT (no onend fired)'); }, 2000 + text.length * 120);
     u.onend = () => done('END');
     u.onerror = (e) => done(`ERROR: ${e.error}`);
     speechSynthesis.cancel();
@@ -100,6 +116,7 @@ export default function App() {
           const el = track.attach();
           el.dataset.sid = track.sid;
           document.getElementById('audio-sink').appendChild(el);
+          el.play().then(() => addLog(`🔈 playing audio of ${who(p)}`), (e) => addLog(`🔇 audio of ${who(p)} BLOCKED: ${e.name}`));
         }
         rerender();
       })
@@ -122,6 +139,11 @@ export default function App() {
       .on(RoomEvent.Reconnected, () => addLog('reconnected'))
       .on(RoomEvent.Disconnected, (r) => addLog(`DISCONNECTED ${r ?? ''}`))
       .on(RoomEvent.MediaDevicesError, (e) => addLog(`media error: ${e.message}`))
+      .on(RoomEvent.LocalTrackPublished, (pub) => addLog(`🎙 I published ${pub.kind} (${pub.source})`))
+      .on(RoomEvent.LocalTrackUnpublished, (pub) => addLog(`🎙 I UNpublished ${pub.kind}`))
+      .on(RoomEvent.TrackMuted, (pub, p) => addLog(`muted: ${pub.kind} of ${who(p)}`))
+      .on(RoomEvent.TrackUnmuted, (pub, p) => addLog(`unmuted: ${pub.kind} of ${who(p)}`))
+      .on(RoomEvent.ActiveSpeakersChanged, (ss) => { addLog(`speaking now: [${ss.map(who).join(', ')}]`); rerender(); })
       .on(RoomEvent.DataReceived, (payload, _p, _k, topic) => {
         if (topic !== 'turn') return;
         const msg = JSON.parse(new TextDecoder().decode(payload));
@@ -139,7 +161,18 @@ export default function App() {
     if (res.error) { addLog(`token error: ${res.error}`); roomRef.current = null; rerender(); return; }
     setTurn(res.turn);
     await room.connect(res.url, res.token);
+    me = res.identity;
     addLog(`connected as ${res.identity} (${role}), turn = ${res.turn}`);
+    // mic/audio health every 5s: is my mic publishing and picking up sound? are remote <audio> elements playing?
+    setInterval(() => {
+      const mic = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+      const els = [...document.querySelectorAll('#audio-sink audio')];
+      addLog(`health: myMic=${mic ? (mic.isMuted ? 'published-MUTED' : 'published') : 'NOT-PUBLISHED'} ` +
+        `myLevel=${room.localParticipant.audioLevel.toFixed(2)} ` +
+        `remoteAudioEls=${els.length} playing=${els.filter((e) => !e.paused).length} ` +
+        `levels={${[...room.remoteParticipants.values()].map((p) => `${who(p)}:${p.audioLevel.toFixed(2)}`).join(' ')}} ` +
+        `canPlaybackAudio=${room.canPlaybackAudio}`);
+    }, 5000);
     await room.localParticipant.enableCameraAndMicrophone().catch((e) => addLog(`cam/mic error: ${e.message}`));
     if (res.turn === 'wolves') {
       const st = await fetch('/api/state').then((r) => r.json());
@@ -253,7 +286,7 @@ function Tile({ participant, local }) {
     return () => { track.detach(el); el.removeEventListener('playing', onPlaying); };
   }, [track]);
   return (
-    <div className="tile">
+    <div className="tile" style={participant.isSpeaking ? { outline: '3px solid #3c3' } : undefined}>
       {track ? <video ref={ref} autoPlay playsInline muted={local} /> : <div className="black">no video</div>}
       <span>{participant.name}{local ? ' (me)' : ''}</span>
     </div>

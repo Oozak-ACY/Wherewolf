@@ -3,9 +3,11 @@
 // behind one HTTPS tunnel. The question is about phones, not the server language.
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { appendFileSync } from 'node:fs';
 import { AccessToken, RoomServiceClient, DataPacket_Kind } from 'livekit-server-sdk';
 
 const ROOM = 'wherewolf-proto';
+const LOG_FILE = 'PROTOTYPE-session-logs.txt'; // git-ignored, wipe me
 
 function protoServer(env) {
   const { LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET } = env;
@@ -70,6 +72,14 @@ function protoServer(env) {
           if (req.url === '/api/turn' && req.method === 'POST') {
             const { turn: next } = await readBody(req);
             return json(res, 200, await switchTurn(next));
+          }
+          if (req.url === '/api/log' && req.method === 'POST') {
+            // every device ships its log lines here so they can be read after the session
+            const { who, ua, lines } = await readBody(req);
+            const out = lines.map((l) => `${new Date().toISOString()} [${who}] ${l}`).join('\n') + '\n';
+            if (lines.some((l) => l.includes('connected as'))) appendFileSync(LOG_FILE, `${new Date().toISOString()} [${who}] UA: ${ua}\n`);
+            appendFileSync(LOG_FILE, out);
+            return json(res, 200, {});
           }
           if (req.url === '/api/state') {
             const people = await rooms.listParticipants(ROOM).catch(() => []);
