@@ -33,6 +33,8 @@ pub enum ClientMessage {
 pub enum ServerMessage {
     /// Everything this Player may know, sent after every change.
     View { view: PlayerView },
+    /// Sent after each accepted Join: how to enter the Lobby's video call.
+    Call { ticket: CallTicket },
     /// The last command was refused and changed nothing.
     Rejected { reason: Rejection },
     /// No Lobby has this code (mistyped, or the server restarted).
@@ -44,4 +46,14 @@ pub enum ServerMessage {
 #[ts(export)]
 pub struct CreatedLobby {
     pub code: String,
+}
+
+/// What a Player needs to enter the Lobby's video call.
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export)]
+pub struct CallTicket {
+    /// The LiveKit server to connect to.
+    pub url: String,
+    /// LiveKit access token for this Player only.
+    pub token: String,
 }

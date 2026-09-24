@@ -1,7 +1,9 @@
 //! Wherewolf game server. Holds every Lobby in memory and relays: each
 //! Player's messages go to the Narrator engine, and each Player gets back the
-//! view the engine produced for them. No game rule lives here.
+//! view the engine produced for them. No game rule lives here. It also lets
+//! each seated Player into the Lobby's video call.
 
+mod call;
 mod protocol;
 
 use std::collections::HashMap;
@@ -18,9 +20,10 @@ use futures_util::{SinkExt, StreamExt};
 use rand::Rng;
 use tokio::sync::mpsc;
 use tower_http::cors::CorsLayer;
-use wherewolf_engine::{Command, Engine, LobbyCode, Outputs, Rejection, SeatToken};
+use wherewolf_engine::{Command, Engine, LobbyCode, Outputs, PlayerView, Rejection, SeatToken};
 
-use protocol::{ClientMessage, CreatedLobby, ServerMessage};
+use call::CallConfig;
+use protocol::{CallTicket, ClientMessage, CreatedLobby, ServerMessage};
 
 /// No 0/O or 1/I, so the code can be read aloud and typed without mistakes.
 const CODE_ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -29,9 +32,13 @@ const MAX_SEAT_TOKEN_LEN: usize = 128;
 
 type Outbox = mpsc::UnboundedSender<ServerMessage>;
 
-/// One Lobby: its engine, plus the live connection of each seated Player.
+/// One Lobby: its engine, its video call room, plus the live connection of
+/// each seated Player.
 struct Lobby {
     engine: Engine,
+    /// Unique per Lobby, so a code reused after a restart never lands in an
+    /// older Lobby's call.
+    call_room: String,
     connections: HashMap<SeatToken, Connection>,
 }
 
@@ -42,10 +49,17 @@ struct Connection {
 
 impl Lobby {
     /// Feeds a command to the engine and relays the resulting views.
-    fn apply(&mut self, seat: &SeatToken, command: Command) -> Result<(), Rejection> {
+    fn apply(&mut self, seat: &SeatToken, command: Command) -> Result<Outputs, Rejection> {
         let outputs = self.engine.handle(seat, command)?;
         self.relay(&outputs);
-        Ok(())
+        Ok(outputs)
+    }
+
+    /// Lets the Player seeing `view` into this Lobby's call, under their PlayerId.
+    fn call_ticket(&self, call: &CallConfig, view: &PlayerView) -> CallTicket {
+        let me = view.players.iter().find(|p| p.id == view.you);
+        let name = me.map_or("", |p| p.name.as_str());
+        call.ticket(&self.call_room, &view.you.to_string(), name)
     }
 
     fn relay(&self, outputs: &Outputs) {
@@ -63,6 +77,8 @@ impl Lobby {
 struct AppState {
     lobbies: Arc<Mutex<HashMap<String, Arc<Mutex<Lobby>>>>>,
     next_connection_id: Arc<AtomicU64>,
+    /// `None` when the LiveKit keys are not configured: Lobbies work, without video.
+    call: Option<Arc<CallConfig>>,
 }
 
 impl AppState {
@@ -84,12 +100,23 @@ impl AppState {
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
+    // Local development keeps the LiveKit keys in a git-ignored `.env`.
+    let _ = dotenvy::dotenv();
+
+    let call = CallConfig::from_env().map(Arc::new);
+    if call.is_none() {
+        tracing::warn!("LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET not set: no video call");
+    }
+    let state = AppState {
+        call,
+        ..AppState::default()
+    };
 
     let app = Router::new()
         .route("/api/lobbies", post(create_lobby))
         .route("/api/lobbies/:code/ws", get(connect))
         .layer(CorsLayer::permissive())
-        .with_state(AppState::default());
+        .with_state(state);
 
     let port: u16 = std::env::var("PORT")
         .ok()
@@ -111,6 +138,7 @@ async fn create_lobby(State(state): State<AppState>) -> Json<CreatedLobby> {
     };
     let lobby = Lobby {
         engine: Engine::new(LobbyCode::new(code.clone())),
+        call_room: format!("{code}-{}", random_code()),
         connections: HashMap::new(),
     };
     lobbies.insert(code.clone(), Arc::new(Mutex::new(lobby)));
@@ -186,7 +214,13 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
                 };
                 let replaced = lobby.connections.insert(token.clone(), connection);
                 match lobby.apply(&token, Command::Join { name }) {
-                    Ok(()) => seat = Some(token),
+                    Ok(outputs) => {
+                        if let (Some(call), Some(view)) = (&state.call, outputs.view_for(&token)) {
+                            let ticket = lobby.call_ticket(call, view);
+                            let _ = outbox.send(ServerMessage::Call { ticket });
+                        }
+                        seat = Some(token);
+                    }
                     Err(reason) => {
                         match replaced {
                             Some(previous) => lobby.connections.insert(token, previous),

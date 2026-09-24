@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CallTicket } from "./generated/CallTicket";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
 import { openLobbySocket, parse, send } from "./server";
@@ -13,6 +14,7 @@ export function useLobby(code: string) {
   const [status, setStatus] = useState<LobbyStatus>("idle");
   const [view, setView] = useState<PlayerView | null>(null);
   const [rejection, setRejection] = useState<Rejection | null>(null);
+  const [ticket, setTicket] = useState<CallTicket | null>(null);
 
   const socket = useRef<WebSocket | null>(null);
   const name = useRef("");
@@ -35,6 +37,9 @@ export function useLobby(code: string) {
           setView(message.view);
           setRejection(null);
           setStatus("joined");
+          break;
+        case "call":
+          setTicket(message.ticket);
           break;
         case "rejected":
           setRejection(message.reason);
@@ -87,5 +92,5 @@ export function useLobby(code: string) {
     [],
   );
 
-  return { status, view, rejection, join, leave };
+  return { status, view, rejection, ticket, join, leave };
 }

@@ -6,6 +6,12 @@
   --accent: #e0a940;
   --accent-text: #1c1406;
   --danger: #ff8a7a;
+  --danger-surface: #4a1f1f;
+  --tile-empty: #0b0913;
+  --card-back-top: #3b2a5c;
+  --card-back-bottom: #1d1530;
+  --card-back-line: rgb(224 169 64 / 0.07);
+  --card-back-edge: rgb(224 169 64 / 0.55);
   --radius: 14px;
   color-scheme: dark;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -149,35 +155,6 @@ button.quiet {
   margin-bottom: 12px !important;
 }
 
-.players {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.players li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.players li.offline {
-  opacity: 0.55;
-}
-
-.players .name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .badge {
   font-size: 0.8rem;
   font-weight: 700;
@@ -185,4 +162,151 @@ button.quiet {
   border-radius: 999px;
   background: var(--accent);
   color: var(--accent-text);
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--danger-surface);
+}
+
+.notice p {
+  margin: 0;
+}
+
+/* The call: one tile per Player. Portrait phone first, 12 tiles on one screen. */
+.lobby {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.call-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  --tile-ratio: 3 / 4;
+}
+
+.call-grid[data-size="medium"],
+.call-grid[data-size="large"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  --tile-ratio: 1 / 1;
+}
+
+.tile {
+  position: relative;
+  aspect-ratio: var(--tile-ratio);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--tile-empty);
+  outline: 3px solid transparent;
+  outline-offset: -3px;
+  transition: outline-color 150ms;
+}
+
+.tile.speaking {
+  outline-color: var(--accent);
+}
+
+.tile.offline {
+  opacity: 0.45;
+}
+
+.tile video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tile video.mirrored {
+  transform: scaleX(-1);
+}
+
+.tile-label {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 8px 6px;
+  font-size: 0.8rem;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.75));
+}
+
+.tile-label .name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.tile-label .badge {
+  font-size: 0.7rem;
+  padding: 1px 7px;
+}
+
+/* The back of a Role card, for a Player without a camera. */
+.card-back {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background:
+    repeating-linear-gradient(45deg, var(--card-back-line) 0 2px, transparent 2px 12px),
+    repeating-linear-gradient(-45deg, var(--card-back-line) 0 2px, transparent 2px 12px),
+    linear-gradient(160deg, var(--card-back-top), var(--card-back-bottom));
+  border: 2px solid var(--card-back-edge);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 4px var(--card-back-bottom), inset 0 0 0 5px var(--card-back-edge);
+}
+
+.card-back .emblem {
+  width: 38%;
+  max-width: 64px;
+  opacity: 0.85;
+}
+
+/* Wider screens: the call takes the space, the invite sits beside it. */
+@media (min-width: 900px) {
+  .screen:has(.lobby) {
+    max-width: 1280px;
+  }
+
+  .lobby {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+    gap: 24px;
+  }
+
+  .call-grid {
+    gap: 8px;
+    --tile-ratio: 4 / 3;
+  }
+
+  .call-grid[data-size="medium"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    --tile-ratio: 4 / 3;
+  }
+
+  .call-grid[data-size="large"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    --tile-ratio: 4 / 3;
+  }
+
+  .tile-label {
+    font-size: 0.9rem;
+  }
 }

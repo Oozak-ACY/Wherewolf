@@ -1,8 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { CallGrid, Voice } from "./CallGrid";
 import type { PlayerView } from "./generated/PlayerView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
 import { fr } from "./strings";
+import { useCall, type Call } from "./useCall";
 import { useLobby } from "./useLobby";
 
 const LOBBY_PATH = /^\/l\/([A-Za-z0-9]+)\/?$/;
@@ -94,6 +96,7 @@ function Home({ onOpenLobby }: { onOpenLobby: (code: string) => void }) {
 
 function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
   const lobby = useLobby(code);
+  const call = useCall(lobby.ticket);
 
   if (lobby.status === "notFound") {
     return (
@@ -108,8 +111,10 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
     return (
       <Lobby
         view={lobby.view}
+        call={call}
         reconnecting={lobby.status === "reconnecting"}
         onLeave={() => {
+          call.leave();
           lobby.leave();
           onExit();
         }}
@@ -122,7 +127,11 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
       code={code}
       connecting={lobby.status === "connecting"}
       error={lobby.rejection && fr.rejection[lobby.rejection]}
-      onJoin={lobby.join}
+      onJoin={(name) => {
+        // Still inside the "Rejoindre" tap: the only moment iOS lets us unlock audio.
+        call.unlock();
+        lobby.join(name);
+      }}
     />
   );
 }
@@ -161,7 +170,12 @@ function JoinForm(props: {
   );
 }
 
-function Lobby(props: { view: PlayerView; reconnecting: boolean; onLeave: () => void }) {
+function Lobby(props: {
+  view: PlayerView;
+  call: Call;
+  reconnecting: boolean;
+  onLeave: () => void;
+}) {
   const { view } = props;
   const url = lobbyUrl(view.code);
   const [copied, setCopied] = useState(false);
@@ -177,39 +191,65 @@ function Lobby(props: { view: PlayerView; reconnecting: boolean; onLeave: () => 
 
   const share = () => navigator.share({ title: fr.lobby.shareTitle, url }).catch(() => {});
 
+  const { call } = props;
+
   return (
-    <>
-      {props.reconnecting && <p className="banner">{fr.join.connectionLost}</p>}
-      <section className="card invite">
-        <p className="muted">{fr.lobby.code}</p>
-        <p className="code">{view.code}</p>
-        <p className="muted">{fr.lobby.shareHint}</p>
-        <p className="link">{url}</p>
-        <div className="row">
-          <button onClick={copy}>{copied ? fr.lobby.copied : fr.lobby.copy}</button>
-          {"share" in navigator && <button onClick={share}>{fr.lobby.share}</button>}
-        </div>
-      </section>
-
-      <section className="stack">
+    <div className="lobby">
+      <section className="call stack">
+        {props.reconnecting && <p className="banner">{fr.join.connectionLost}</p>}
+        <CallNotices call={call} />
         <h2>{fr.lobby.players(view.players.length)}</h2>
-        <ul className="players">
-          {view.players.map((player) => (
-            <li key={player.id} className={player.connected ? "" : "offline"}>
-              <span className="name">
-                {player.name}
-                {player.id === view.you && <span className="muted"> ({fr.lobby.you})</span>}
-              </span>
-              {player.id === view.host && <span className="badge">{fr.lobby.host}</span>}
-              {!player.connected && <span className="muted">{fr.lobby.offline}</span>}
-            </li>
-          ))}
-        </ul>
+        <CallGrid view={view} member={call.member} />
+        {call.voices().map((track) => (
+          <Voice key={track.sid} track={track} />
+        ))}
       </section>
 
-      <button className="quiet" onClick={props.onLeave}>
-        {fr.lobby.leave}
-      </button>
-    </>
+      <aside className="stack">
+        <section className="card invite">
+          <p className="muted">{fr.lobby.code}</p>
+          <p className="code">{view.code}</p>
+          <p className="muted">{fr.lobby.shareHint}</p>
+          <p className="link">{url}</p>
+          <div className="row">
+            <button onClick={copy}>{copied ? fr.lobby.copied : fr.lobby.copy}</button>
+            {"share" in navigator && <button onClick={share}>{fr.lobby.share}</button>}
+          </div>
+        </section>
+        <button className="quiet" onClick={props.onLeave}>
+          {fr.lobby.leave}
+        </button>
+      </aside>
+    </div>
   );
+}
+
+/** What stands between this Player and a working call, with the way out. */
+function CallNotices({ call }: { call: Call }) {
+  if (call.status === "failed") {
+    return (
+      <div className="notice">
+        <p>{fr.call.failed}</p>
+        <button onClick={call.retryConnect}>{fr.call.retry}</button>
+      </div>
+    );
+  }
+  if (call.mic !== "pending" && call.mic !== "on") {
+    return (
+      <div className="notice" role="alert">
+        <p>
+          <strong>{fr.call.micRequired}</strong> {fr.call.micHelp[call.mic]}
+        </p>
+        <button onClick={call.retryMic}>{fr.call.retry}</button>
+      </div>
+    );
+  }
+  if (call.audioBlocked) {
+    return (
+      <button className="primary" onClick={call.startAudio}>
+        {fr.call.enableSound}
+      </button>
+    );
+  }
+  return null;
 }

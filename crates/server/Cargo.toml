@@ -7,7 +7,10 @@ description = "Game server: HTTP + WebSocket relay between the phones and the Na
 [dependencies]
 wherewolf-engine = { path = "../engine" }
 axum = { version = "0.7", features = ["ws"] }
+dotenvy = "0.15"
 futures-util = "0.3"
+# Pinned: pre-1.0 with thin docs (ADR 0002). Only token minting for now.
+livekit-api = { version = "=0.8.0", default-features = false, features = ["access-token"] }
 rand = "0.8"
 serde.workspace = true
 serde_json.workspace = true

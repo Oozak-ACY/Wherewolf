@@ -2,6 +2,7 @@
 // be added later.
 
 import type { Rejection } from "./generated/Rejection";
+import type { MicProblem } from "./useCall";
 
 // Mirrors MAX_PLAYERS in crates/engine/src/lib.rs.
 export const MAX_PLAYERS = 12;
@@ -42,6 +43,19 @@ export const fr = {
     host: "Hôte",
     offline: "déconnecté",
     leave: "Quitter le salon",
+  },
+
+  call: {
+    failed: "Impossible de rejoindre l'appel vidéo.",
+    retry: "Réessayer",
+    micRequired: "Le micro est obligatoire pour jouer.",
+    micHelp: {
+      refused:
+        "Autorise l'accès au micro pour ce site dans ton navigateur, puis réessaie (recharge la page si rien ne se passe).",
+      missing: "Aucun micro n'a été trouvé : branche-en un, puis réessaie.",
+      unavailable: "Impossible d'utiliser le micro, peut-être déjà pris par une autre application : réessaie.",
+    } satisfies Record<MicProblem, string>,
+    enableSound: "Activer le son de l'appel",
   },
 
   rejection: {

@@ -10,6 +10,7 @@
     "generate-types": "cargo test --manifest-path ../Cargo.toml --workspace export_bindings"
   },
   "dependencies": {
+    "livekit-client": "^2.22.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
