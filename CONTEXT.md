@@ -72,6 +72,10 @@ _Avoid_: Secret mode, blind mode
 The moment during the Night when one Role (or the Werewolves together) wakes up to act, while everyone else stays asleep.
 _Avoid_: Step, action phase
 
+**Moment**:
+One stretch of a Game that the Narrator announces and times on its own: a Night Turn, the dawn announcement, the Day discussion, the Vote, its result, or the victory screen. The current Moment decides what each Player sees and may do.
+_Avoid_: Step, stage
+
 ## Roles
 
 **Role**:

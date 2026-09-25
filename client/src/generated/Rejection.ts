@@ -3,4 +3,4 @@
 /**
  * Why a command was refused. The engine's state is unchanged.
  */
-export type Rejection = "lobbyFull" | "notSeated" | "invalidName" | "notHost" | "invalidSettings" | "notEnoughPlayers" | "roleCountMismatch" | "gameStarted";
+export type Rejection = "lobbyFull" | "notSeated" | "invalidName" | "notHost" | "invalidSettings" | "notEnoughPlayers" | "roleCountMismatch" | "gameStarted" | "notNow" | "notYourTurn" | "spectating" | "notInPlay";

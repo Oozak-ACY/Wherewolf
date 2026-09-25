@@ -77,8 +77,39 @@ export const fr = {
   },
 
   game: {
-    started: "La partie a commencé.",
     myCard: "Voir ma carte",
+    dead: "mort",
+    werewolvesPick: "Choisis la victime avec les autres Loups-Garous.",
+    unanimity: "Il faut que tous les Loups-Garous choisissent la même victime.",
+    pickedBy: (names: string[]) => `choisi par ${names.join(", ")}`,
+    asleep: "Tu dors. Attends le lever du jour…",
+    votePrompt: "Qui faut-il éliminer ?",
+    votedCount: (voted: number, living: number) => `${voted} / ${living} ont voté`,
+    abstain: "S'abstenir",
+    yourVote: (name: string) => `Ton vote : ${name}`,
+    youAbstained: "Tu t'abstiens.",
+    ballot: (voter: string, designated: string | null) =>
+      designated ? `${voter} → ${designated}` : `${voter} : abstention`,
+    spectating: "Tu es mort. Tu ne peux plus agir ni voter.",
+    everyRole: "Les rôles de chacun",
+    playAgain: "Rejouer",
+    waitingForHostToPlayAgain: "L'hôte peut relancer une partie.",
+  },
+
+  // What the Narrator announces at each moment, shown in the banner.
+  narrator: {
+    werewolvesTurn: "La nuit tombe. Les Loups-Garous se réveillent et choisissent leur victime…",
+    dawnNobody: "Le jour se lève. Personne n'est mort cette nuit.",
+    dawnDeaths: (victims: string) => `Le jour se lève. Cette nuit, le village a perdu ${victims}.`,
+    discussion: "Le village débat : qui sont les Loups-Garous ?",
+    vote: "Le village vote.",
+    voteEliminated: (name: string, role: string) =>
+      `Le village a éliminé ${name}, qui était ${role}.`,
+    voteNobody: "Personne n'est éliminé.",
+    victory: {
+      village: "Victoire du Village ! Tous les Loups-Garous sont morts.",
+      werewolves: "Victoire des Loups-Garous ! Ils ont pris le contrôle du village.",
+    } satisfies Record<Camp, string>,
   },
 
   roleCard: {
@@ -144,5 +175,9 @@ export const fr = {
     notEnoughPlayers: `Il faut au moins ${MIN_PLAYERS} joueurs.`,
     roleCountMismatch: "Il faut autant de rôles que de joueurs.",
     gameStarted: "La partie a déjà commencé.",
+    notNow: "Ce n'est pas le moment.",
+    notYourTurn: "Ce n'est pas ton tour.",
+    spectating: "Tu es mort : tu ne peux plus agir.",
+    notInPlay: "Ce joueur n'est plus en jeu.",
   } satisfies Record<Rejection, string>,
 };

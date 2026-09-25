@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CallGrid, Voice } from "./CallGrid";
+import { GamePanel } from "./GamePanel";
+import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
 import type { Settings } from "./generated/Settings";
@@ -115,11 +117,15 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
     return (
       <Lobby
         view={lobby.view}
+        endsAt={lobby.endsAt}
         call={call}
         reconnecting={lobby.status === "reconnecting"}
         rejection={lobby.rejection}
         onSettingsChange={lobby.updateSettings}
         onStart={lobby.start}
+        onPickVictim={lobby.pickVictim}
+        onVote={lobby.vote}
+        onPlayAgain={lobby.playAgain}
         onLeave={() => {
           call.leave();
           lobby.leave();
@@ -179,11 +185,15 @@ function JoinForm(props: {
 
 function Lobby(props: {
   view: PlayerView;
+  endsAt: number | null;
   call: Call;
   reconnecting: boolean;
   rejection: Rejection | null;
   onSettingsChange: (settings: Settings) => void;
   onStart: () => void;
+  onPickVictim: (victim: PlayerId) => void;
+  onVote: (designated: PlayerId | null) => void;
+  onPlayAgain: () => void;
   onLeave: () => void;
 }) {
   const { view } = props;
@@ -226,13 +236,18 @@ function Lobby(props: {
         {view.role && cardOpen && (
           <RoleCardView card={view.role} view={view} onClose={() => setCardOpen(false)} />
         )}
-        {started ? (
-          <section className="card stack">
-            <p>{fr.game.started}</p>
-            <button className="primary" onClick={() => setCardOpen(true)}>
-              {fr.game.myCard}
-            </button>
-          </section>
+        {view.moment ? (
+          <>
+            <GamePanel
+              view={view}
+              moment={view.moment}
+              endsAt={props.endsAt}
+              onPickVictim={props.onPickVictim}
+              onVote={props.onVote}
+              onPlayAgain={props.onPlayAgain}
+            />
+            <button onClick={() => setCardOpen(true)}>{fr.game.myCard}</button>
+          </>
         ) : (
           <SettingsPanel view={view} onChange={props.onSettingsChange} onStart={props.onStart} />
         )}

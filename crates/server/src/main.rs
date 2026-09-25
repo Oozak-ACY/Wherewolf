@@ -1,7 +1,8 @@
 //! Wherewolf game server. Holds every Lobby in memory and relays: each
 //! Player's messages go to the Narrator engine, and each Player gets back the
-//! view the engine produced for them. No game rule lives here. It also lets
-//! each seated Player into the Lobby's video call.
+//! view the engine produced for them. No game rule lives here. It also runs
+//! the timer of each moment of a Game, and lets each seated Player into the
+//! Lobby's video call.
 
 mod call;
 mod protocol;
@@ -9,7 +10,8 @@ mod protocol;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak};
+use std::time::Duration;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, State};
@@ -20,9 +22,12 @@ use futures_util::{SinkExt, StreamExt};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
+use tokio::time::Instant;
 use tower_http::cors::CorsLayer;
 use wherewolf_engine::{
-    Command, Engine, LobbyCode, Outputs, PlayerView, Randomness, Rejection, SeatToken,
+    Command, Engine, LobbyCode, MomentId, Outputs, PlayerView, Randomness, Rejection, SeatToken,
+    Timer,
 };
 
 use call::CallConfig;
@@ -43,6 +48,22 @@ struct Lobby {
     /// older Lobby's call.
     call_room: String,
     connections: HashMap<SeatToken, Connection>,
+    /// The timer of the Game's current moment, if it has one.
+    timer: Option<ArmedTimer>,
+    /// This Lobby itself, for the timer tasks to come back to.
+    me: Weak<Mutex<Lobby>>,
+}
+
+struct ArmedTimer {
+    moment: MomentId,
+    ends_at: Instant,
+    task: JoinHandle<()>,
+}
+
+impl Drop for ArmedTimer {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
 }
 
 struct Connection {
@@ -54,8 +75,46 @@ impl Lobby {
     /// Feeds a command to the engine and relays the resulting views.
     fn apply(&mut self, seat: &SeatToken, command: Command) -> Result<Outputs, Rejection> {
         let outputs = self.engine.handle(seat, command)?;
-        self.relay(&outputs);
+        self.arm_and_relay(&outputs);
         Ok(outputs)
+    }
+
+    /// Arms the timer of the moment the engine is now in, then relays its views.
+    fn arm_and_relay(&mut self, outputs: &Outputs) {
+        self.arm(outputs.timer());
+        self.relay(outputs);
+    }
+
+    /// Keeps the running timer while the moment is the same; otherwise replaces
+    /// it with one that tells the engine when this moment's deadline passes.
+    fn arm(&mut self, timer: Option<Timer>) {
+        let Some(timer) = timer else {
+            self.timer = None;
+            return;
+        };
+        if self
+            .timer
+            .as_ref()
+            .is_some_and(|t| t.moment == timer.moment)
+        {
+            return;
+        }
+        let duration = Duration::from_secs(timer.seconds.into());
+        let lobby = self.me.clone();
+        let task = tokio::spawn(async move {
+            tokio::time::sleep(duration).await;
+            let Some(lobby) = lobby.upgrade() else { return };
+            let mut lobby = lobby.lock().unwrap();
+            // Refused if the moment ended early (e.g. a unanimous pick).
+            if let Ok(outputs) = lobby.engine.deadline_passed(timer.moment) {
+                lobby.arm_and_relay(&outputs);
+            }
+        });
+        self.timer = Some(ArmedTimer {
+            moment: timer.moment,
+            ends_at: Instant::now() + duration,
+            task,
+        });
     }
 
     /// Feeds a seated Player's command to the engine, telling them if it was refused.
@@ -77,11 +136,16 @@ impl Lobby {
     }
 
     fn relay(&self, outputs: &Outputs) {
+        let ends_in_ms = self.timer.as_ref().map(|t| {
+            let left = t.ends_at.saturating_duration_since(Instant::now());
+            u32::try_from(left.as_millis()).unwrap_or(u32::MAX)
+        });
         for (seat, view) in outputs.views() {
             if let Some(connection) = self.connections.get(seat) {
-                let _ = connection
-                    .outbox
-                    .send(ServerMessage::View { view: view.clone() });
+                let _ = connection.outbox.send(ServerMessage::View {
+                    view: view.clone(),
+                    ends_in_ms,
+                });
             }
         }
     }
@@ -159,15 +223,19 @@ async fn create_lobby(State(state): State<AppState>) -> Json<CreatedLobby> {
             break code;
         }
     };
-    let lobby = Lobby {
-        engine: Engine::new(
-            LobbyCode::new(code.clone()),
-            OsRandomness(StdRng::from_entropy()),
-        ),
-        call_room: format!("{code}-{}", random_code()),
-        connections: HashMap::new(),
-    };
-    lobbies.insert(code.clone(), Arc::new(Mutex::new(lobby)));
+    let lobby = Arc::new_cyclic(|me| {
+        Mutex::new(Lobby {
+            engine: Engine::new(
+                LobbyCode::new(code.clone()),
+                OsRandomness(StdRng::from_entropy()),
+            ),
+            call_room: format!("{code}-{}", random_code()),
+            connections: HashMap::new(),
+            timer: None,
+            me: me.clone(),
+        })
+    });
+    lobbies.insert(code.clone(), lobby);
     tracing::info!(code, "lobby created");
     Json(CreatedLobby { code })
 }
@@ -273,6 +341,15 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
             }
             ClientMessage::Start => {
                 lobby.command(&seat, Command::Start, &outbox);
+            }
+            ClientMessage::PickVictim { victim } => {
+                lobby.command(&seat, Command::PickVictim { victim }, &outbox);
+            }
+            ClientMessage::Vote { designated } => {
+                lobby.command(&seat, Command::Vote { designated }, &outbox);
+            }
+            ClientMessage::PlayAgain => {
+                lobby.command(&seat, Command::PlayAgain, &outbox);
             }
         }
     }

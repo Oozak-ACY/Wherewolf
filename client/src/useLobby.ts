@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CallTicket } from "./generated/CallTicket";
+import type { ClientMessage } from "./generated/ClientMessage";
+import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
 import type { Settings } from "./generated/Settings";
@@ -14,6 +16,8 @@ const RETRY_DELAYS_MS = [500, 1000, 2000, 5000];
 export function useLobby(code: string) {
   const [status, setStatus] = useState<LobbyStatus>("idle");
   const [view, setView] = useState<PlayerView | null>(null);
+  // When the Game's current moment ends, in this device's clock (`Date.now()`).
+  const [endsAt, setEndsAt] = useState<number | null>(null);
   const [rejection, setRejection] = useState<Rejection | null>(null);
   const [ticket, setTicket] = useState<CallTicket | null>(null);
 
@@ -36,6 +40,7 @@ export function useLobby(code: string) {
           seated.current = true;
           attempt.current = 0;
           setView(message.view);
+          setEndsAt(message.endsInMs === null ? null : Date.now() + message.endsInMs);
           setRejection(null);
           setStatus("joined");
           break;
@@ -84,15 +89,25 @@ export function useLobby(code: string) {
     socket.current = null;
   }, []);
 
-  const updateSettings = useCallback((settings: Settings) => {
+  const command = useCallback((message: ClientMessage) => {
     const ws = socket.current;
-    if (ws?.readyState === WebSocket.OPEN) send(ws, { type: "updateSettings", settings });
+    if (ws?.readyState === WebSocket.OPEN) send(ws, message);
   }, []);
 
-  const start = useCallback(() => {
-    const ws = socket.current;
-    if (ws?.readyState === WebSocket.OPEN) send(ws, { type: "start" });
-  }, []);
+  const updateSettings = useCallback(
+    (settings: Settings) => command({ type: "updateSettings", settings }),
+    [command],
+  );
+  const start = useCallback(() => command({ type: "start" }), [command]);
+  const pickVictim = useCallback(
+    (victim: PlayerId) => command({ type: "pickVictim", victim }),
+    [command],
+  );
+  const vote = useCallback(
+    (designated: PlayerId | null) => command({ type: "vote", designated }),
+    [command],
+  );
+  const playAgain = useCallback(() => command({ type: "playAgain" }), [command]);
 
   useEffect(
     () => () => {
@@ -103,5 +118,18 @@ export function useLobby(code: string) {
     [],
   );
 
-  return { status, view, rejection, ticket, join, leave, updateSettings, start };
+  return {
+    status,
+    view,
+    endsAt,
+    rejection,
+    ticket,
+    join,
+    leave,
+    updateSettings,
+    start,
+    pickVictim,
+    vote,
+    playAgain,
+  };
 }

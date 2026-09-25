@@ -58,6 +58,13 @@ pub enum Command {
     UpdateSettings { settings: Settings },
     /// Host only: deal the Roles and start the Game.
     Start,
+    /// Werewolves' Turn: choose (or change) the Victim.
+    PickVictim { victim: PlayerId },
+    /// The Vote: designate a Player to eliminate, or abstain with `None`.
+    /// Can be changed until the Vote ends.
+    Vote { designated: Option<PlayerId> },
+    /// Host only, once the Game is over: everyone goes back to the Lobby.
+    PlayAgain,
 }
 
 /// Why a command was refused. The engine's state is unchanged.
@@ -81,6 +88,14 @@ pub enum Rejection {
     RoleCountMismatch,
     /// The Game has started: the Settings and the seats are frozen.
     GameStarted,
+    /// That cannot be done at this moment of the Game.
+    NotNow,
+    /// Someone else's Turn: only the Werewolves pick a Victim.
+    NotYourTurn,
+    /// A Spectator (an eliminated Player) can no longer act or vote.
+    Spectating,
+    /// The chosen Player has been eliminated, or is not in this Game.
+    NotInPlay,
 }
 
 /// Where the engine draws its chance from (dealing the Roles, and later tie
@@ -133,11 +148,16 @@ pub struct RoleCard {
 
 /// A Player as everyone in the Lobby sees them.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct PlayerSummary {
     pub id: PlayerId,
     pub name: String,
     pub connected: bool,
+    /// Always true in the Lobby.
+    pub alive: bool,
+    /// Revealed to everyone at Elimination.
+    pub revealed_role: Option<Role>,
 }
 
 /// How many of each Role are in play.
@@ -277,15 +297,88 @@ pub struct PlayerView {
     pub start_blocked_by: Option<Rejection>,
     /// This Player's own Role, once the Game has started.
     pub role: Option<RoleCard>,
+    /// What is happening in the Game right now. `None` in the Lobby.
+    pub moment: Option<Moment>,
+}
+
+/// A moment of the Game, as one Player sees it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+#[ts(export)]
+pub enum Moment {
+    /// Night: the Werewolves choose their Victim.
+    WerewolvesTurn {
+        /// Each Werewolf's current pick, live. Only the Werewolves see them.
+        picks: Option<Vec<Pick>>,
+    },
+    /// The village wakes up and learns who died in the Night.
+    Dawn { deaths: Vec<PlayerId> },
+    /// Day: the living debate.
+    Discussion,
+    /// Day: the living vote to eliminate someone. Ballots stay secret until
+    /// everyone has voted or the timer ends.
+    Vote {
+        /// Who has already voted (or abstained), but not for whom.
+        voted: Vec<PlayerId>,
+        /// This Player's own vote so far.
+        your_ballot: Option<Ballot>,
+    },
+    /// Day: the Vote revealed, and who it eliminated.
+    VoteResult {
+        /// Who voted for whom, in the order they first voted.
+        ballots: Vec<Ballot>,
+        eliminated: Option<PlayerId>,
+    },
+    /// The Game is over. Every Role is revealed.
+    Victory { winner: Camp },
+}
+
+/// A Werewolf's current choice of Victim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct Pick {
+    pub werewolf: PlayerId,
+    pub victim: PlayerId,
+}
+
+/// One living Player's vote. `designated` is `None` for an abstention.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct Ballot {
+    pub voter: PlayerId,
+    pub designated: Option<PlayerId>,
+}
+
+/// Identifies one moment of a Game, so a timer armed for a moment that has
+/// since ended can be told apart from the current one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MomentId(u32);
+
+/// The deadline of the current moment: once `seconds` have passed since the
+/// moment began, the server calls [`Engine::deadline_passed`] with `moment`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Timer {
+    pub moment: MomentId,
+    pub seconds: u32,
 }
 
 /// What the engine produces after an accepted command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outputs {
     views: Vec<(SeatToken, PlayerView)>,
+    timer: Option<Timer>,
 }
 
 impl Outputs {
+    /// The current moment's timer, if it has one. Unchanged until the moment ends.
+    pub fn timer(&self) -> Option<Timer> {
+        self.timer
+    }
+
     /// The fresh view for the Player holding this seat, if they are seated.
     pub fn view_for(&self, seat: &SeatToken) -> Option<&PlayerView> {
         self.views.iter().find(|(s, _)| s == seat).map(|(_, v)| v)
@@ -312,6 +405,114 @@ struct Seat {
     connected: bool,
     /// Dealt when the Game starts.
     role: Option<Role>,
+    alive: bool,
+}
+
+/// A Game in progress.
+#[derive(Debug)]
+struct Game {
+    state: MomentState,
+    /// Changes every time the moment does.
+    moment_id: MomentId,
+}
+
+/// Where the Game stands.
+#[derive(Debug)]
+enum MomentState {
+    /// In the order they were made.
+    WerewolvesTurn {
+        picks: Vec<Pick>,
+    },
+    Dawn {
+        deaths: Vec<PlayerId>,
+    },
+    Discussion,
+    /// In the order they were cast.
+    Vote {
+        ballots: Vec<Ballot>,
+    },
+    VoteResult {
+        ballots: Vec<Ballot>,
+        eliminated: Option<PlayerId>,
+    },
+    Victory {
+        winner: Camp,
+    },
+}
+
+/// How long the Narrator's announcements stay on screen, in seconds.
+pub const ANNOUNCEMENT_SECONDS: u32 = 10;
+
+/// The Player designated most often, unless several are tied (or nobody was).
+fn most_designated(designated: impl Iterator<Item = PlayerId>) -> Option<PlayerId> {
+    let mut counts: Vec<(PlayerId, usize)> = Vec::new();
+    for id in designated {
+        match counts.iter_mut().find(|(c, _)| *c == id) {
+            Some((_, n)) => *n += 1,
+            None => counts.push((id, 1)),
+        }
+    }
+    let top = counts.iter().map(|&(_, n)| n).max()?;
+    match counts
+        .iter()
+        .filter(|&&(_, n)| n == top)
+        .collect::<Vec<_>>()[..]
+    {
+        [&(id, _)] => Some(id),
+        _ => None,
+    }
+}
+
+impl Game {
+    fn go_to(&mut self, state: MomentState) {
+        self.state = state;
+        self.moment_id = MomentId(self.moment_id.0 + 1);
+    }
+
+    /// `None` once the Game is over: nothing is timed any more.
+    fn timer(&self, timers: &Timers) -> Option<Timer> {
+        let seconds = match self.state {
+            MomentState::WerewolvesTurn { .. } => timers.werewolves,
+            MomentState::Dawn { .. } => ANNOUNCEMENT_SECONDS,
+            MomentState::Discussion => timers.discussion,
+            MomentState::Vote { .. } => timers.vote,
+            MomentState::VoteResult { .. } => ANNOUNCEMENT_SECONDS,
+            MomentState::Victory { .. } => return None,
+        };
+        Some(Timer {
+            moment: self.moment_id,
+            seconds,
+        })
+    }
+
+    fn is_over(&self) -> bool {
+        matches!(self.state, MomentState::Victory { .. })
+    }
+
+    /// This moment as `viewer` may see it.
+    fn moment(&self, viewer: &Seat) -> Moment {
+        match &self.state {
+            MomentState::WerewolvesTurn { picks } => Moment::WerewolvesTurn {
+                picks: (viewer.role == Some(Role::Werewolf)).then(|| picks.clone()),
+            },
+            MomentState::Dawn { deaths } => Moment::Dawn {
+                deaths: deaths.clone(),
+            },
+            MomentState::Discussion => Moment::Discussion,
+            MomentState::Vote { ballots } => Moment::Vote {
+                voted: ballots.iter().map(|b| b.voter).collect(),
+                your_ballot: ballots.iter().find(|b| b.voter == viewer.id).copied(),
+            },
+            MomentState::VoteResult {
+                ballots,
+                eliminated,
+            } => Moment::VoteResult {
+                ballots: ballots.clone(),
+                eliminated: *eliminated,
+            },
+            MomentState::Victory { winner } => Moment::Victory { winner: *winner },
+        }
+    }
 }
 
 pub struct Engine {
@@ -322,7 +523,8 @@ pub struct Engine {
     /// `None` while the Role set follows the Narrator's suggestion.
     custom_roles: Option<RoleCounts>,
     timers: Timers,
-    started: bool,
+    /// `None` in the Lobby.
+    game: Option<Game>,
     randomness: Box<dyn Randomness>,
 }
 
@@ -331,7 +533,7 @@ impl std::fmt::Debug for Engine {
         f.debug_struct("Engine")
             .field("code", &self.code)
             .field("seats", &self.seats)
-            .field("started", &self.started)
+            .field("game", &self.game)
             .finish_non_exhaustive()
     }
 }
@@ -344,7 +546,7 @@ impl Engine {
             next_id: 1,
             custom_roles: None,
             timers: Timers::default(),
-            started: false,
+            game: None,
             randomness: Box::new(randomness),
         }
     }
@@ -373,6 +575,7 @@ impl Engine {
                     name,
                     connected: true,
                     role: None,
+                    alive: true,
                 });
             }
             Command::Leave => {
@@ -404,8 +607,82 @@ impl Engine {
                     return Err(blocker);
                 }
                 self.deal();
-                self.started = true;
+                self.game = Some(Game {
+                    state: MomentState::WerewolvesTurn { picks: Vec::new() },
+                    moment_id: MomentId(0),
+                });
             }
+            Command::PickVictim { victim } => {
+                let werewolf = self.require_living(seat)?;
+                let is_werewolf = self.seat_of(seat)?.role == Some(Role::Werewolf);
+                if !matches!(self.state(), Some(MomentState::WerewolvesTurn { .. })) {
+                    return Err(Rejection::NotNow);
+                }
+                if !is_werewolf {
+                    return Err(Rejection::NotYourTurn);
+                }
+                self.require_in_play(Some(victim))?;
+                let picks = self.picks_mut();
+                picks.retain(|p| p.werewolf != werewolf);
+                picks.push(Pick { werewolf, victim });
+                if let Some(victim) = self.unanimous_victim() {
+                    self.end_night(Some(victim));
+                }
+            }
+            Command::Vote { designated } => {
+                let voter = self.require_living(seat)?;
+                if !matches!(self.state(), Some(MomentState::Vote { .. })) {
+                    return Err(Rejection::NotNow);
+                }
+                self.require_in_play(designated)?;
+                let MomentState::Vote { ballots } = &mut self.game_mut().state else {
+                    unreachable!("checked above")
+                };
+                match ballots.iter_mut().find(|b| b.voter == voter) {
+                    Some(ballot) => ballot.designated = designated,
+                    None => ballots.push(Ballot { voter, designated }),
+                }
+                let everyone_voted = ballots.len() == self.living().count();
+                if everyone_voted {
+                    self.end_vote();
+                }
+            }
+            Command::PlayAgain => {
+                self.require_host(seat)?;
+                if !self.game.as_ref().is_some_and(Game::is_over) {
+                    return Err(Rejection::NotNow);
+                }
+                self.game = None;
+                for seat in &mut self.seats {
+                    seat.role = None;
+                    seat.alive = true;
+                }
+            }
+        }
+        Ok(self.outputs())
+    }
+
+    /// Called by the server when the timer armed for `moment` fires. Refused
+    /// if that moment has already ended.
+    pub fn deadline_passed(&mut self, moment: MomentId) -> Result<Outputs, Rejection> {
+        let game = self.game.as_ref().ok_or(Rejection::NotNow)?;
+        if game.moment_id != moment {
+            return Err(Rejection::NotNow);
+        }
+        match &game.state {
+            MomentState::WerewolvesTurn { .. } => {
+                let victim = self.most_picked();
+                self.end_night(victim);
+            }
+            MomentState::Dawn { .. } => self.unless_won(MomentState::Discussion),
+            MomentState::Discussion => self.game_mut().go_to(MomentState::Vote {
+                ballots: Vec::new(),
+            }),
+            MomentState::Vote { .. } => self.end_vote(),
+            MomentState::VoteResult { .. } => {
+                self.unless_won(MomentState::WerewolvesTurn { picks: Vec::new() })
+            }
+            MomentState::Victory { .. } => return Err(Rejection::NotNow),
         }
         Ok(self.outputs())
     }
@@ -423,8 +700,28 @@ impl Engine {
         }
     }
 
+    /// The Player on this seat, if the Game is running and they are alive.
+    fn require_living(&self, token: &SeatToken) -> Result<PlayerId, Rejection> {
+        let seat = self.seat_of(token)?;
+        if self.game.as_ref().is_none_or(Game::is_over) {
+            Err(Rejection::NotNow)
+        } else if !seat.alive {
+            Err(Rejection::Spectating)
+        } else {
+            Ok(seat.id)
+        }
+    }
+
+    /// The chosen Player, if any, is a living Player of this Game.
+    fn require_in_play(&self, chosen: Option<PlayerId>) -> Result<(), Rejection> {
+        match chosen {
+            Some(id) if !self.living().any(|s| s.id == id) => Err(Rejection::NotInPlay),
+            _ => Ok(()),
+        }
+    }
+
     fn require_lobby(&self) -> Result<(), Rejection> {
-        if self.started {
+        if self.game.is_some() {
             Err(Rejection::GameStarted)
         } else {
             Ok(())
@@ -461,8 +758,109 @@ impl Engine {
         })
     }
 
+    /// The Victim every living Werewolf picked, if they all agree.
+    fn unanimous_victim(&self) -> Option<PlayerId> {
+        let picks = self.picks()?;
+        let mut victims = self
+            .living()
+            .filter(|s| s.role == Some(Role::Werewolf))
+            .map(|s| picks.iter().find(|p| p.werewolf == s.id).map(|p| p.victim));
+        let first = victims.next()??;
+        victims.all(|v| v == Some(first)).then_some(first)
+    }
+
+    /// The Werewolves' picks, during their Turn.
+    fn picks(&self) -> Option<&Vec<Pick>> {
+        match self.state()? {
+            MomentState::WerewolvesTurn { picks } => Some(picks),
+            _ => None,
+        }
+    }
+
+    fn picks_mut(&mut self) -> &mut Vec<Pick> {
+        match &mut self.game_mut().state {
+            MomentState::WerewolvesTurn { picks } => picks,
+            _ => unreachable!("only during the Werewolves' Turn"),
+        }
+    }
+
+    fn state(&self) -> Option<&MomentState> {
+        self.game.as_ref().map(|g| &g.state)
+    }
+
+    /// The Night is over: its Victim, if any, dies, and the village wakes up.
+    fn end_night(&mut self, victim: Option<PlayerId>) {
+        let deaths: Vec<PlayerId> = victim.into_iter().collect();
+        for &id in &deaths {
+            self.eliminate(id);
+        }
+        self.game_mut().go_to(MomentState::Dawn { deaths });
+    }
+
+    /// The Player most picked by the Werewolves, unless several are tied.
+    fn most_picked(&self) -> Option<PlayerId> {
+        most_designated(self.picks()?.iter().map(|p| p.victim))
+    }
+
+    /// The Vote is over: it is revealed, and the most-designated Player dies.
+    fn end_vote(&mut self) {
+        let game = self.game_mut();
+        let MomentState::Vote { ballots } = &game.state else {
+            unreachable!("only a Vote ends")
+        };
+        let ballots = ballots.clone();
+        let eliminated = most_designated(ballots.iter().filter_map(|b| b.designated));
+        game.go_to(MomentState::VoteResult {
+            ballots,
+            eliminated,
+        });
+        if let Some(id) = eliminated {
+            self.eliminate(id);
+        }
+    }
+
+    /// Moves on to `next`, unless a Camp has won: then the Game is over.
+    fn unless_won(&mut self, next: MomentState) {
+        let next = match self.winner() {
+            Some(winner) => MomentState::Victory { winner },
+            None => next,
+        };
+        self.game_mut().go_to(next);
+    }
+
+    /// The Village wins once every Werewolf is dead, which takes precedence;
+    /// the Werewolves win once they are at least as many as the rest.
+    fn winner(&self) -> Option<Camp> {
+        let werewolves = self
+            .living()
+            .filter(|s| s.role.map(Role::camp) == Some(Camp::Werewolves))
+            .count();
+        let others = self.living().count() - werewolves;
+        if werewolves == 0 {
+            Some(Camp::Village)
+        } else if werewolves >= others {
+            Some(Camp::Werewolves)
+        } else {
+            None
+        }
+    }
+
+    fn living(&self) -> impl Iterator<Item = &Seat> {
+        self.seats.iter().filter(|s| s.alive)
+    }
+
+    fn eliminate(&mut self, id: PlayerId) {
+        if let Some(seat) = self.seats.iter_mut().find(|s| s.id == id) {
+            seat.alive = false;
+        }
+    }
+
+    fn game_mut(&mut self) -> &mut Game {
+        self.game.as_mut().expect("the Game is running")
+    }
+
     fn start_blocker(&self) -> Option<Rejection> {
-        if self.started {
+        if self.game.is_some() {
             Some(Rejection::GameStarted)
         } else if self.seats.len() < MIN_PLAYERS {
             Some(Rejection::NotEnoughPlayers)
@@ -488,11 +886,19 @@ impl Engine {
         self.seats.iter_mut().find(|s| &s.token == token)
     }
 
+    fn seat_of(&self, token: &SeatToken) -> Result<&Seat, Rejection> {
+        self.seats
+            .iter()
+            .find(|s| &s.token == token)
+            .ok_or(Rejection::NotSeated)
+    }
+
     fn seat_index(&self, token: &SeatToken) -> Option<usize> {
         self.seats.iter().position(|s| &s.token == token)
     }
 
     fn outputs(&self) -> Outputs {
+        let game_over = self.game.as_ref().is_some_and(Game::is_over);
         let players: Vec<PlayerSummary> = self
             .seats
             .iter()
@@ -500,11 +906,16 @@ impl Engine {
                 id: s.id,
                 name: s.name.clone(),
                 connected: s.connected,
+                alive: s.alive,
+                revealed_role: s.role.filter(|_| !s.alive || game_over),
             })
             .collect();
         // The Host is whoever has been seated the longest.
         let Some(host) = self.seats.first().map(|s| s.id) else {
-            return Outputs { views: Vec::new() };
+            return Outputs {
+                views: Vec::new(),
+                timer: None,
+            };
         };
         let views = self
             .seats
@@ -519,10 +930,14 @@ impl Engine {
                     suggested_roles: self.suggested_roles(),
                     start_blocked_by: self.start_blocker(),
                     role: self.role_card(s),
+                    moment: self.game.as_ref().map(|g| g.moment(s)),
                 };
                 (s.token.clone(), view)
             })
             .collect();
-        Outputs { views }
+        Outputs {
+            views,
+            timer: self.game.as_ref().and_then(|g| g.timer(&self.timers)),
+        }
     }
 }

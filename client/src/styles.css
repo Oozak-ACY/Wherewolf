@@ -237,7 +237,8 @@ button.quiet {
   inset: auto 0 0 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 2px 6px;
   padding: 18px 8px 6px;
   font-size: 0.8rem;
   background: linear-gradient(transparent, rgb(0 0 0 / 0.75));
@@ -245,7 +246,8 @@ button.quiet {
 
 .tile-label .name {
   flex: 1;
-  min-width: 0;
+  /* Badges wrap below rather than squeeze the name out. */
+  min-width: 55%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -451,4 +453,62 @@ button.quiet {
 .role-card.camp-werewolves .fellows {
   color: var(--danger);
   font-weight: 700;
+}
+
+/* The Game: the Narrator's line, its countdown, and this Player's action. */
+.game .narrator {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.game p {
+  margin: 0;
+}
+
+.countdown {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.choices,
+.ballots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.choices button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.choices .muted {
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+button.chosen {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.tile.dead {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+.tile-label .badge.role {
+  background: var(--surface);
+  color: var(--text);
 }

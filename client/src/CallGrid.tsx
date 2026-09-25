@@ -42,6 +42,7 @@ function PlayerTile(props: {
   const { player, isYou, member } = props;
   const classes = ["tile"];
   if (!player.connected) classes.push("offline");
+  if (!player.alive) classes.push("dead");
   if (member?.speaking) classes.push("speaking");
   return (
     <li className={classes.join(" ")}>
@@ -54,6 +55,10 @@ function PlayerTile(props: {
           {isYou && <span className="muted"> ({fr.lobby.you})</span>}
         </span>
         {props.isHost && <span className="badge">{fr.lobby.host}</span>}
+        {player.revealedRole && (
+          <span className="badge role">{fr.roles[player.revealedRole].name}</span>
+        )}
+        {!player.alive && !player.revealedRole && <span className="muted">{fr.game.dead}</span>}
         {!player.connected && <span className="muted">{fr.lobby.offline}</span>}
       </div>
     </li>

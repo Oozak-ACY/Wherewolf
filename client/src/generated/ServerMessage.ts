@@ -6,4 +6,8 @@ import type { Rejection } from "./Rejection";
 /**
  * Server → client.
  */
-export type ServerMessage = { "type": "view", view: PlayerView, } | { "type": "call", ticket: CallTicket, } | { "type": "rejected", reason: Rejection, } | { "type": "lobbyNotFound" };
+export type ServerMessage = { "type": "view", view: PlayerView, 
+/**
+ * Time left in the Game's current moment when this was sent, if it is timed.
+ */
+endsInMs: number | null, } | { "type": "call", ticket: CallTicket, } | { "type": "rejected", reason: Rejection, } | { "type": "lobbyNotFound" };
