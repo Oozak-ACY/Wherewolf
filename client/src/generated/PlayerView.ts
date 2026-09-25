@@ -2,6 +2,10 @@
 import type { LobbyCode } from "./LobbyCode";
 import type { PlayerId } from "./PlayerId";
 import type { PlayerSummary } from "./PlayerSummary";
+import type { Rejection } from "./Rejection";
+import type { RoleCard } from "./RoleCard";
+import type { RoleCounts } from "./RoleCounts";
+import type { Settings } from "./Settings";
 
 /**
  * Everything one Player is allowed to know right now.
@@ -10,4 +14,17 @@ export type PlayerView = { code: LobbyCode, you: PlayerId, host: PlayerId,
 /**
  * In the order they joined.
  */
-players: Array<PlayerSummary>, };
+players: Array<PlayerSummary>, settings: Settings, 
+/**
+ * The Narrator's Role set for the current Player count. While the
+ * Settings use it, they follow the Player count.
+ */
+suggestedRoles: RoleCounts, 
+/**
+ * Why the Host could not start the Game right now, if they could not.
+ */
+startBlockedBy: Rejection | null, 
+/**
+ * This Player's own Role, once the Game has started.
+ */
+role: RoleCard | null, };

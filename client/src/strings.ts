@@ -1,11 +1,17 @@
 // Every piece of text shown to Players, in one place so a second language can
 // be added later.
 
+import type { Camp } from "./generated/Camp";
 import type { Rejection } from "./generated/Rejection";
+import type { Role } from "./generated/Role";
+import type { Timers } from "./generated/Timers";
 import type { MicProblem } from "./useCall";
 
-// Mirrors MAX_PLAYERS in crates/engine/src/lib.rs.
+// Mirror MIN_PLAYERS, MAX_PLAYERS and TIMER_BOUNDS in crates/engine/src/lib.rs.
+export const MIN_PLAYERS = 5;
 export const MAX_PLAYERS = 12;
+export const TIMER_MIN_SECONDS = 10;
+export const TIMER_MAX_SECONDS = 1800;
 
 export const fr = {
   appName: "Wherewolf",
@@ -45,6 +51,77 @@ export const fr = {
     leave: "Quitter le salon",
   },
 
+  settings: {
+    title: "Paramètres",
+    roles: "Rôles",
+    rolesCount: (roles: number, players: number) =>
+      `${roles} rôle${roles > 1 ? "s" : ""} pour ${players} joueur${players > 1 ? "s" : ""}`,
+    suggested: "Composition suggérée",
+    timers: "Minuteries",
+    seconds: "s",
+    less: (role: string) => `Un ${role} de moins`,
+    more: (role: string) => `Un ${role} de plus`,
+    timer: {
+      discussion: "Débat du jour",
+      election: "Élection du Maire",
+      vote: "Vote du village",
+      seer: "Tour de la Voyante",
+      werewolves: "Tour des Loups-Garous",
+      witch: "Tour de la Sorcière",
+      hunter: "Tir du Chasseur",
+      mayorSuccessor: "Succession du Maire",
+      mayorTieBreak: "Égalité tranchée par le Maire",
+    } satisfies Record<keyof Timers, string>,
+    start: "Lancer",
+    waitingForHost: "L'hôte lancera la partie.",
+  },
+
+  game: {
+    started: "La partie a commencé.",
+    myCard: "Voir ma carte",
+  },
+
+  roleCard: {
+    you: "Tu es",
+    camp: "Camp",
+    goal: "Objectif",
+    fellowWerewolves: "Les autres Loups-Garous",
+    loneWerewolf: "Tu es le seul Loup-Garou.",
+    close: "Compris",
+  },
+
+  roles: {
+    werewolf: {
+      name: "Loup-Garou",
+      power: "Chaque nuit, avec les autres Loups-Garous, tu choisis une victime à dévorer.",
+    },
+    seer: {
+      name: "Voyante",
+      power: "Chaque nuit, tu découvres le rôle d'un joueur de ton choix.",
+    },
+    witch: {
+      name: "Sorcière",
+      power:
+        "Tu as une potion de guérison pour sauver la victime des Loups, et une potion de poison pour tuer. Chacune ne sert qu'une fois.",
+    },
+    hunter: {
+      name: "Chasseur",
+      power: "Quand tu meurs, tu abats aussitôt un joueur de ton choix.",
+    },
+    villager: {
+      name: "Villageois",
+      power: "Aucun pouvoir : seulement ton flair et ta voix pour démasquer les Loups.",
+    },
+  } satisfies Record<Role, { name: string; power: string }>,
+
+  camps: {
+    village: { name: "Village", goal: "Éliminer tous les Loups-Garous." },
+    werewolves: {
+      name: "Loups-Garous",
+      goal: "Être au moins aussi nombreux que les autres joueurs encore en vie.",
+    },
+  } satisfies Record<Camp, { name: string; goal: string }>,
+
   call: {
     failed: "Impossible de rejoindre l'appel vidéo.",
     retry: "Réessayer",
@@ -62,5 +139,10 @@ export const fr = {
     lobbyFull: `Le salon est complet : ${MAX_PLAYERS} joueurs maximum.`,
     notSeated: "Tu n'as pas de place dans ce salon.",
     invalidName: "Choisis un prénom de 1 à 20 caractères.",
+    notHost: "Seul l'hôte peut faire ça.",
+    invalidSettings: `Paramètres refusés : ${MAX_PLAYERS} rôles au plus, et chaque minuterie entre ${TIMER_MIN_SECONDS} s et ${TIMER_MAX_SECONDS / 60} min.`,
+    notEnoughPlayers: `Il faut au moins ${MIN_PLAYERS} joueurs.`,
+    roleCountMismatch: "Il faut autant de rôles que de joueurs.",
+    gameStarted: "La partie a déjà commencé.",
   } satisfies Record<Rejection, string>,
 };

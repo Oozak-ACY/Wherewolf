@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { CallTicket } from "./generated/CallTicket";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
+import type { Settings } from "./generated/Settings";
 import { openLobbySocket, parse, send } from "./server";
 import { rememberName, seatToken } from "./seat";
 
@@ -83,6 +84,16 @@ export function useLobby(code: string) {
     socket.current = null;
   }, []);
 
+  const updateSettings = useCallback((settings: Settings) => {
+    const ws = socket.current;
+    if (ws?.readyState === WebSocket.OPEN) send(ws, { type: "updateSettings", settings });
+  }, []);
+
+  const start = useCallback(() => {
+    const ws = socket.current;
+    if (ws?.readyState === WebSocket.OPEN) send(ws, { type: "start" });
+  }, []);
+
   useEffect(
     () => () => {
       seated.current = false;
@@ -92,5 +103,5 @@ export function useLobby(code: string) {
     [],
   );
 
-  return { status, view, rejection, ticket, join, leave };
+  return { status, view, rejection, ticket, join, leave, updateSettings, start };
 }

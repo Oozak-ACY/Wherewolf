@@ -1,8 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CallGrid, Voice } from "./CallGrid";
 import type { PlayerView } from "./generated/PlayerView";
+import type { Rejection } from "./generated/Rejection";
+import type { Settings } from "./generated/Settings";
+import { RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
+import { SettingsPanel } from "./SettingsPanel";
 import { fr } from "./strings";
 import { useCall, type Call } from "./useCall";
 import { useLobby } from "./useLobby";
@@ -113,6 +117,9 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         view={lobby.view}
         call={call}
         reconnecting={lobby.status === "reconnecting"}
+        rejection={lobby.rejection}
+        onSettingsChange={lobby.updateSettings}
+        onStart={lobby.start}
         onLeave={() => {
           call.leave();
           lobby.leave();
@@ -174,9 +181,18 @@ function Lobby(props: {
   view: PlayerView;
   call: Call;
   reconnecting: boolean;
+  rejection: Rejection | null;
+  onSettingsChange: (settings: Settings) => void;
+  onStart: () => void;
   onLeave: () => void;
 }) {
   const { view } = props;
+  const started = view.role !== null;
+  // The card turns face up by itself when the Roles are dealt.
+  const [cardOpen, setCardOpen] = useState(started);
+  useEffect(() => {
+    if (started) setCardOpen(true);
+  }, [started]);
   const url = lobbyUrl(view.code);
   const [copied, setCopied] = useState(false);
 
@@ -198,6 +214,7 @@ function Lobby(props: {
       <section className="call stack">
         {props.reconnecting && <p className="banner">{fr.join.connectionLost}</p>}
         <CallNotices call={call} />
+        {props.rejection && <p className="error">{fr.rejection[props.rejection]}</p>}
         <h2>{fr.lobby.players(view.players.length)}</h2>
         <CallGrid view={view} member={call.member} />
         {call.voices().map((track) => (
@@ -206,16 +223,31 @@ function Lobby(props: {
       </section>
 
       <aside className="stack">
-        <section className="card invite">
-          <p className="muted">{fr.lobby.code}</p>
-          <p className="code">{view.code}</p>
-          <p className="muted">{fr.lobby.shareHint}</p>
-          <p className="link">{url}</p>
-          <div className="row">
-            <button onClick={copy}>{copied ? fr.lobby.copied : fr.lobby.copy}</button>
-            {"share" in navigator && <button onClick={share}>{fr.lobby.share}</button>}
-          </div>
-        </section>
+        {view.role && cardOpen && (
+          <RoleCardView card={view.role} view={view} onClose={() => setCardOpen(false)} />
+        )}
+        {started ? (
+          <section className="card stack">
+            <p>{fr.game.started}</p>
+            <button className="primary" onClick={() => setCardOpen(true)}>
+              {fr.game.myCard}
+            </button>
+          </section>
+        ) : (
+          <SettingsPanel view={view} onChange={props.onSettingsChange} onStart={props.onStart} />
+        )}
+        {!started && (
+          <section className="card invite">
+            <p className="muted">{fr.lobby.code}</p>
+            <p className="code">{view.code}</p>
+            <p className="muted">{fr.lobby.shareHint}</p>
+            <p className="link">{url}</p>
+            <div className="row">
+              <button onClick={copy}>{copied ? fr.lobby.copied : fr.lobby.copy}</button>
+              {"share" in navigator && <button onClick={share}>{fr.lobby.share}</button>}
+            </div>
+          </section>
+        )}
         <button className="quiet" onClick={props.onLeave}>
           {fr.lobby.leave}
         </button>

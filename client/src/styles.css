@@ -310,3 +310,145 @@ button.quiet {
     font-size: 0.9rem;
   }
 }
+
+/* Settings: the Role set and the timers, editable by the Host only. */
+.settings h3 {
+  display: inline;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.settings p {
+  margin: 0;
+}
+
+.role-counts,
+.timers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.role-counts li,
+.timers li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stepper strong {
+  min-width: 1.5em;
+  text-align: center;
+}
+
+.stepper button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.timers {
+  margin-top: 10px;
+}
+
+.timer-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.timer-input input {
+  width: 5.5em;
+  text-align: right;
+}
+
+.settings summary {
+  cursor: pointer;
+}
+
+/* The private Role card, over everything. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  background: rgb(8 6 14 / 0.88);
+  overflow-y: auto;
+}
+
+.role-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+  padding: 20px;
+  border-radius: var(--radius);
+  border: 2px solid var(--card-back-edge);
+  background: linear-gradient(160deg, var(--card-back-top), var(--card-back-bottom));
+  text-align: center;
+}
+
+.role-card p,
+.role-card dl {
+  margin: 0;
+}
+
+.role-card h1 {
+  color: var(--accent);
+}
+
+.role-art {
+  width: 60%;
+  max-width: 200px;
+  aspect-ratio: 3 / 4;
+  margin: 0 auto;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.role-art.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  font-weight: 800;
+  color: var(--accent);
+  background: var(--tile-empty);
+  border: 1px solid var(--card-back-edge);
+}
+
+.role-card dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  text-align: left;
+}
+
+.role-card dt {
+  color: var(--muted);
+}
+
+.role-card dd {
+  margin: 0;
+}
+
+.role-card.camp-werewolves .fellows {
+  color: var(--danger);
+  font-weight: 700;
+}

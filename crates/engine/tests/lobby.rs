@@ -1,9 +1,20 @@
 //! Lobby scripts, driven only through the engine's public commands and outputs.
 
-use wherewolf_engine::{Command, Engine, LobbyCode, Outputs, PlayerView, Rejection, SeatToken};
+use wherewolf_engine::{
+    Command, Engine, LobbyCode, Outputs, PlayerView, Randomness, Rejection, SeatToken,
+};
+
+/// The Lobby never draws at random.
+struct NoRandomness;
+
+impl Randomness for NoRandomness {
+    fn below(&mut self, _: usize) -> usize {
+        unreachable!("the Lobby draws nothing at random")
+    }
+}
 
 fn lobby() -> Engine {
-    Engine::new(LobbyCode::new("LOUPS"))
+    Engine::new(LobbyCode::new("LOUPS"), NoRandomness)
 }
 
 fn seat(name: &str) -> SeatToken {

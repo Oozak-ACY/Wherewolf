@@ -17,10 +17,13 @@ use axum::response::Response;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use futures_util::{SinkExt, StreamExt};
-use rand::Rng;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use tokio::sync::mpsc;
 use tower_http::cors::CorsLayer;
-use wherewolf_engine::{Command, Engine, LobbyCode, Outputs, PlayerView, Rejection, SeatToken};
+use wherewolf_engine::{
+    Command, Engine, LobbyCode, Outputs, PlayerView, Randomness, Rejection, SeatToken,
+};
 
 use call::CallConfig;
 use protocol::{CallTicket, ClientMessage, CreatedLobby, ServerMessage};
@@ -55,6 +58,17 @@ impl Lobby {
         Ok(outputs)
     }
 
+    /// Feeds a seated Player's command to the engine, telling them if it was refused.
+    fn command(&mut self, seat: &Option<SeatToken>, command: Command, outbox: &Outbox) {
+        let result = match seat {
+            Some(token) => self.apply(token, command).map(|_| ()),
+            None => Err(Rejection::NotSeated),
+        };
+        if let Err(reason) = result {
+            let _ = outbox.send(ServerMessage::Rejected { reason });
+        }
+    }
+
     /// Lets the Player seeing `view` into this Lobby's call, under their PlayerId.
     fn call_ticket(&self, call: &CallConfig, view: &PlayerView) -> CallTicket {
         let me = view.players.iter().find(|p| p.id == view.you);
@@ -70,6 +84,15 @@ impl Lobby {
                     .send(ServerMessage::View { view: view.clone() });
             }
         }
+    }
+}
+
+/// The engine's chance, from the operating system's entropy.
+struct OsRandomness(StdRng);
+
+impl Randomness for OsRandomness {
+    fn below(&mut self, n: usize) -> usize {
+        self.0.gen_range(0..n)
     }
 }
 
@@ -137,7 +160,10 @@ async fn create_lobby(State(state): State<AppState>) -> Json<CreatedLobby> {
         }
     };
     let lobby = Lobby {
-        engine: Engine::new(LobbyCode::new(code.clone())),
+        engine: Engine::new(
+            LobbyCode::new(code.clone()),
+            OsRandomness(StdRng::from_entropy()),
+        ),
         call_room: format!("{code}-{}", random_code()),
         connections: HashMap::new(),
     };
@@ -231,12 +257,22 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
                 }
             }
             ClientMessage::Leave => {
-                let Some(token) = seat.take() else { continue };
-                lobby.connections.remove(&token);
-                let _ = lobby.apply(&token, Command::Leave);
-                drop(lobby);
-                state.forget_if_empty(&code);
+                let Some(token) = &seat else { continue };
+                // Refused mid-Game: the seat is kept, and closing the socket
+                // below marks the Player disconnected.
+                if lobby.apply(token, Command::Leave).is_ok() {
+                    lobby.connections.remove(token);
+                    seat = None;
+                    drop(lobby);
+                    state.forget_if_empty(&code);
+                }
                 break;
+            }
+            ClientMessage::UpdateSettings { settings } => {
+                lobby.command(&seat, Command::UpdateSettings { settings }, &outbox);
+            }
+            ClientMessage::Start => {
+                lobby.command(&seat, Command::Start, &outbox);
             }
         }
     }

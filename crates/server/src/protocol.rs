@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
-use wherewolf_engine::{PlayerView, Rejection};
+use wherewolf_engine::{PlayerView, Rejection, Settings};
 
 /// Client → server.
 #[derive(Debug, Clone, Deserialize, TS)]
@@ -20,6 +20,10 @@ pub enum ClientMessage {
     Join { name: String, seat_token: String },
     /// Give up the seat for good.
     Leave,
+    /// Host only: replace the Settings.
+    UpdateSettings { settings: Settings },
+    /// Host only: deal the Roles and start the Game.
+    Start,
 }
 
 /// Server → client.
