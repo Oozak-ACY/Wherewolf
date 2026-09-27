@@ -44,8 +44,14 @@ export function GamePanel(props: Props) {
               onChoose={props.onPickVictim}
             />
           </>
+        ) : moment.picks ? (
+          <ul className="ballots">
+            {moment.picks.map((p) => (
+              <li key={p.werewolf}>{fr.game.ballot(name(p.werewolf), name(p.victim))}</li>
+            ))}
+          </ul>
         ) : (
-          me?.alive && <p className="muted">{fr.game.asleep}</p>
+          <p className="muted">{fr.game.asleep}</p>
         ))}
 
       {moment.type === "vote" && (

@@ -9,6 +9,7 @@ import {
   type Participant,
 } from "livekit-client";
 import type { CallTicket } from "./generated/CallTicket";
+import type { PlayerId } from "./generated/PlayerId";
 import { unlockSpeech } from "./narrator";
 
 /** Why this Player's microphone could not start. */
@@ -42,12 +43,27 @@ const REDRAW_ON = [
 /**
  * The Lobby's LiveKit call. `unlock` must be called inside the "Rejoindre" tap;
  * the call starts once the game server hands over this Player's ticket.
+ *
+ * `audience` is who may see and hear this Player right now, as the Narrator
+ * decides: only they may subscribe to this device's camera and microphone
+ * (ADR 0001, the publisher-side lever). `null` until the first view arrives.
  */
-export function useCall(ticket: CallTicket | null) {
+export function useCall(ticket: CallTicket | null, audience: PlayerId[] | null) {
   const room = useRef<Room | null>(null);
+  const allowed = useRef<PlayerId[] | null>(audience);
   const [status, setStatus] = useState<CallStatus>("idle");
   const [mic, setMic] = useState<MicStatus>("pending");
   const [, redraw] = useReducer((n: number) => n + 1, 0);
+
+  /** Lets only the current audience subscribe to this device's tracks. */
+  const restrictAudience = useCallback(() => {
+    const current = room.current;
+    if (!allowed.current || current?.state !== ConnectionState.Connected) return;
+    current.localParticipant.setTrackSubscriptionPermissions(
+      false,
+      allowed.current.map((id) => ({ participantIdentity: String(id), allowAll: true })),
+    );
+  }, []);
 
   const ensureRoom = useCallback(() => {
     if (room.current) return room.current;
@@ -57,9 +73,11 @@ export function useCall(ticket: CallTicket | null) {
     created.on(RoomEvent.Disconnected, (reason) =>
       setStatus(reason === DisconnectReason.CLIENT_INITIATED ? "idle" : "failed"),
     );
+    // A reconnect may start over: restrict the audience again.
+    created.on(RoomEvent.Reconnected, restrictAudience);
     room.current = created;
     return created;
-  }, []);
+  }, [restrictAudience]);
 
   /** Runs inside the "Rejoindre" tap: unlocks the Narrator's voice and call audio. */
   const unlock = useCallback(() => {
@@ -89,6 +107,13 @@ export function useCall(ticket: CallTicket | null) {
     await me.setCameraEnabled(true).catch(() => {});
   }, [ensureRoom]);
 
+  // The key changes only when the audience does, not on every view.
+  const audienceKey = audience?.join(",") ?? null;
+  useEffect(() => {
+    allowed.current = audience;
+    restrictAudience();
+  }, [audienceKey, restrictAudience]);
+
   const connect = useCallback(
     async (next: CallTicket) => {
       const current = ensureRoom();
@@ -101,9 +126,10 @@ export function useCall(ticket: CallTicket | null) {
         return;
       }
       setStatus("connected");
+      restrictAudience();
       await enableMedia();
     },
-    [ensureRoom, enableMedia],
+    [ensureRoom, enableMedia, restrictAudience],
   );
 
   // Each (re)join to the Lobby brings a fresh ticket; only use it when out of the call.

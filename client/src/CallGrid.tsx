@@ -58,7 +58,7 @@ function PlayerTile(props: {
         {player.revealedRole && (
           <span className="badge role">{fr.roles[player.revealedRole].name}</span>
         )}
-        {!player.alive && !player.revealedRole && <span className="muted">{fr.game.dead}</span>}
+        {!player.alive && !player.revealedRole && <span className="muted">{fr.game.spectator}</span>}
         {!player.connected && <span className="muted">{fr.lobby.offline}</span>}
       </div>
     </li>

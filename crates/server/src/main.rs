@@ -5,6 +5,7 @@
 //! Lobby's video call.
 
 mod call;
+mod media;
 mod protocol;
 
 use std::collections::HashMap;
@@ -31,6 +32,7 @@ use wherewolf_engine::{
 };
 
 use call::CallConfig;
+use media::Media;
 use protocol::{CallTicket, ClientMessage, CreatedLobby, ServerMessage};
 
 /// No 0/O or 1/I, so the code can be read aloud and typed without mistakes.
@@ -50,6 +52,8 @@ struct Lobby {
     connections: HashMap<SeatToken, Connection>,
     /// The timer of the Game's current moment, if it has one.
     timer: Option<ArmedTimer>,
+    /// Applies who may see and hear whom to the call. `None` without video.
+    media: Option<Media>,
     /// This Lobby itself, for the timer tasks to come back to.
     me: Weak<Mutex<Lobby>>,
 }
@@ -79,10 +83,14 @@ impl Lobby {
         Ok(outputs)
     }
 
-    /// Arms the timer of the moment the engine is now in, then relays its views.
+    /// Arms the timer of the moment the engine is now in, relays its views,
+    /// and applies its visibility plan to the call.
     fn arm_and_relay(&mut self, outputs: &Outputs) {
         self.arm(outputs.timer());
         self.relay(outputs);
+        if let Some(media) = &self.media {
+            media.follow(outputs);
+        }
     }
 
     /// Keeps the running timer while the moment is the same; otherwise replaces
@@ -132,7 +140,12 @@ impl Lobby {
     fn call_ticket(&self, call: &CallConfig, view: &PlayerView) -> CallTicket {
         let me = view.players.iter().find(|p| p.id == view.you);
         let name = me.map_or("", |p| p.name.as_str());
-        call.ticket(&self.call_room, &view.you.to_string(), name)
+        call.ticket(
+            &self.call_room,
+            &view.you.to_string(),
+            name,
+            view.receives_anyone(),
+        )
     }
 
     fn relay(&self, outputs: &Outputs) {
@@ -223,15 +236,21 @@ async fn create_lobby(State(state): State<AppState>) -> Json<CreatedLobby> {
             break code;
         }
     };
+    let call_room = format!("{code}-{}", random_code());
+    let media = state
+        .call
+        .as_ref()
+        .map(|call| Media::new(call.clone(), call_room.clone()));
     let lobby = Arc::new_cyclic(|me| {
         Mutex::new(Lobby {
             engine: Engine::new(
                 LobbyCode::new(code.clone()),
                 OsRandomness(StdRng::from_entropy()),
             ),
-            call_room: format!("{code}-{}", random_code()),
+            call_room,
             connections: HashMap::new(),
             timer: None,
+            media,
             me: me.clone(),
         })
     });

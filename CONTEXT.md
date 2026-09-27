@@ -17,7 +17,7 @@ The automated moderator that runs the Game: deals Roles, calls each Phase, colle
 _Avoid_: Game master, GM, MJ, bot
 
 **Spectator**:
-A dead Player. They keep watching the whole Game, including every Night Turn and every Role, and can talk with other Spectators, but the living can no longer see or hear them.
+A dead Player, or someone who joined after the Game started (they play the next Game). They keep watching the whole Game, including every Night Turn and every Role, and can talk with other Spectators, but the living can no longer see or hear them.
 _Avoid_: Ghost, observer, dead player
 
 **Mayor**:
@@ -71,6 +71,10 @@ _Avoid_: Secret mode, blind mode
 **Turn**:
 The moment during the Night when one Role (or the Werewolves together) wakes up to act, while everyone else stays asleep.
 _Avoid_: Step, action phase
+
+**Visibility plan**:
+Who may see and hear whom at the current Moment, as the Narrator decides it: the living see each other by Day, only the Werewolves see each other during their Turn, and Spectators see everyone while no living Player sees them. The media server enforces it.
+_Avoid_: Permissions, rooms
 
 **Moment**:
 One stretch of a Game that the Narrator announces and times on its own: a Night Turn, the dawn announcement, the Day discussion, the Vote, its result, or the victory screen. The current Moment decides what each Player sees and may do.

@@ -102,7 +102,7 @@ function Home({ onOpenLobby }: { onOpenLobby: (code: string) => void }) {
 
 function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
   const lobby = useLobby(code);
-  const call = useCall(lobby.ticket);
+  const call = useCall(lobby.ticket, lobby.view?.audience ?? null);
 
   if (lobby.status === "notFound") {
     return (
@@ -246,7 +246,7 @@ function Lobby(props: {
               onVote={props.onVote}
               onPlayAgain={props.onPlayAgain}
             />
-            <button onClick={() => setCardOpen(true)}>{fr.game.myCard}</button>
+            {view.role && <button onClick={() => setCardOpen(true)}>{fr.game.myCard}</button>}
           </>
         ) : (
           <SettingsPanel view={view} onChange={props.onSettingsChange} onStart={props.onStart} />

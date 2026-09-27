@@ -32,4 +32,14 @@ role: RoleCard | null,
 /**
  * What is happening in the Game right now. `None` in the Lobby.
  */
-moment: Moment | null, };
+moment: Moment | null, 
+/**
+ * The visibility plan, from this Player's side: who they may see and
+ * hear right now.
+ */
+receives: Array<PlayerId>, 
+/**
+ * Who may see and hear this Player right now: the only ones allowed to
+ * receive their camera and microphone.
+ */
+audience: Array<PlayerId>, };

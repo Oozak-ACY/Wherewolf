@@ -78,11 +78,11 @@ export const fr = {
 
   game: {
     myCard: "Voir ma carte",
-    dead: "mort",
+    spectator: "spectateur",
     werewolvesPick: "Choisis la victime avec les autres Loups-Garous.",
     unanimity: "Il faut que tous les Loups-Garous choisissent la même victime.",
     pickedBy: (names: string[]) => `choisi par ${names.join(", ")}`,
-    asleep: "Tu dors. Attends le lever du jour…",
+    asleep: "Tu dors : tu ne vois et n'entends personne jusqu'au lever du jour.",
     votePrompt: "Qui faut-il éliminer ?",
     votedCount: (voted: number, living: number) => `${voted} / ${living} ont voté`,
     abstain: "S'abstenir",
@@ -90,7 +90,8 @@ export const fr = {
     youAbstained: "Tu t'abstiens.",
     ballot: (voter: string, designated: string | null) =>
       designated ? `${voter} → ${designated}` : `${voter} : abstention`,
-    spectating: "Tu es mort. Tu ne peux plus agir ni voter.",
+    spectating:
+      "Tu es spectateur : tu vois et entends toute la partie, mais les vivants ne te voient pas et tu ne peux plus agir ni voter.",
     everyRole: "Les rôles de chacun",
     playAgain: "Rejouer",
     waitingForHostToPlayAgain: "L'hôte peut relancer une partie.",

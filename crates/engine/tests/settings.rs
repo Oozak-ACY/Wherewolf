@@ -377,7 +377,7 @@ fn a_player_who_reconnects_sees_their_role_again() {
 }
 
 #[test]
-fn once_started_the_settings_and_the_seats_are_frozen() {
+fn once_started_the_settings_are_frozen_and_nobody_leaves() {
     let (mut lobby, outputs) = started(5, 9);
     let settings = settings_seen_by(&outputs, "P1");
 
@@ -385,7 +385,6 @@ fn once_started_the_settings_and_the_seats_are_frozen() {
         ("P1", Command::UpdateSettings { settings }),
         ("P1", Command::Start),
         ("P2", Command::Leave),
-        ("Late", join("Late")),
     ] {
         assert_eq!(
             lobby.handle(&seat(who), command),

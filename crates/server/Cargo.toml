@@ -9,8 +9,11 @@ wherewolf-engine = { path = "../engine" }
 axum = { version = "0.7", features = ["ws"] }
 dotenvy = "0.15"
 futures-util = "0.3"
-# Pinned: pre-1.0 with thin docs (ADR 0002). Only token minting for now.
-livekit-api = { version = "=0.8.0", default-features = false, features = ["access-token"] }
+# Pinned: pre-1.0 with thin docs (ADR 0002). Mints tokens and drives call permissions.
+# Not 0.8.0: with `services` on it expects prost 0.14, but livekit-protocol 0.7.13
+# (its only compatible version) is built on prost 0.12, so it does not compile.
+livekit-api = { version = "=0.7.1", default-features = false, features = ["access-token", "services", "rustls-tls-webpki-roots"] }
+livekit-protocol = "=0.7.13"
 rand = "0.8"
 serde.workspace = true
 serde_json.workspace = true

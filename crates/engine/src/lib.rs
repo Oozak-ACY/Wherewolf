@@ -33,7 +33,7 @@ impl SeatToken {
 }
 
 /// The public identity of a Player within a Lobby.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct PlayerId(u32);
 
@@ -47,6 +47,7 @@ impl std::fmt::Display for PlayerId {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
     /// Take a seat in the Lobby, or reclaim the seat this token already holds.
+    /// After the start, a newcomer is a Spectator until the next Game.
     Join { name: String },
     /// Give up the seat for good. If it was the Host's, the Player who joined
     /// next becomes Host.
@@ -299,6 +300,19 @@ pub struct PlayerView {
     pub role: Option<RoleCard>,
     /// What is happening in the Game right now. `None` in the Lobby.
     pub moment: Option<Moment>,
+    /// The visibility plan, from this Player's side: who they may see and
+    /// hear right now.
+    pub receives: Vec<PlayerId>,
+    /// Who may see and hear this Player right now: the only ones allowed to
+    /// receive their camera and microphone.
+    pub audience: Vec<PlayerId>,
+}
+
+impl PlayerView {
+    /// False while this Player may see and hear nobody at all.
+    pub fn receives_anyone(&self) -> bool {
+        !self.receives.is_empty()
+    }
 }
 
 /// A moment of the Game, as one Player sees it.
@@ -312,7 +326,8 @@ pub struct PlayerView {
 pub enum Moment {
     /// Night: the Werewolves choose their Victim.
     WerewolvesTurn {
-        /// Each Werewolf's current pick, live. Only the Werewolves see them.
+        /// Each Werewolf's current pick, live. Only the Werewolves and the
+        /// Spectators see them.
         picks: Option<Vec<Pick>>,
     },
     /// The village wakes up and learns who died in the Night.
@@ -493,7 +508,9 @@ impl Game {
     fn moment(&self, viewer: &Seat) -> Moment {
         match &self.state {
             MomentState::WerewolvesTurn { picks } => Moment::WerewolvesTurn {
-                picks: (viewer.role == Some(Role::Werewolf)).then(|| picks.clone()),
+                // The Werewolves and the Spectators see them.
+                picks: (viewer.role == Some(Role::Werewolf) || !viewer.alive)
+                    .then(|| picks.clone()),
             },
             MomentState::Dawn { deaths } => Moment::Dawn {
                 deaths: deaths.clone(),
@@ -563,7 +580,6 @@ impl Engine {
                     reclaimed.connected = true;
                     return Ok(self.outputs());
                 }
-                self.require_lobby()?;
                 if self.seats.len() >= MAX_PLAYERS {
                     return Err(Rejection::LobbyFull);
                 }
@@ -575,7 +591,8 @@ impl Engine {
                     name,
                     connected: true,
                     role: None,
-                    alive: true,
+                    // Someone arriving after the start watches as a Spectator.
+                    alive: self.game.is_none(),
                 });
             }
             Command::Leave => {
@@ -897,19 +914,66 @@ impl Engine {
         self.seats.iter().position(|s| &s.token == token)
     }
 
-    fn outputs(&self) -> Outputs {
-        let game_over = self.game.as_ref().is_some_and(Game::is_over);
-        let players: Vec<PlayerSummary> = self
-            .seats
+    /// The visibility plan: whether `receiver` may see and hear `sender` now.
+    fn may_receive(&self, receiver: &Seat, sender: &Seat) -> bool {
+        if receiver.id == sender.id {
+            return false;
+        }
+        let werewolf = |s: &Seat| s.role == Some(Role::Werewolf);
+        match self.state() {
+            // The Lobby and the victory screen: everyone sees everyone.
+            None | Some(MomentState::Victory { .. }) => true,
+            // Spectators see everyone; the living never see the Spectators.
+            Some(_) if !receiver.alive => true,
+            Some(_) if !sender.alive => false,
+            Some(MomentState::WerewolvesTurn { .. }) => werewolf(receiver) && werewolf(sender),
+            Some(
+                MomentState::Dawn { .. }
+                | MomentState::Discussion
+                | MomentState::Vote { .. }
+                | MomentState::VoteResult { .. },
+            ) => true,
+        }
+    }
+
+    /// Everyone `receiver` may see and hear now.
+    fn received_by(&self, receiver: &Seat) -> Vec<PlayerId> {
+        self.seats
+            .iter()
+            .filter(|s| self.may_receive(receiver, s))
+            .map(|s| s.id)
+            .collect()
+    }
+
+    /// Everyone who may see and hear `sender` now.
+    fn audience_of(&self, sender: &Seat) -> Vec<PlayerId> {
+        self.seats
+            .iter()
+            .filter(|s| self.may_receive(s, sender))
+            .map(|s| s.id)
+            .collect()
+    }
+
+    /// Every seated Player, with the Roles `viewer` may know: the Roles of
+    /// the eliminated, and every Role for a Spectator or once the Game is over.
+    fn players_seen_by(&self, viewer: &Seat) -> Vec<PlayerSummary> {
+        let sees_every_role = self
+            .game
+            .as_ref()
+            .is_some_and(|g| g.is_over() || !viewer.alive);
+        self.seats
             .iter()
             .map(|s| PlayerSummary {
                 id: s.id,
                 name: s.name.clone(),
                 connected: s.connected,
                 alive: s.alive,
-                revealed_role: s.role.filter(|_| !s.alive || game_over),
+                revealed_role: s.role.filter(|_| !s.alive || sees_every_role),
             })
-            .collect();
+            .collect()
+    }
+
+    fn outputs(&self) -> Outputs {
         // The Host is whoever has been seated the longest.
         let Some(host) = self.seats.first().map(|s| s.id) else {
             return Outputs {
@@ -925,12 +989,14 @@ impl Engine {
                     code: self.code.clone(),
                     you: s.id,
                     host,
-                    players: players.clone(),
+                    players: self.players_seen_by(s),
                     settings: self.settings(),
                     suggested_roles: self.suggested_roles(),
                     start_blocked_by: self.start_blocker(),
                     role: self.role_card(s),
                     moment: self.game.as_ref().map(|g| g.moment(s)),
+                    receives: self.received_by(s),
+                    audience: self.audience_of(s),
                 };
                 (s.token.clone(), view)
             })

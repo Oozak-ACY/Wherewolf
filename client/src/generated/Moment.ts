@@ -9,7 +9,8 @@ import type { PlayerId } from "./PlayerId";
  */
 export type Moment = { "type": "werewolvesTurn", 
 /**
- * Each Werewolf's current pick, live. Only the Werewolves see them.
+ * Each Werewolf's current pick, live. Only the Werewolves and the
+ * Spectators see them.
  */
 picks: Array<Pick> | null, } | { "type": "dawn", deaths: Array<PlayerId>, } | { "type": "discussion" } | { "type": "vote", 
 /**

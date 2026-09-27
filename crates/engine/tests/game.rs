@@ -216,7 +216,8 @@ fn a_unanimous_pick_kills_the_victim_at_dawn_and_reveals_their_role() {
         assert_eq!(seen.revealed_role, Some(Role::Villager));
     }
     assert!(table.is_alive(&werewolves[0]));
-    assert_eq!(table.summary("P1", &werewolves[0]).revealed_role, None);
+    let survivor = table.villagers()[1].to_string();
+    assert_eq!(table.summary(&survivor, &werewolves[0]).revealed_role, None);
 }
 
 impl Table {
