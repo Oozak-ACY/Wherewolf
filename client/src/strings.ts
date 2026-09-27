@@ -97,9 +97,10 @@ export const fr = {
     waitingForHostToPlayAgain: "L'hôte peut relancer une partie.",
   },
 
-  // What the Narrator announces at each moment, shown in the banner.
+  // What the Narrator announces at each moment, shown in the banner and read aloud.
+  // Keep them short: each one mutes every mic while it plays.
   narrator: {
-    werewolvesTurn: "La nuit tombe. Les Loups-Garous se réveillent et choisissent leur victime…",
+    werewolvesTurn: "La nuit tombe. Les Loups-Garous se réveillent.",
     dawnNobody: "Le jour se lève. Personne n'est mort cette nuit.",
     dawnDeaths: (victims: string) => `Le jour se lève. Cette nuit, le village a perdu ${victims}.`,
     discussion: "Le village débat : qui sont les Loups-Garous ?",
@@ -108,8 +109,8 @@ export const fr = {
       `Le village a éliminé ${name}, qui était ${role}.`,
     voteNobody: "Personne n'est éliminé.",
     victory: {
-      village: "Victoire du Village ! Tous les Loups-Garous sont morts.",
-      werewolves: "Victoire des Loups-Garous ! Ils ont pris le contrôle du village.",
+      village: "Le Village gagne : les Loups-Garous sont morts.",
+      werewolves: "Les Loups-Garous gagnent : le village est à eux.",
     } satisfies Record<Camp, string>,
   },
 

@@ -5,6 +5,7 @@ import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
 import type { Settings } from "./generated/Settings";
+import { narratorLine } from "./narrator";
 import { RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
@@ -12,6 +13,8 @@ import { SettingsPanel } from "./SettingsPanel";
 import { fr } from "./strings";
 import { useCall, type Call } from "./useCall";
 import { useLobby } from "./useLobby";
+import { useNarrator } from "./useNarrator";
+import { useWakeLock } from "./useWakeLock";
 
 const LOBBY_PATH = /^\/l\/([A-Za-z0-9]+)\/?$/;
 
@@ -218,6 +221,8 @@ function Lobby(props: {
   const share = () => navigator.share({ title: fr.lobby.shareTitle, url }).catch(() => {});
 
   const { call } = props;
+  useNarrator(view.moment && narratorLine(view.moment, view.players), call.narratorMic);
+  useWakeLock(view.moment !== null);
 
   return (
     <div className="lobby">

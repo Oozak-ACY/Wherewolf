@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   ConnectionState,
   DisconnectReason,
@@ -159,6 +159,15 @@ export function useCall(ticket: CallTicket | null, audience: PlayerId[] | null) 
     };
   };
 
+  /** Mutes this Player's microphone while the Narrator speaks, then brings it back. */
+  const narratorMic = useMemo(() => {
+    const set = (muted: boolean) => {
+      const mic = room.current?.localParticipant.getTrackPublication(Track.Source.Microphone);
+      void (muted ? mic?.mute() : mic?.unmute())?.catch(() => {});
+    };
+    return { mute: () => set(true), unmute: () => set(false) };
+  }, []);
+
   /** Every remote voice this device currently receives. */
   const voices = (): Track[] => {
     const current = room.current;
@@ -176,6 +185,7 @@ export function useCall(ticket: CallTicket | null, audience: PlayerId[] | null) 
     audioBlocked: status === "connected" && !(room.current?.canPlaybackAudio ?? true),
     member,
     voices,
+    narratorMic,
     unlock,
     retryMic: enableMedia,
     retryConnect: () => ticket && void connect(ticket),

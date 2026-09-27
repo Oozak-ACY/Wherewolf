@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "generate-types": "cargo test --manifest-path ../Cargo.toml --workspace export_bindings"
+    "generate-types": "cargo test --manifest-path ../Cargo.toml --workspace export_bindings",
+    "test": "vitest run"
   },
   "dependencies": {
     "livekit-client": "^2.22.3",
@@ -19,6 +20,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "typescript": "^7.0.2",
-    "vite": "^8.3.1"
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
   }
 }

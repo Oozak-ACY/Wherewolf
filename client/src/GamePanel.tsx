@@ -3,6 +3,7 @@ import type { Moment } from "./generated/Moment";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
+import { narratorLine } from "./narrator";
 import { fr } from "./strings";
 
 type Props = {
@@ -24,7 +25,7 @@ export function GamePanel(props: Props) {
   return (
     <section className="card stack game">
       <p className="narrator" aria-live="polite">
-        {narratorLine(moment, view.players, name)}
+        {narratorLine(moment, view.players)}
       </p>
       {props.endsAt !== null && <Countdown endsAt={props.endsAt} />}
       {me && !me.alive && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}
@@ -116,37 +117,6 @@ export function GamePanel(props: Props) {
         ))}
     </section>
   );
-}
-
-function narratorLine(
-  moment: Moment,
-  players: PlayerSummary[],
-  name: (id: PlayerId) => string,
-): string {
-  const roleOf = (id: PlayerId) => {
-    const role = players.find((p) => p.id === id)?.revealedRole;
-    return role ? fr.roles[role].name : "?";
-  };
-  switch (moment.type) {
-    case "werewolvesTurn":
-      return fr.narrator.werewolvesTurn;
-    case "dawn":
-      return moment.deaths.length === 0
-        ? fr.narrator.dawnNobody
-        : fr.narrator.dawnDeaths(
-            moment.deaths.map((id) => `${name(id)} (${roleOf(id)})`).join(", "),
-          );
-    case "discussion":
-      return fr.narrator.discussion;
-    case "vote":
-      return fr.narrator.vote;
-    case "voteResult":
-      return moment.eliminated === null
-        ? fr.narrator.voteNobody
-        : fr.narrator.voteEliminated(name(moment.eliminated), roleOf(moment.eliminated));
-    case "victory":
-      return fr.narrator.victory[moment.winner];
-  }
 }
 
 /** One button per living Player; the current choice stands out. */
