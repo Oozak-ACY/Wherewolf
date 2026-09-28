@@ -59,6 +59,8 @@ pub enum Command {
     UpdateSettings { settings: Settings },
     /// Host only: deal the Roles and start the Game.
     Start,
+    /// Seer's Turn: see the Role of another living Player, once.
+    Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.
     PickVictim { victim: PlayerId },
     /// The Vote: designate a Player to eliminate, or abstain with `None`.
@@ -91,12 +93,15 @@ pub enum Rejection {
     GameStarted,
     /// That cannot be done at this moment of the Game.
     NotNow,
-    /// Someone else's Turn: only the Werewolves pick a Victim.
+    /// Someone else's Turn: only the Seer inspects, only the Werewolves pick
+    /// a Victim.
     NotYourTurn,
     /// A Spectator (an eliminated Player) can no longer act or vote.
     Spectating,
     /// The chosen Player has been eliminated, or is not in this Game.
     NotInPlay,
+    /// A Player cannot choose themselves for this.
+    Yourself,
 }
 
 /// Where the engine draws its chance from (dealing the Roles, and later tie
@@ -324,6 +329,12 @@ impl PlayerView {
 )]
 #[ts(export)]
 pub enum Moment {
+    /// Night: the Seer inspects another living Player's Role.
+    SeersTurn {
+        /// What the Seer learned this Turn. Only the Seer and the Spectators
+        /// see it.
+        inspection: Option<Inspection>,
+    },
     /// Night: the Werewolves choose their Victim.
     WerewolvesTurn {
         /// Each Werewolf's current pick, live. Only the Werewolves and the
@@ -350,6 +361,14 @@ pub enum Moment {
     },
     /// The Game is over. Every Role is revealed.
     Victory { winner: Camp },
+}
+
+/// The Role the Seer saw on a Player.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct Inspection {
+    pub player: PlayerId,
+    pub role: Role,
 }
 
 /// A Werewolf's current choice of Victim.
@@ -434,6 +453,9 @@ struct Game {
 /// Where the Game stands.
 #[derive(Debug)]
 enum MomentState {
+    SeersTurn {
+        inspection: Option<Inspection>,
+    },
     /// In the order they were made.
     WerewolvesTurn {
         picks: Vec<Pick>,
@@ -487,6 +509,7 @@ impl Game {
     /// `None` once the Game is over: nothing is timed any more.
     fn timer(&self, timers: &Timers) -> Option<Timer> {
         let seconds = match self.state {
+            MomentState::SeersTurn { .. } => timers.seer,
             MomentState::WerewolvesTurn { .. } => timers.werewolves,
             MomentState::Dawn { .. } => ANNOUNCEMENT_SECONDS,
             MomentState::Discussion => timers.discussion,
@@ -507,6 +530,12 @@ impl Game {
     /// This moment as `viewer` may see it.
     fn moment(&self, viewer: &Seat) -> Moment {
         match &self.state {
+            MomentState::SeersTurn { inspection } => Moment::SeersTurn {
+                // The Seer and the Spectators see it.
+                inspection: (viewer.role == Some(Role::Seer) || !viewer.alive)
+                    .then_some(*inspection)
+                    .flatten(),
+            },
             MomentState::WerewolvesTurn { picks } => Moment::WerewolvesTurn {
                 // The Werewolves and the Spectators see them.
                 picks: (viewer.role == Some(Role::Werewolf) || !viewer.alive)
@@ -625,9 +654,35 @@ impl Engine {
                 }
                 self.deal();
                 self.game = Some(Game {
-                    state: MomentState::WerewolvesTurn { picks: Vec::new() },
+                    state: self.nightfall(),
                     moment_id: MomentId(0),
                 });
+            }
+            Command::Inspect { player } => {
+                let seer = self.require_living(seat)?;
+                let is_seer = self.seat_of(seat)?.role == Some(Role::Seer);
+                let Some(MomentState::SeersTurn { inspection }) = self.state() else {
+                    return Err(Rejection::NotNow);
+                };
+                if !is_seer {
+                    return Err(Rejection::NotYourTurn);
+                }
+                // She inspects only once a Night.
+                if inspection.is_some() {
+                    return Err(Rejection::NotNow);
+                }
+                self.require_in_play(Some(player))?;
+                if player == seer {
+                    return Err(Rejection::Yourself);
+                }
+                let role = self
+                    .living()
+                    .find(|s| s.id == player)
+                    .and_then(|s| s.role)
+                    .expect("a living Player of this Game has a Role");
+                if let MomentState::SeersTurn { inspection } = &mut self.game_mut().state {
+                    *inspection = Some(Inspection { player, role });
+                }
             }
             Command::PickVictim { victim } => {
                 let werewolf = self.require_living(seat)?;
@@ -687,6 +742,7 @@ impl Engine {
             return Err(Rejection::NotNow);
         }
         match &game.state {
+            MomentState::SeersTurn { .. } => self.game_mut().go_to(Self::werewolves_turn()),
             MomentState::WerewolvesTurn { .. } => {
                 let victim = self.most_picked();
                 self.end_night(victim);
@@ -696,9 +752,7 @@ impl Engine {
                 ballots: Vec::new(),
             }),
             MomentState::Vote { .. } => self.end_vote(),
-            MomentState::VoteResult { .. } => {
-                self.unless_won(MomentState::WerewolvesTurn { picks: Vec::new() })
-            }
+            MomentState::VoteResult { .. } => self.unless_won(self.nightfall()),
             MomentState::Victory { .. } => return Err(Rejection::NotNow),
         }
         Ok(self.outputs())
@@ -803,6 +857,20 @@ impl Engine {
 
     fn state(&self) -> Option<&MomentState> {
         self.game.as_ref().map(|g| &g.state)
+    }
+
+    /// The first Turn of the Night. The Night order is the Seer, then the
+    /// Werewolves; the Turn of a Role nobody living holds is skipped.
+    fn nightfall(&self) -> MomentState {
+        if self.living().any(|s| s.role == Some(Role::Seer)) {
+            MomentState::SeersTurn { inspection: None }
+        } else {
+            Self::werewolves_turn()
+        }
+    }
+
+    fn werewolves_turn() -> MomentState {
+        MomentState::WerewolvesTurn { picks: Vec::new() }
     }
 
     /// The Night is over: its Victim, if any, dies, and the village wakes up.
@@ -926,6 +994,8 @@ impl Engine {
             // Spectators see everyone; the living never see the Spectators.
             Some(_) if !receiver.alive => true,
             Some(_) if !sender.alive => false,
+            // The Seer acts alone, seeing and heard by no one.
+            Some(MomentState::SeersTurn { .. }) => false,
             Some(MomentState::WerewolvesTurn { .. }) => werewolf(receiver) && werewolf(sender),
             Some(
                 MomentState::Dawn { .. }

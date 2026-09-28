@@ -99,6 +99,10 @@ export function useLobby(code: string) {
     [command],
   );
   const start = useCallback(() => command({ type: "start" }), [command]);
+  const inspect = useCallback(
+    (player: PlayerId) => command({ type: "inspect", player }),
+    [command],
+  );
   const pickVictim = useCallback(
     (victim: PlayerId) => command({ type: "pickVictim", victim }),
     [command],
@@ -128,6 +132,7 @@ export function useLobby(code: string) {
     leave,
     updateSettings,
     start,
+    inspect,
     pickVictim,
     vote,
     playAgain,

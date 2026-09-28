@@ -342,3 +342,32 @@ fn a_latecomer_plays_the_next_game() {
     assert!(late.alive);
     assert_eq!(table.view("P1").players.len(), 6);
 }
+
+#[test]
+fn during_the_seers_turn_she_and_every_living_player_see_and_hear_nobody() {
+    let mut table = Table::lobby(7);
+    let mut settings = table.view("P1").settings.clone();
+    settings.roles = RoleCounts {
+        werewolf: 2,
+        seer: 1,
+        witch: 0,
+        hunter: 0,
+        villager: 4,
+    };
+    table.act("P1", Command::UpdateSettings { settings });
+    table.act("P1", Command::Start);
+    table.act("Late", join("Late"));
+    let late = table.id("Late");
+    let seer = table.with_role(Role::Seer)[0].clone();
+    assert!(matches!(
+        table.view(&seer).moment,
+        Some(Moment::SeersTurn { .. })
+    ));
+
+    for name in &table.names {
+        assert_eq!(table.receives(name), BTreeSet::new(), "{name}");
+        assert_eq!(table.audience(name), BTreeSet::from([late]), "{name}");
+    }
+    table.names.push("Late".to_string());
+    assert_eq!(table.receives("Late"), table.others("Late"));
+}

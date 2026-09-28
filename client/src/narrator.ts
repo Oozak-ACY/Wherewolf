@@ -13,6 +13,8 @@ export function narratorLine(moment: Moment, players: PlayerSummary[]): string {
     return role ? fr.roles[role].name : "?";
   };
   switch (moment.type) {
+    case "seersTurn":
+      return fr.narrator.seersTurn;
     case "werewolvesTurn":
       return fr.narrator.werewolvesTurn;
     case "dawn":

@@ -10,6 +10,7 @@ type Props = {
   view: PlayerView;
   moment: Moment;
   endsAt: number | null;
+  onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onVote: (designated: PlayerId | null) => void;
   onPlayAgain: () => void;
@@ -29,6 +30,24 @@ export function GamePanel(props: Props) {
       </p>
       {props.endsAt !== null && <Countdown endsAt={props.endsAt} />}
       {me && !me.alive && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}
+
+      {moment.type === "seersTurn" &&
+        (moment.inspection ? (
+          <p>{fr.game.seerSaw(name(moment.inspection.player), fr.roles[moment.inspection.role].name)}</p>
+        ) : view.role?.role === "seer" && me?.alive ? (
+          <>
+            <p>{fr.game.seerPick}</p>
+            <ChoiceList
+              players={living.filter((p) => p.id !== view.you)}
+              chosen={null}
+              onChoose={props.onInspect}
+            />
+          </>
+        ) : me?.alive ? (
+          <p className="muted">{fr.game.asleep}</p>
+        ) : (
+          <p className="muted">{fr.game.seerSawNothing}</p>
+        ))}
 
       {moment.type === "werewolvesTurn" &&
         (moment.picks && me?.alive ? (

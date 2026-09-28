@@ -79,6 +79,9 @@ export const fr = {
   game: {
     myCard: "Voir ma carte",
     spectator: "spectateur",
+    seerPick: "Choisis le joueur dont tu veux découvrir le rôle.",
+    seerSaw: (name: string, role: string) => `${name} est ${role}.`,
+    seerSawNothing: "La Voyante n'a encore rien vu.",
     werewolvesPick: "Choisis la victime avec les autres Loups-Garous.",
     unanimity: "Il faut que tous les Loups-Garous choisissent la même victime.",
     pickedBy: (names: string[]) => `choisi par ${names.join(", ")}`,
@@ -100,7 +103,8 @@ export const fr = {
   // What the Narrator announces at each moment, shown in the banner and read aloud.
   // Keep them short: each one mutes every mic while it plays.
   narrator: {
-    werewolvesTurn: "La nuit tombe. Les Loups-Garous se réveillent.",
+    seersTurn: "La nuit tombe. La Voyante se réveille.",
+    werewolvesTurn: "Les Loups-Garous se réveillent.",
     dawnNobody: "Le jour se lève. Personne n'est mort cette nuit.",
     dawnDeaths: (victims: string) => `Le jour se lève. Cette nuit, le village a perdu ${victims}.`,
     discussion: "Le village débat : qui sont les Loups-Garous ?",
@@ -181,5 +185,6 @@ export const fr = {
     notYourTurn: "Ce n'est pas ton tour.",
     spectating: "Tu es mort : tu ne peux plus agir.",
     notInPlay: "Ce joueur n'est plus en jeu.",
+    yourself: "Tu ne peux pas te choisir toi-même.",
   } satisfies Record<Rejection, string>,
 };

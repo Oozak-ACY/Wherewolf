@@ -126,6 +126,7 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         rejection={lobby.rejection}
         onSettingsChange={lobby.updateSettings}
         onStart={lobby.start}
+        onInspect={lobby.inspect}
         onPickVictim={lobby.pickVictim}
         onVote={lobby.vote}
         onPlayAgain={lobby.playAgain}
@@ -194,6 +195,7 @@ function Lobby(props: {
   rejection: Rejection | null;
   onSettingsChange: (settings: Settings) => void;
   onStart: () => void;
+  onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onVote: (designated: PlayerId | null) => void;
   onPlayAgain: () => void;
@@ -247,6 +249,7 @@ function Lobby(props: {
               view={view}
               moment={view.moment}
               endsAt={props.endsAt}
+              onInspect={props.onInspect}
               onPickVictim={props.onPickVictim}
               onVote={props.onVote}
               onPlayAgain={props.onPlayAgain}

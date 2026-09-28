@@ -24,6 +24,8 @@ pub enum ClientMessage {
     UpdateSettings { settings: Settings },
     /// Host only: deal the Roles and start the Game.
     Start,
+    /// Seer's Turn: see the Role of another living Player, once.
+    Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.
     PickVictim { victim: PlayerId },
     /// The Vote: designate a Player, or abstain with `null`. Can be changed
