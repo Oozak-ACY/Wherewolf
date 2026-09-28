@@ -4,7 +4,7 @@ import type { Role } from "./generated/Role";
 import type { RoleCounts } from "./generated/RoleCounts";
 import type { Settings } from "./generated/Settings";
 import type { Timers } from "./generated/Timers";
-import { fr, MAX_PLAYERS, TIMER_MAX_SECONDS, TIMER_MIN_SECONDS } from "./strings";
+import { fr, MAX_PLAYERS, MAX_WITCHES, TIMER_MAX_SECONDS, TIMER_MIN_SECONDS } from "./strings";
 
 // The order the Night calls them in, then the Villagers.
 const ROLES: Role[] = ["werewolf", "seer", "witch", "hunter", "villager"];
@@ -51,7 +51,7 @@ export function SettingsPanel({ view, onChange, onStart }: Props) {
                   <strong>{count}</strong>
                   <button
                     aria-label={fr.settings.more(name)}
-                    disabled={roleTotal >= MAX_PLAYERS}
+                    disabled={roleTotal >= MAX_PLAYERS || (role === "witch" && count >= MAX_WITCHES)}
                     onClick={() => setRoles({ ...settings.roles, [role]: count + 1 })}
                   >
                     +

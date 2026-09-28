@@ -192,8 +192,10 @@ fn settings_out_of_bounds_are_refused() {
     instant_timer.timers.seer = 0;
     let mut endless_timer = valid.clone();
     endless_timer.timers.discussion = 24 * 3600;
+    let mut two_witches = valid.clone();
+    two_witches.roles.witch = 2;
 
-    for settings in [too_many_roles, instant_timer, endless_timer] {
+    for settings in [too_many_roles, instant_timer, endless_timer, two_witches] {
         assert_eq!(
             lobby.handle(&seat("P1"), Command::UpdateSettings { settings }),
             Err(Rejection::InvalidSettings)

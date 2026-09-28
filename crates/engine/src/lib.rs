@@ -466,6 +466,9 @@ impl Outputs {
 pub const MIN_PLAYERS: usize = 5;
 pub const MAX_PLAYERS: usize = 12;
 
+/// A Game has at most one Witch: her potions are the Game's, not hers.
+pub const MAX_WITCHES: u8 = 1;
+
 /// Long enough for a first name, short enough to fit under a video tile.
 pub const MAX_NAME_CHARS: usize = 20;
 
@@ -689,7 +692,10 @@ impl Engine {
                     .all()
                     .iter()
                     .all(|t| TIMER_BOUNDS.contains(t));
-                if settings.roles.total() > MAX_PLAYERS || !timers_valid {
+                if settings.roles.total() > MAX_PLAYERS
+                    || settings.roles.witch > MAX_WITCHES
+                    || !timers_valid
+                {
                     return Err(Rejection::InvalidSettings);
                 }
                 self.custom_roles = Some(settings.roles).filter(|&r| r != self.suggested_roles());

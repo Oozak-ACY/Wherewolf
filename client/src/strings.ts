@@ -7,9 +7,10 @@ import type { Role } from "./generated/Role";
 import type { Timers } from "./generated/Timers";
 import type { MicProblem } from "./useCall";
 
-// Mirror MIN_PLAYERS, MAX_PLAYERS and TIMER_BOUNDS in crates/engine/src/lib.rs.
+// Mirror MIN_PLAYERS, MAX_PLAYERS, MAX_WITCHES and TIMER_BOUNDS in crates/engine/src/lib.rs.
 export const MIN_PLAYERS = 5;
 export const MAX_PLAYERS = 12;
+export const MAX_WITCHES = 1;
 export const TIMER_MIN_SECONDS = 10;
 export const TIMER_MAX_SECONDS = 1800;
 
@@ -193,7 +194,7 @@ export const fr = {
     notSeated: "Tu n'as pas de place dans ce salon.",
     invalidName: "Choisis un prénom de 1 à 20 caractères.",
     notHost: "Seul l'hôte peut faire ça.",
-    invalidSettings: `Paramètres refusés : ${MAX_PLAYERS} rôles au plus, et chaque minuterie entre ${TIMER_MIN_SECONDS} s et ${TIMER_MAX_SECONDS / 60} min.`,
+    invalidSettings: `Paramètres refusés : ${MAX_PLAYERS} rôles au plus, une seule Sorcière, et chaque minuterie entre ${TIMER_MIN_SECONDS} s et ${TIMER_MAX_SECONDS / 60} min.`,
     notEnoughPlayers: `Il faut au moins ${MIN_PLAYERS} joueurs.`,
     roleCountMismatch: "Il faut autant de rôles que de joueurs.",
     gameStarted: "La partie a déjà commencé.",
