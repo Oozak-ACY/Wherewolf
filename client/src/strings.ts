@@ -103,7 +103,8 @@ export const fr = {
   // What the Narrator announces at each moment, shown in the banner and read aloud.
   // Keep them short: each one mutes every mic while it plays.
   narrator: {
-    seersTurn: "La nuit tombe. La Voyante se réveille.",
+    nightfall: "La nuit tombe.",
+    seersTurn: "La Voyante se réveille.",
     werewolvesTurn: "Les Loups-Garous se réveillent.",
     dawnNobody: "Le jour se lève. Personne n'est mort cette nuit.",
     dawnDeaths: (victims: string) => `Le jour se lève. Cette nuit, le village a perdu ${victims}.`,

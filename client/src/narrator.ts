@@ -3,10 +3,11 @@
 import type { Moment } from "./generated/Moment";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
+import type { RoleCounts } from "./generated/RoleCounts";
 import { fr } from "./strings";
 
 /** What the Narrator announces at `moment`: shown in the Game panel and read aloud. */
-export function narratorLine(moment: Moment, players: PlayerSummary[]): string {
+export function narratorLine(moment: Moment, players: PlayerSummary[], roles: RoleCounts): string {
   const name = (id: PlayerId) => players.find((p) => p.id === id)?.name ?? "?";
   const roleOf = (id: PlayerId) => {
     const role = players.find((p) => p.id === id)?.revealedRole;
@@ -14,9 +15,11 @@ export function narratorLine(moment: Moment, players: PlayerSummary[]): string {
   };
   switch (moment.type) {
     case "seersTurn":
-      return fr.narrator.seersTurn;
+      return `${fr.narrator.nightfall} ${fr.narrator.seersTurn}`;
     case "werewolvesTurn":
-      return fr.narrator.werewolvesTurn;
+      return seerWakes(players, roles)
+        ? fr.narrator.werewolvesTurn
+        : `${fr.narrator.nightfall} ${fr.narrator.werewolvesTurn}`;
     case "dawn":
       return moment.deaths.length === 0
         ? fr.narrator.dawnNobody
@@ -34,6 +37,14 @@ export function narratorLine(moment: Moment, players: PlayerSummary[]): string {
     case "victory":
       return fr.narrator.victory[moment.winner];
   }
+}
+
+/**
+ * Whether the Night opens with the Seer's Turn: a Seer is in play and nobody
+ * has seen her die. Otherwise the Werewolves' Turn opens it.
+ */
+function seerWakes(players: PlayerSummary[], roles: RoleCounts): boolean {
+  return roles.seer > 0 && !players.some((p) => !p.alive && p.revealedRole === "seer");
 }
 
 /**

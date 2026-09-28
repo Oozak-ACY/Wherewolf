@@ -26,7 +26,7 @@ export function GamePanel(props: Props) {
   return (
     <section className="card stack game">
       <p className="narrator" aria-live="polite">
-        {narratorLine(moment, view.players)}
+        {narratorLine(moment, view.players, view.settings.roles)}
       </p>
       {props.endsAt !== null && <Countdown endsAt={props.endsAt} />}
       {me && !me.alive && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}

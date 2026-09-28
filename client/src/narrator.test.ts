@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { chooseFrenchVoice, createNarrator, lineTimeoutMs } from "./narrator";
+import type { PlayerSummary } from "./generated/PlayerSummary";
+import type { RoleCounts } from "./generated/RoleCounts";
+import { chooseFrenchVoice, createNarrator, lineTimeoutMs, narratorLine } from "./narrator";
 
 /** A speech engine that only records what it was asked to say. */
 function fakeSpeech() {
@@ -129,5 +131,38 @@ describe("choosing the Narrator's voice", () => {
     expect(chooseFrenchVoice([canadian, unknown])).toBe(unknown);
     expect(chooseFrenchVoice([canadian])).toBe(canadian);
     expect(chooseFrenchVoice([voice("Samantha", "en-US")])).toBeNull();
+  });
+});
+
+function player(id: number, alive = true, revealedRole: PlayerSummary["revealedRole"] = null) {
+  return { id, name: `P${id}`, connected: true, alive, revealedRole } as PlayerSummary;
+}
+
+function roles(seer: number): RoleCounts {
+  return { werewolf: 1, seer, witch: 0, hunter: 0, villager: 4 - seer };
+}
+
+describe("announcing the Night", () => {
+  const werewolvesTurn = { type: "werewolvesTurn", picks: null } as const;
+
+  test("night falls with the Seer's Turn, then the Werewolves wake", () => {
+    const players = [1, 2, 3, 4, 5].map((id) => player(id));
+
+    expect(narratorLine({ type: "seersTurn", inspection: null }, players, roles(1))).toMatch(
+      /^La nuit tombe\./,
+    );
+    expect(narratorLine(werewolvesTurn, players, roles(1))).not.toMatch(/La nuit tombe/);
+  });
+
+  test("without a Seer in play, night falls with the Werewolves' Turn", () => {
+    const players = [1, 2, 3, 4, 5].map((id) => player(id));
+
+    expect(narratorLine(werewolvesTurn, players, roles(0))).toMatch(/^La nuit tombe\./);
+  });
+
+  test("once the Seer is dead, night falls with the Werewolves' Turn", () => {
+    const players = [player(1, false, "seer"), ...[2, 3, 4, 5].map((id) => player(id))];
+
+    expect(narratorLine(werewolvesTurn, players, roles(1))).toMatch(/^La nuit tombe\./);
   });
 });

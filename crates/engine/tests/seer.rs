@@ -330,3 +330,14 @@ fn once_the_seer_is_dead_the_night_begins_with_the_werewolves() {
 
     assert!(matches!(table.moment("P1"), Moment::WerewolvesTurn { .. }));
 }
+
+#[test]
+fn a_dead_seer_can_no_longer_inspect() {
+    let mut table = Table::start();
+    let seer = table.seer();
+    table.kill_overnight(&seer);
+
+    let command = table.inspect_command("P1");
+
+    assert_eq!(table.refused(&seer, command), Rejection::Spectating);
+}

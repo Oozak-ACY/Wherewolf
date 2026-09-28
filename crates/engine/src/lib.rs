@@ -680,9 +680,10 @@ impl Engine {
                     .find(|s| s.id == player)
                     .and_then(|s| s.role)
                     .expect("a living Player of this Game has a Role");
-                if let MomentState::SeersTurn { inspection } = &mut self.game_mut().state {
-                    *inspection = Some(Inspection { player, role });
-                }
+                let MomentState::SeersTurn { inspection } = &mut self.game_mut().state else {
+                    unreachable!("checked above")
+                };
+                *inspection = Some(Inspection { player, role });
             }
             Command::PickVictim { victim } => {
                 let werewolf = self.require_living(seat)?;
@@ -869,6 +870,7 @@ impl Engine {
         }
     }
 
+    /// The Werewolves' Turn, before anyone has picked.
     fn werewolves_turn() -> MomentState {
         MomentState::WerewolvesTurn { picks: Vec::new() }
     }
