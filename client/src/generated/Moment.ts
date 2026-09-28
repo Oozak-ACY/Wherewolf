@@ -4,6 +4,7 @@ import type { Camp } from "./Camp";
 import type { Inspection } from "./Inspection";
 import type { Pick } from "./Pick";
 import type { PlayerId } from "./PlayerId";
+import type { WitchSight } from "./WitchSight";
 
 /**
  * A moment of the Game, as one Player sees it.
@@ -18,7 +19,12 @@ inspection: Inspection | null, } | { "type": "werewolvesTurn",
  * Each Werewolf's current pick, live. Only the Werewolves and the
  * Spectators see them.
  */
-picks: Array<Pick> | null, } | { "type": "dawn", deaths: Array<PlayerId>, } | { "type": "discussion" } | { "type": "vote", 
+picks: Array<Pick> | null, } | { "type": "witchsTurn", 
+/**
+ * What the Witch knows and did this Turn. Only the Witch and the
+ * Spectators see it.
+ */
+witch: WitchSight | null, } | { "type": "dawn", deaths: Array<PlayerId>, } | { "type": "discussion" } | { "type": "vote", 
 /**
  * Who has already voted (or abstained), but not for whom.
  */

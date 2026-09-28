@@ -20,6 +20,8 @@ export function narratorLine(moment: Moment, players: PlayerSummary[], roles: Ro
       return seerWakes(players, roles)
         ? fr.narrator.werewolvesTurn
         : `${fr.narrator.nightfall} ${fr.narrator.werewolvesTurn}`;
+    case "witchsTurn":
+      return fr.narrator.witchsTurn;
     case "dawn":
       return moment.deaths.length === 0
         ? fr.narrator.dawnNobody

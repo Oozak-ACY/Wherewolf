@@ -12,6 +12,8 @@ type Props = {
   endsAt: number | null;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
+  onHeal: () => void;
+  onPoison: (player: PlayerId) => void;
   onVote: (designated: PlayerId | null) => void;
   onPlayAgain: () => void;
 };
@@ -70,6 +72,39 @@ export function GamePanel(props: Props) {
               <li key={p.werewolf}>{fr.game.ballot(name(p.werewolf), name(p.victim))}</li>
             ))}
           </ul>
+        ) : (
+          <p className="muted">{fr.game.asleep}</p>
+        ))}
+
+      {moment.type === "witchsTurn" &&
+        (moment.witch ? (
+          <>
+            <p>
+              {moment.witch.victim === null
+                ? fr.game.witchNoVictim
+                : fr.game.witchVictim(name(moment.witch.victim))}
+            </p>
+            {moment.witch.healed && moment.witch.victim !== null && (
+              <p>{fr.game.witchHealed(name(moment.witch.victim))}</p>
+            )}
+            {moment.witch.poisoned !== null && <p>{fr.game.witchPoisoned(name(moment.witch.poisoned))}</p>}
+            {me?.alive && view.role?.potions && (
+              <>
+                <p className="muted">
+                  {fr.game.potionsLeft(view.role.potions.healing, view.role.potions.poison)}
+                </p>
+                {view.role.potions.healing && moment.witch.victim !== null && (
+                  <button onClick={props.onHeal}>{fr.game.heal}</button>
+                )}
+                {view.role.potions.poison && (
+                  <>
+                    <p>{fr.game.poisonPick}</p>
+                    <ChoiceList players={living} chosen={null} onChoose={props.onPoison} />
+                  </>
+                )}
+              </>
+            )}
+          </>
         ) : (
           <p className="muted">{fr.game.asleep}</p>
         ))}

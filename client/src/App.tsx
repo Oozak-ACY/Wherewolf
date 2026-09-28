@@ -128,6 +128,8 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         onStart={lobby.start}
         onInspect={lobby.inspect}
         onPickVictim={lobby.pickVictim}
+        onHeal={lobby.heal}
+        onPoison={lobby.poison}
         onVote={lobby.vote}
         onPlayAgain={lobby.playAgain}
         onLeave={() => {
@@ -197,6 +199,8 @@ function Lobby(props: {
   onStart: () => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
+  onHeal: () => void;
+  onPoison: (player: PlayerId) => void;
   onVote: (designated: PlayerId | null) => void;
   onPlayAgain: () => void;
   onLeave: () => void;
@@ -251,6 +255,8 @@ function Lobby(props: {
               endsAt={props.endsAt}
               onInspect={props.onInspect}
               onPickVictim={props.onPickVictim}
+              onHeal={props.onHeal}
+              onPoison={props.onPoison}
               onVote={props.onVote}
               onPlayAgain={props.onPlayAgain}
             />

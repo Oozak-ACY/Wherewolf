@@ -85,6 +85,20 @@ export const fr = {
     werewolvesPick: "Choisis la victime avec les autres Loups-Garous.",
     unanimity: "Il faut que tous les Loups-Garous choisissent la même victime.",
     pickedBy: (names: string[]) => `choisi par ${names.join(", ")}`,
+    witchVictim: (name: string) => `Les Loups-Garous ont choisi ${name}.`,
+    witchNoVictim: "Les Loups-Garous n'ont choisi personne cette nuit.",
+    witchHealed: (name: string) => `${name} est sauvé par la potion de guérison.`,
+    witchPoisoned: (name: string) => `${name} est empoisonné.`,
+    heal: "Utiliser la potion de guérison",
+    poisonPick: "Utiliser la potion de poison sur :",
+    potionsLeft: (healing: boolean, poison: boolean) =>
+      healing && poison
+        ? "Il te reste tes deux potions."
+        : healing
+          ? "Il te reste la potion de guérison."
+          : poison
+            ? "Il te reste la potion de poison."
+            : "Tu as utilisé tes deux potions.",
     asleep: "Tu dors : tu ne vois et n'entends personne jusqu'au lever du jour.",
     votePrompt: "Qui faut-il éliminer ?",
     votedCount: (voted: number, living: number) => `${voted} / ${living} ont voté`,
@@ -106,6 +120,7 @@ export const fr = {
     nightfall: "La nuit tombe.",
     seersTurn: "La Voyante se réveille.",
     werewolvesTurn: "Les Loups-Garous se réveillent.",
+    witchsTurn: "La Sorcière se réveille.",
     dawnNobody: "Le jour se lève. Personne n'est mort cette nuit.",
     dawnDeaths: (victims: string) => `Le jour se lève. Cette nuit, le village a perdu ${victims}.`,
     discussion: "Le village débat : qui sont les Loups-Garous ?",
@@ -184,6 +199,8 @@ export const fr = {
     gameStarted: "La partie a déjà commencé.",
     notNow: "Ce n'est pas le moment.",
     notYourTurn: "Ce n'est pas ton tour.",
+    potionUsed: "Tu as déjà utilisé cette potion.",
+    noVictim: "Personne n'est à sauver cette nuit.",
     spectating: "Tu es mort : tu ne peux plus agir.",
     notInPlay: "Ce joueur n'est plus en jeu.",
     yourself: "Tu ne peux pas te choisir toi-même.",

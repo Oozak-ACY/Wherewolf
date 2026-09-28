@@ -165,4 +165,25 @@ describe("announcing the Night", () => {
 
     expect(narratorLine(werewolvesTurn, players, roles(1))).toMatch(/^La nuit tombe\./);
   });
+
+  test("the Witch wakes after the Werewolves, whatever she knows", () => {
+    const players = [1, 2, 3, 4, 5].map((id) => player(id));
+    const sight = { victim: 2, healed: false, poisoned: null };
+
+    for (const witch of [null, sight]) {
+      const line = narratorLine({ type: "witchsTurn", witch }, players, roles(1));
+      expect(line).toBe("La Sorcière se réveille.");
+    }
+  });
+});
+
+describe("announcing the dawn", () => {
+  test("every death is announced without its cause", () => {
+    const players = [player(1, false, "villager"), player(2, false, "seer"), player(3)];
+
+    const line = narratorLine({ type: "dawn", deaths: [1, 2] }, players, roles(1));
+
+    expect(line).toBe("Le jour se lève. Cette nuit, le village a perdu P1 (Villageois), P2 (Voyante).");
+    expect(line).not.toMatch(/poison|loup|sorci/i);
+  });
 });

@@ -63,6 +63,11 @@ pub enum Command {
     Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.
     PickVictim { victim: PlayerId },
+    /// Witch's Turn: save the Victim with the healing potion, once a Game.
+    Heal,
+    /// Witch's Turn: eliminate a living Player at dawn with the poison
+    /// potion, once a Game.
+    Poison { player: PlayerId },
     /// The Vote: designate a Player to eliminate, or abstain with `None`.
     /// Can be changed until the Vote ends.
     Vote { designated: Option<PlayerId> },
@@ -94,8 +99,12 @@ pub enum Rejection {
     /// That cannot be done at this moment of the Game.
     NotNow,
     /// Someone else's Turn: only the Seer inspects, only the Werewolves pick
-    /// a Victim.
+    /// a Victim, only the Witch uses potions.
     NotYourTurn,
+    /// The Witch has already used this potion in this Game.
+    PotionUsed,
+    /// There is no Victim to heal tonight.
+    NoVictim,
     /// A Spectator (an eliminated Player) can no longer act or vote.
     Spectating,
     /// The chosen Player has been eliminated, or is not in this Game.
@@ -150,6 +159,16 @@ pub struct RoleCard {
     pub camp: Camp,
     /// For a Werewolf, the other Werewolves. Empty for everyone else.
     pub fellow_werewolves: Vec<PlayerId>,
+    /// For the Witch, the potions she has left. `None` for everyone else.
+    pub potions: Option<Potions>,
+}
+
+/// Which of the Witch's potions are still unused.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct Potions {
+    pub healing: bool,
+    pub poison: bool,
 }
 
 /// A Player as everyone in the Lobby sees them.
@@ -341,7 +360,14 @@ pub enum Moment {
         /// Spectators see them.
         picks: Option<Vec<Pick>>,
     },
-    /// The village wakes up and learns who died in the Night.
+    /// Night: the Witch learns the Victim and may use her potions.
+    WitchsTurn {
+        /// What the Witch knows and did this Turn. Only the Witch and the
+        /// Spectators see it.
+        witch: Option<WitchSight>,
+    },
+    /// The village wakes up and learns who died in the Night, in seat order,
+    /// never why.
     Dawn { deaths: Vec<PlayerId> },
     /// Day: the living debate.
     Discussion,
@@ -369,6 +395,18 @@ pub enum Moment {
 pub struct Inspection {
     pub player: PlayerId,
     pub role: Role,
+}
+
+/// The Witch's Turn, as the Witch sees it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct WitchSight {
+    /// The Werewolves' Victim tonight, if they chose one.
+    pub victim: Option<PlayerId>,
+    /// Whether she saved the Victim tonight.
+    pub healed: bool,
+    /// Who she poisoned tonight.
+    pub poisoned: Option<PlayerId>,
 }
 
 /// A Werewolf's current choice of Victim.
@@ -448,6 +486,8 @@ struct Game {
     state: MomentState,
     /// Changes every time the moment does.
     moment_id: MomentId,
+    /// The Witch's potions left, for the whole Game.
+    potions: Potions,
 }
 
 /// Where the Game stands.
@@ -459,6 +499,9 @@ enum MomentState {
     /// In the order they were made.
     WerewolvesTurn {
         picks: Vec<Pick>,
+    },
+    WitchsTurn {
+        sight: WitchSight,
     },
     Dawn {
         deaths: Vec<PlayerId>,
@@ -511,6 +554,7 @@ impl Game {
         let seconds = match self.state {
             MomentState::SeersTurn { .. } => timers.seer,
             MomentState::WerewolvesTurn { .. } => timers.werewolves,
+            MomentState::WitchsTurn { .. } => timers.witch,
             MomentState::Dawn { .. } => ANNOUNCEMENT_SECONDS,
             MomentState::Discussion => timers.discussion,
             MomentState::Vote { .. } => timers.vote,
@@ -540,6 +584,10 @@ impl Game {
                 // The Werewolves and the Spectators see them.
                 picks: (viewer.role == Some(Role::Werewolf) || !viewer.alive)
                     .then(|| picks.clone()),
+            },
+            MomentState::WitchsTurn { sight } => Moment::WitchsTurn {
+                // The Witch and the Spectators see it.
+                witch: (viewer.role == Some(Role::Witch) || !viewer.alive).then_some(*sight),
             },
             MomentState::Dawn { deaths } => Moment::Dawn {
                 deaths: deaths.clone(),
@@ -656,6 +704,10 @@ impl Engine {
                 self.game = Some(Game {
                     state: self.nightfall(),
                     moment_id: MomentId(0),
+                    potions: Potions {
+                        healing: true,
+                        poison: true,
+                    },
                 });
             }
             Command::Inspect { player } => {
@@ -699,8 +751,29 @@ impl Engine {
                 picks.retain(|p| p.werewolf != werewolf);
                 picks.push(Pick { werewolf, victim });
                 if let Some(victim) = self.unanimous_victim() {
-                    self.end_night(Some(victim));
+                    self.end_werewolves_turn(Some(victim));
                 }
+            }
+            Command::Heal => {
+                self.require_witchs_turn(seat)?;
+                if !self.game_mut().potions.healing {
+                    return Err(Rejection::PotionUsed);
+                }
+                let sight = self.witch_sight_mut();
+                if sight.victim.is_none() {
+                    return Err(Rejection::NoVictim);
+                }
+                sight.healed = true;
+                self.game_mut().potions.healing = false;
+            }
+            Command::Poison { player } => {
+                self.require_witchs_turn(seat)?;
+                if !self.game_mut().potions.poison {
+                    return Err(Rejection::PotionUsed);
+                }
+                self.require_in_play(Some(player))?;
+                self.witch_sight_mut().poisoned = Some(player);
+                self.game_mut().potions.poison = false;
             }
             Command::Vote { designated } => {
                 let voter = self.require_living(seat)?;
@@ -746,7 +819,12 @@ impl Engine {
             MomentState::SeersTurn { .. } => self.game_mut().go_to(Self::werewolves_turn()),
             MomentState::WerewolvesTurn { .. } => {
                 let victim = self.most_picked();
-                self.end_night(victim);
+                self.end_werewolves_turn(victim);
+            }
+            MomentState::WitchsTurn { sight } => {
+                let sight = *sight;
+                let killed = sight.victim.filter(|_| !sight.healed);
+                self.end_night(killed.into_iter().chain(sight.poisoned).collect());
             }
             MomentState::Dawn { .. } => self.unless_won(MomentState::Discussion),
             MomentState::Discussion => self.game_mut().go_to(MomentState::Vote {
@@ -781,6 +859,19 @@ impl Engine {
             Err(Rejection::Spectating)
         } else {
             Ok(seat.id)
+        }
+    }
+
+    /// The Player on this seat is the living Witch, and it is her Turn.
+    fn require_witchs_turn(&self, token: &SeatToken) -> Result<(), Rejection> {
+        self.require_living(token)?;
+        let is_witch = self.seat_of(token)?.role == Some(Role::Witch);
+        if !matches!(self.state(), Some(MomentState::WitchsTurn { .. })) {
+            Err(Rejection::NotNow)
+        } else if !is_witch {
+            Err(Rejection::NotYourTurn)
+        } else {
+            Ok(())
         }
     }
 
@@ -823,10 +914,16 @@ impl Engine {
         } else {
             Vec::new()
         };
+        let potions = self
+            .game
+            .as_ref()
+            .filter(|_| role == Role::Witch)
+            .map(|g| g.potions);
         Some(RoleCard {
             role,
             camp: role.camp(),
             fellow_werewolves,
+            potions,
         })
     }
 
@@ -856,6 +953,13 @@ impl Engine {
         }
     }
 
+    fn witch_sight_mut(&mut self) -> &mut WitchSight {
+        match &mut self.game_mut().state {
+            MomentState::WitchsTurn { sight } => sight,
+            _ => unreachable!("only during the Witch's Turn"),
+        }
+    }
+
     fn state(&self) -> Option<&MomentState> {
         self.game.as_ref().map(|g| &g.state)
     }
@@ -875,9 +979,27 @@ impl Engine {
         MomentState::WerewolvesTurn { picks: Vec::new() }
     }
 
-    /// The Night is over: its Victim, if any, dies, and the village wakes up.
-    fn end_night(&mut self, victim: Option<PlayerId>) {
-        let deaths: Vec<PlayerId> = victim.into_iter().collect();
+    /// The Werewolves have chosen their Victim, if any. The Witch wakes up
+    /// next; without a living Witch, the Night is over.
+    fn end_werewolves_turn(&mut self, victim: Option<PlayerId>) {
+        if self.living().any(|s| s.role == Some(Role::Witch)) {
+            self.game_mut().go_to(MomentState::WitchsTurn {
+                sight: WitchSight {
+                    victim,
+                    healed: false,
+                    poisoned: None,
+                },
+            });
+        } else {
+            self.end_night(victim.into_iter().collect());
+        }
+    }
+
+    /// The Night is over: `deaths` die, and the village wakes up. They are
+    /// announced in seat order, so the order never tells what killed whom.
+    fn end_night(&mut self, mut deaths: Vec<PlayerId>) {
+        deaths.sort();
+        deaths.dedup();
         for &id in &deaths {
             self.eliminate(id);
         }
@@ -996,8 +1118,8 @@ impl Engine {
             // Spectators see everyone; the living never see the Spectators.
             Some(_) if !receiver.alive => true,
             Some(_) if !sender.alive => false,
-            // The Seer acts alone, seeing and heard by no one.
-            Some(MomentState::SeersTurn { .. }) => false,
+            // The Seer and the Witch act alone, seeing and heard by no one.
+            Some(MomentState::SeersTurn { .. } | MomentState::WitchsTurn { .. }) => false,
             Some(MomentState::WerewolvesTurn { .. }) => werewolf(receiver) && werewolf(sender),
             Some(
                 MomentState::Dawn { .. }
