@@ -466,3 +466,18 @@ fn the_hunter_aims_at_the_table_knowing_only_what_the_living_know() {
     );
     assert!(!table.view(&table.werewolf(1)).receives.contains(&hunter_id));
 }
+
+#[test]
+fn an_eliminated_player_owed_an_action_is_not_yet_a_spectator() {
+    let mut table = Table::start();
+    let hunter = table.hunter(0);
+    assert!(!table.view(&hunter).spectating);
+    table.werewolves_kill(&hunter);
+    assert!(!table.view(&hunter).spectating, "waiting for his shot");
+    table.time_runs_out();
+    assert!(!table.view(&hunter).spectating, "aiming");
+
+    table.time_runs_out();
+
+    assert!(table.view(&hunter).spectating);
+}

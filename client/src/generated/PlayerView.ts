@@ -30,6 +30,11 @@ startBlockedBy: Rejection | null,
  */
 role: RoleCard | null, 
 /**
+ * Whether this Player is a Spectator. An eliminated Player still owed an
+ * action (like the Hunter's shot) is not one until it is resolved.
+ */
+spectating: boolean, 
+/**
  * What is happening in the Game right now. `None` in the Lobby.
  */
 moment: Moment | null, 

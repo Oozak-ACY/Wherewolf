@@ -326,6 +326,9 @@ pub struct PlayerView {
     pub start_blocked_by: Option<Rejection>,
     /// This Player's own Role, once the Game has started.
     pub role: Option<RoleCard>,
+    /// Whether this Player is a Spectator. An eliminated Player still owed an
+    /// action (like the Hunter's shot) is not one until it is resolved.
+    pub spectating: bool,
     /// What is happening in the Game right now. `None` in the Lobby.
     pub moment: Option<Moment>,
     /// The visibility plan, from this Player's side: who they may see and
@@ -1314,6 +1317,7 @@ impl Engine {
                     suggested_roles: self.suggested_roles(),
                     start_blocked_by: self.start_blocker(),
                     role: self.role_card(s),
+                    spectating: self.spectating(s),
                     moment: self.game.as_ref().map(|g| g.moment(s)),
                     receives: self.received_by(s),
                     audience: self.audience_of(s),
