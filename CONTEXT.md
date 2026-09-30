@@ -56,6 +56,10 @@ _Avoid_: Target, prey
 Any Player's death, whether by the Werewolves, the Witch's poison, the Vote or the Hunter's shot. The Player becomes a Spectator, and their Role is revealed to everyone unless Hidden Roles is on.
 _Avoid_: Kill (for the generic case), removal
 
+**Death trigger**:
+What an Elimination sets off, like the Hunter's shot. Triggers are resolved one at a time, in the order the deaths happened, right after the announcement of those deaths (the dawn, the Vote's result, or a previous shot); a death they cause can set off another. Victory is checked only once every trigger is resolved. Until their trigger is resolved, the eliminated Player stays at the table rather than becoming a Spectator: the living see and hear them, and they know only what the living know.
+_Avoid_: On-death effect, last will
+
 **Election**:
 The vote on the first Day in which the living Players choose the Mayor.
 _Avoid_: Mayor vote (ambiguous with the Vote)
@@ -77,7 +81,7 @@ Who may see and hear whom at the current Moment, as the Narrator decides it: the
 _Avoid_: Permissions, rooms
 
 **Moment**:
-One stretch of a Game that the Narrator announces and times on its own: a Night Turn, the dawn announcement, the Day discussion, the Vote, its result, or the victory screen. The current Moment decides what each Player sees and may do.
+One stretch of a Game that the Narrator announces and times on its own: a Night Turn, the dawn announcement, the Day discussion, the Vote, its result, the Hunter's shot and its result, or the victory screen. The current Moment decides what each Player sees and may do.
 _Avoid_: Step, stage
 
 ## Roles

@@ -110,6 +110,8 @@ export const fr = {
       designated ? `${voter} → ${designated}` : `${voter} : abstention`,
     spectating:
       "Tu es spectateur : tu vois et entends toute la partie, mais les vivants ne te voient pas et tu ne peux plus agir ni voter.",
+    shootPick: "Tu es mort : choisis le joueur que tu emportes avec toi.",
+    hunterAiming: (hunter: string) => `${hunter} choisit sur qui tirer…`,
     everyRole: "Les rôles de chacun",
     playAgain: "Rejouer",
     waitingForHostToPlayAgain: "L'hôte peut relancer une partie.",
@@ -129,6 +131,10 @@ export const fr = {
     voteEliminated: (name: string, role: string) =>
       `Le village a éliminé ${name}, qui était ${role}.`,
     voteNobody: "Personne n'est éliminé.",
+    huntersShot: (hunter: string) =>
+      `${hunter}, le Chasseur, emporte quelqu'un avec lui : il choisit sur qui tirer.`,
+    shot: (name: string, role: string) => `Le Chasseur a tiré sur ${name}, qui était ${role}.`,
+    shotLost: "Le Chasseur n'a tiré sur personne.",
     victory: {
       village: "Le Village gagne : les Loups-Garous sont morts.",
       werewolves: "Les Loups-Garous gagnent : le village est à eux.",

@@ -131,6 +131,7 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         onHeal={lobby.heal}
         onPoison={lobby.poison}
         onVote={lobby.vote}
+        onShoot={lobby.shoot}
         onPlayAgain={lobby.playAgain}
         onLeave={() => {
           call.leave();
@@ -202,6 +203,7 @@ function Lobby(props: {
   onHeal: () => void;
   onPoison: (player: PlayerId) => void;
   onVote: (designated: PlayerId | null) => void;
+  onShoot: (player: PlayerId) => void;
   onPlayAgain: () => void;
   onLeave: () => void;
 }) {
@@ -258,6 +260,7 @@ function Lobby(props: {
               onHeal={props.onHeal}
               onPoison={props.onPoison}
               onVote={props.onVote}
+              onShoot={props.onShoot}
               onPlayAgain={props.onPlayAgain}
             />
             {view.role && <button onClick={() => setCardOpen(true)}>{fr.game.myCard}</button>}

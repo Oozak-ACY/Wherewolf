@@ -36,6 +36,12 @@ export function narratorLine(moment: Moment, players: PlayerSummary[], roles: Ro
       return moment.eliminated === null
         ? fr.narrator.voteNobody
         : fr.narrator.voteEliminated(name(moment.eliminated), roleOf(moment.eliminated));
+    case "huntersShot":
+      return fr.narrator.huntersShot(name(moment.hunter));
+    case "shotResult":
+      return moment.shot === null
+        ? fr.narrator.shotLost
+        : fr.narrator.shot(name(moment.shot), roleOf(moment.shot));
     case "victory":
       return fr.narrator.victory[moment.winner];
   }

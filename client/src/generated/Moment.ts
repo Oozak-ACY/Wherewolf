@@ -36,4 +36,4 @@ yourBallot: Ballot | null, } | { "type": "voteResult",
 /**
  * Who voted for whom, in the order they first voted.
  */
-ballots: Array<Ballot>, eliminated: PlayerId | null, } | { "type": "victory", winner: Camp, };
+ballots: Array<Ballot>, eliminated: PlayerId | null, } | { "type": "huntersShot", hunter: PlayerId, } | { "type": "shotResult", hunter: PlayerId, shot: PlayerId | null, } | { "type": "victory", winner: Camp, };

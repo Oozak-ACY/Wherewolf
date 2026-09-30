@@ -36,6 +36,8 @@ pub enum ClientMessage {
     /// The Vote: designate a Player, or abstain with `null`. Can be changed
     /// until the Vote ends.
     Vote { designated: Option<PlayerId> },
+    /// The eliminated Hunter's shot: eliminate a living Player, once.
+    Shoot { player: PlayerId },
     /// Host only, once the Game is over: everyone goes back to the Lobby.
     PlayAgain,
 }

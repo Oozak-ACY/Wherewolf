@@ -187,3 +187,29 @@ describe("announcing the dawn", () => {
     expect(line).not.toMatch(/poison|loup|sorci/i);
   });
 });
+
+describe("announcing the Hunter's shot", () => {
+  test("the eliminated Hunter is called to shoot", () => {
+    const players = [player(1, false, "hunter"), player(2), player(3)];
+
+    const line = narratorLine({ type: "huntersShot", hunter: 1 }, players, roles(1));
+
+    expect(line).toBe("P1, le Chasseur, emporte quelqu'un avec lui : il choisit sur qui tirer.");
+  });
+
+  test("the shot reveals its target's Role", () => {
+    const players = [player(1, false, "hunter"), player(2, false, "werewolf"), player(3)];
+
+    const line = narratorLine({ type: "shotResult", hunter: 1, shot: 2 }, players, roles(1));
+
+    expect(line).toBe("Le Chasseur a tiré sur P2, qui était Loup-Garou.");
+  });
+
+  test("a Hunter who did not shoot in time", () => {
+    const players = [player(1, false, "hunter"), player(2), player(3)];
+
+    const line = narratorLine({ type: "shotResult", hunter: 1, shot: null }, players, roles(1));
+
+    expect(line).toBe("Le Chasseur n'a tiré sur personne.");
+  });
+});

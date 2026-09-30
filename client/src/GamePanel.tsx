@@ -15,6 +15,7 @@ type Props = {
   onHeal: () => void;
   onPoison: (player: PlayerId) => void;
   onVote: (designated: PlayerId | null) => void;
+  onShoot: (player: PlayerId) => void;
   onPlayAgain: () => void;
 };
 
@@ -24,6 +25,8 @@ export function GamePanel(props: Props) {
   const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? "?";
   const me = view.players.find((p) => p.id === view.you);
   const living = view.players.filter((p) => p.alive);
+  // The eliminated Hunter still acts once: his shot.
+  const aiming = moment.type === "huntersShot" && moment.hunter === view.you;
 
   return (
     <section className="card stack game">
@@ -31,7 +34,7 @@ export function GamePanel(props: Props) {
         {narratorLine(moment, view.players, view.settings.roles)}
       </p>
       {props.endsAt !== null && <Countdown endsAt={props.endsAt} />}
-      {me && !me.alive && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}
+      {me && !me.alive && !aiming && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}
 
       {moment.type === "seersTurn" &&
         (moment.inspection ? (
@@ -147,6 +150,16 @@ export function GamePanel(props: Props) {
           ))}
         </ul>
       )}
+
+      {moment.type === "huntersShot" &&
+        (aiming ? (
+          <>
+            <p>{fr.game.shootPick}</p>
+            <ChoiceList players={living} chosen={null} onChoose={props.onShoot} />
+          </>
+        ) : (
+          <p className="muted">{fr.game.hunterAiming(name(moment.hunter))}</p>
+        ))}
 
       {moment.type === "victory" && (
         <>

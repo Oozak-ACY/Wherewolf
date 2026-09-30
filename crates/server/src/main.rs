@@ -376,6 +376,9 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
             ClientMessage::Vote { designated } => {
                 lobby.command(&seat, Command::Vote { designated }, &outbox);
             }
+            ClientMessage::Shoot { player } => {
+                lobby.command(&seat, Command::Shoot { player }, &outbox);
+            }
             ClientMessage::PlayAgain => {
                 lobby.command(&seat, Command::PlayAgain, &outbox);
             }

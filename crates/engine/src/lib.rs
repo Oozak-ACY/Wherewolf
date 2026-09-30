@@ -3,6 +3,8 @@
 //! No network, no clock, no media. The game server feeds it [`Command`]s on
 //! behalf of a seat and relays the per-Player [`PlayerView`]s it returns.
 
+use std::collections::VecDeque;
+
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -71,6 +73,8 @@ pub enum Command {
     /// The Vote: designate a Player to eliminate, or abstain with `None`.
     /// Can be changed until the Vote ends.
     Vote { designated: Option<PlayerId> },
+    /// The eliminated Hunter's shot: eliminate a living Player, once.
+    Shoot { player: PlayerId },
     /// Host only, once the Game is over: everyone goes back to the Lobby.
     PlayAgain,
 }
@@ -385,6 +389,13 @@ pub enum Moment {
         ballots: Vec<Ballot>,
         eliminated: Option<PlayerId>,
     },
+    /// The eliminated Hunter picks a living Player to shoot.
+    HuntersShot { hunter: PlayerId },
+    /// Who the Hunter shot, if he shot anyone before the time ran out.
+    ShotResult {
+        hunter: PlayerId,
+        shot: Option<PlayerId>,
+    },
     /// The Game is over. Every Role is revealed.
     Victory { winner: Camp },
 }
@@ -491,6 +502,38 @@ struct Game {
     moment_id: MomentId,
     /// The Witch's potions left, for the whole Game.
     potions: Potions,
+    /// The death triggers still to resolve, in the order the deaths happened.
+    triggers: VecDeque<Trigger>,
+}
+
+/// What a Player's Elimination sets off, resolved one at a time before the
+/// Game moves on (and before any victory is checked).
+#[derive(Debug, Clone, Copy)]
+enum Trigger {
+    HuntersShot { hunter: PlayerId },
+}
+
+impl Trigger {
+    /// The death trigger `role` sets off, if it has one.
+    fn of(role: Role, dead: PlayerId) -> Option<Self> {
+        (role == Role::Hunter).then_some(Trigger::HuntersShot { hunter: dead })
+    }
+
+    /// The eliminated Player this trigger belongs to.
+    fn owner(self) -> PlayerId {
+        match self {
+            Trigger::HuntersShot { hunter } => hunter,
+        }
+    }
+}
+
+/// Where the Game goes once every death trigger is resolved.
+#[derive(Debug, Clone, Copy)]
+enum Resume {
+    /// The Night's deaths are announced: the Day begins.
+    Day,
+    /// The Vote's result is announced: the Night falls.
+    Night,
 }
 
 /// Where the Game stands.
@@ -517,6 +560,16 @@ enum MomentState {
     VoteResult {
         ballots: Vec<Ballot>,
         eliminated: Option<PlayerId>,
+    },
+    /// `then`: where the Game goes once every death trigger is resolved.
+    HuntersShot {
+        hunter: PlayerId,
+        then: Resume,
+    },
+    ShotResult {
+        hunter: PlayerId,
+        shot: Option<PlayerId>,
+        then: Resume,
     },
     Victory {
         winner: Camp,
@@ -562,6 +615,8 @@ impl Game {
             MomentState::Discussion => timers.discussion,
             MomentState::Vote { .. } => timers.vote,
             MomentState::VoteResult { .. } => ANNOUNCEMENT_SECONDS,
+            MomentState::HuntersShot { .. } => timers.hunter,
+            MomentState::ShotResult { .. } => ANNOUNCEMENT_SECONDS,
             MomentState::Victory { .. } => return None,
         };
         Some(Timer {
@@ -606,6 +661,11 @@ impl Game {
             } => Moment::VoteResult {
                 ballots: ballots.clone(),
                 eliminated: *eliminated,
+            },
+            MomentState::HuntersShot { hunter, .. } => Moment::HuntersShot { hunter: *hunter },
+            MomentState::ShotResult { hunter, shot, .. } => Moment::ShotResult {
+                hunter: *hunter,
+                shot: *shot,
             },
             MomentState::Victory { winner } => Moment::Victory { winner: *winner },
         }
@@ -714,6 +774,7 @@ impl Engine {
                         healing: true,
                         poison: true,
                     },
+                    triggers: VecDeque::new(),
                 });
             }
             Command::Inspect { player } => {
@@ -799,6 +860,22 @@ impl Engine {
                     self.end_vote();
                 }
             }
+            Command::Shoot { player } => {
+                let shooter = self.seat_of(seat)?.id;
+                let Some(&MomentState::HuntersShot { hunter, then }) = self.state() else {
+                    return Err(Rejection::NotNow);
+                };
+                if shooter != hunter {
+                    return Err(Rejection::NotYourTurn);
+                }
+                self.require_in_play(Some(player))?;
+                self.eliminate(player);
+                self.game_mut().go_to(MomentState::ShotResult {
+                    hunter,
+                    shot: Some(player),
+                    then,
+                });
+            }
             Command::PlayAgain => {
                 self.require_host(seat)?;
                 if !self.game.as_ref().is_some_and(Game::is_over) {
@@ -832,12 +909,21 @@ impl Engine {
                 let killed = sight.victim.filter(|_| !sight.healed);
                 self.end_night(killed.into_iter().chain(sight.poisoned).collect());
             }
-            MomentState::Dawn { .. } => self.unless_won(MomentState::Discussion),
+            MomentState::Dawn { .. } => self.resolve_triggers(Resume::Day),
             MomentState::Discussion => self.game_mut().go_to(MomentState::Vote {
                 ballots: Vec::new(),
             }),
             MomentState::Vote { .. } => self.end_vote(),
-            MomentState::VoteResult { .. } => self.unless_won(self.nightfall()),
+            MomentState::VoteResult { .. } => self.resolve_triggers(Resume::Night),
+            // The time is up: the shot is lost.
+            &MomentState::HuntersShot { hunter, then } => {
+                self.game_mut().go_to(MomentState::ShotResult {
+                    hunter,
+                    shot: None,
+                    then,
+                })
+            }
+            &MomentState::ShotResult { then, .. } => self.resolve_triggers(then),
             MomentState::Victory { .. } => return Err(Rejection::NotNow),
         }
         Ok(self.outputs())
@@ -1034,6 +1120,20 @@ impl Engine {
         }
     }
 
+    /// Resolves the next pending death trigger. Once there is none left, the
+    /// Game moves on as `then` says, unless a Camp has won.
+    fn resolve_triggers(&mut self, then: Resume) {
+        match self.game_mut().triggers.pop_front() {
+            Some(Trigger::HuntersShot { hunter }) => self
+                .game_mut()
+                .go_to(MomentState::HuntersShot { hunter, then }),
+            None => match then {
+                Resume::Day => self.unless_won(MomentState::Discussion),
+                Resume::Night => self.unless_won(self.nightfall()),
+            },
+        }
+    }
+
     /// Moves on to `next`, unless a Camp has won: then the Game is over.
     fn unless_won(&mut self, next: MomentState) {
         let next = match self.winner() {
@@ -1064,10 +1164,28 @@ impl Engine {
         self.seats.iter().filter(|s| s.alive)
     }
 
+    /// `id` dies, setting off their death trigger, if their Role has one.
     fn eliminate(&mut self, id: PlayerId) {
-        if let Some(seat) = self.seats.iter_mut().find(|s| s.id == id) {
-            seat.alive = false;
+        let Some(seat) = self.seats.iter_mut().find(|s| s.id == id) else {
+            return;
+        };
+        seat.alive = false;
+        if let Some(trigger) = seat.role.and_then(|role| Trigger::of(role, id)) {
+            self.game_mut().triggers.push_back(trigger);
         }
+    }
+
+    /// Whether `seat` is a Spectator. An eliminated Player whose death
+    /// trigger is still unresolved stays at the table until it is: seen and
+    /// heard as the living are, and knowing only what they know.
+    fn spectating(&self, seat: &Seat) -> bool {
+        let Some(game) = &self.game else {
+            return false;
+        };
+        let aiming =
+            matches!(game.state, MomentState::HuntersShot { hunter, .. } if hunter == seat.id);
+        let waiting = game.triggers.iter().any(|t| t.owner() == seat.id);
+        !seat.alive && !aiming && !waiting
     }
 
     fn game_mut(&mut self) -> &mut Game {
@@ -1122,8 +1240,8 @@ impl Engine {
             // The Lobby and the victory screen: everyone sees everyone.
             None | Some(MomentState::Victory { .. }) => true,
             // Spectators see everyone; the living never see the Spectators.
-            Some(_) if !receiver.alive => true,
-            Some(_) if !sender.alive => false,
+            Some(_) if self.spectating(receiver) => true,
+            Some(_) if self.spectating(sender) => false,
             // The Seer and the Witch act alone, seeing and heard by no one.
             Some(MomentState::SeersTurn { .. } | MomentState::WitchsTurn { .. }) => false,
             Some(MomentState::WerewolvesTurn { .. }) => werewolf(receiver) && werewolf(sender),
@@ -1131,7 +1249,9 @@ impl Engine {
                 MomentState::Dawn { .. }
                 | MomentState::Discussion
                 | MomentState::Vote { .. }
-                | MomentState::VoteResult { .. },
+                | MomentState::VoteResult { .. }
+                | MomentState::HuntersShot { .. }
+                | MomentState::ShotResult { .. },
             ) => true,
         }
     }
@@ -1160,7 +1280,7 @@ impl Engine {
         let sees_every_role = self
             .game
             .as_ref()
-            .is_some_and(|g| g.is_over() || !viewer.alive);
+            .is_some_and(|g| g.is_over() || self.spectating(viewer));
         self.seats
             .iter()
             .map(|s| PlayerSummary {
