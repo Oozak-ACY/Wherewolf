@@ -295,6 +295,10 @@ fn after_dawn_the_village_discusses_then_votes() {
     assert_eq!(table.moment("P3"), &Moment::Discussion);
     assert_eq!(table.outputs.timer().unwrap().seconds, 300);
 
+    // The first Day elects the Mayor before the Vote.
+    table.time_runs_out();
+    assert!(matches!(table.moment("P3"), Moment::Election { .. }));
+    table.time_runs_out();
     table.time_runs_out();
     assert!(matches!(table.moment("P3"), Moment::Vote { .. }));
     assert_eq!(table.outputs.timer().unwrap().seconds, 60);
@@ -306,6 +310,19 @@ impl Table {
         while !matches!(self.moment("P1"), Moment::Vote { .. }) {
             self.time_runs_out();
         }
+    }
+
+    /// Runs up to the first Day's Election, where everyone elects `mayor`,
+    /// then on to the Vote.
+    fn elect_then_vote(&mut self, mayor: &str) {
+        while !matches!(self.moment("P1"), Moment::Election { .. }) {
+            self.time_runs_out();
+        }
+        let candidate = self.id(mayor);
+        for voter in self.living() {
+            self.act(&voter, Command::Elect { candidate });
+        }
+        self.skip_to_the_vote();
     }
 
     fn vote(&mut self, voter: &str, designated: &str) {
@@ -414,12 +431,14 @@ fn abstentions_count_as_votes_cast_but_designate_nobody() {
 }
 
 #[test]
-fn a_tied_vote_eliminates_nobody() {
+fn a_tied_vote_the_mayor_leaves_unbroken_eliminates_nobody() {
     let mut table = Table::start(5, 1);
     table.skip_to_the_vote();
 
     table.vote("P1", "P2");
     table.vote("P2", "P1");
+    table.time_runs_out();
+    assert!(matches!(table.moment("P3"), Moment::TieBreak { .. }));
     table.time_runs_out();
 
     assert_eq!(table.vote_result("P3").1, None);
@@ -504,7 +523,7 @@ fn the_werewolves_win_once_they_are_as_many_as_the_others() {
     let villagers: Vec<String> = table.villagers().iter().map(|v| v.to_string()).collect();
 
     table.pick(&werewolf, &villagers[0]);
-    table.skip_to_the_vote();
+    table.elect_then_vote(&villagers[3]);
     for voter in table.living() {
         table.vote(&voter, &villagers[1]);
     }

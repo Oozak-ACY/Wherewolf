@@ -33,11 +33,19 @@ pub enum ClientMessage {
     /// Witch's Turn: eliminate a living Player at dawn with the poison
     /// potion, once a Game.
     Poison { player: PlayerId },
+    /// The Election: vote for a living Player, yourself included, to be
+    /// Mayor. Can be changed until the Election ends.
+    Elect { candidate: PlayerId },
     /// The Vote: designate a Player, or abstain with `null`. Can be changed
     /// until the Vote ends.
     Vote { designated: Option<PlayerId> },
+    /// The Mayor, on a tied Vote: choose which of the tied Players is
+    /// eliminated.
+    BreakTie { player: PlayerId },
     /// The eliminated Hunter's shot: eliminate a living Player, once.
     Shoot { player: PlayerId },
+    /// The eliminated Mayor: name a living Player to succeed them.
+    NameSuccessor { player: PlayerId },
     /// Host only, once the Game is over: everyone goes back to the Lobby.
     PlayAgain,
 }

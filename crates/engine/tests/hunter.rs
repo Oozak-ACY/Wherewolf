@@ -210,8 +210,26 @@ impl Table {
     }
 
     /// From the Discussion, every living Player votes against `designated`.
+    /// On the first Day, they elect as Mayor a Villager who survives every
+    /// script here, so no succession gets in the way.
     fn village_eliminates(&mut self, designated: &str) {
-        self.time_runs_out();
+        loop {
+            match self.moment(&self.everyone()[0]) {
+                Moment::Vote { .. } => break,
+                Moment::Election { .. } => {
+                    let candidate = self.id(&self.villager(3));
+                    let living: Vec<String> = self
+                        .everyone()
+                        .into_iter()
+                        .filter(|p| self.alive(p))
+                        .collect();
+                    for voter in living {
+                        self.act(&voter, Command::Elect { candidate });
+                    }
+                }
+                _ => self.time_runs_out(),
+            }
+        }
         let designated = Some(self.id(designated));
         let living: Vec<String> = self
             .everyone()

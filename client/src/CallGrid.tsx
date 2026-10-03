@@ -25,6 +25,7 @@ export function CallGrid({ view, member }: Props) {
             player={player}
             isYou={isYou}
             isHost={player.id === view.host}
+            isMayor={player.id === view.mayor}
             member={member(String(player.id), isYou)}
           />
         );
@@ -37,6 +38,7 @@ function PlayerTile(props: {
   player: PlayerSummary;
   isYou: boolean;
   isHost: boolean;
+  isMayor: boolean;
   member: CallMember | null;
 }) {
   const { player, isYou, member } = props;
@@ -55,6 +57,7 @@ function PlayerTile(props: {
           {isYou && <span className="muted"> ({fr.lobby.you})</span>}
         </span>
         {props.isHost && <span className="badge">{fr.lobby.host}</span>}
+        {props.isMayor && <span className="badge">{fr.lobby.mayor}</span>}
         {player.revealedRole && (
           <span className="badge role">{fr.roles[player.revealedRole].name}</span>
         )}

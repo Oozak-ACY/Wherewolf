@@ -30,6 +30,12 @@ export function narratorLine(moment: Moment, players: PlayerSummary[], roles: Ro
           );
     case "discussion":
       return fr.narrator.discussion;
+    case "election":
+      return fr.narrator.election;
+    case "electionResult":
+      return moment.byLot ? fr.narrator.electedByLot(name(moment.mayor)) : fr.narrator.elected(name(moment.mayor));
+    case "tieBreak":
+      return fr.narrator.tieBreak(moment.tied.map(name).join(", "));
     case "vote":
       return fr.narrator.vote;
     case "voteResult":
@@ -42,6 +48,12 @@ export function narratorLine(moment: Moment, players: PlayerSummary[], roles: Ro
       return moment.shot === null
         ? fr.narrator.shotLost
         : fr.narrator.shot(name(moment.shot), roleOf(moment.shot));
+    case "succession":
+      return fr.narrator.succession(name(moment.mayor));
+    case "successionResult":
+      return moment.byLot
+        ? fr.narrator.successorByLot(name(moment.successor))
+        : fr.narrator.successor(name(moment.successor));
     case "victory":
       return fr.narrator.victory[moment.winner];
   }

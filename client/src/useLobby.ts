@@ -112,6 +112,18 @@ export function useLobby(code: string) {
     (player: PlayerId) => command({ type: "poison", player }),
     [command],
   );
+  const elect = useCallback(
+    (candidate: PlayerId) => command({ type: "elect", candidate }),
+    [command],
+  );
+  const breakTie = useCallback(
+    (player: PlayerId) => command({ type: "breakTie", player }),
+    [command],
+  );
+  const nameSuccessor = useCallback(
+    (player: PlayerId) => command({ type: "nameSuccessor", player }),
+    [command],
+  );
   const shoot = useCallback(
     (player: PlayerId) => command({ type: "shoot", player }),
     [command],
@@ -147,6 +159,9 @@ export function useLobby(code: string) {
     poison,
     vote,
     shoot,
+    elect,
+    breakTie,
+    nameSuccessor,
     playAgain,
   };
 }

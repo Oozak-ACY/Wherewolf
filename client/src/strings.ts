@@ -48,6 +48,7 @@ export const fr = {
     players: (count: number) => `Joueurs (${count} / ${MAX_PLAYERS})`,
     you: "toi",
     host: "Hôte",
+    mayor: "Maire",
     offline: "déconnecté",
     leave: "Quitter le salon",
   },
@@ -101,6 +102,7 @@ export const fr = {
             ? "Il te reste la potion de poison."
             : "Tu as utilisé tes deux potions.",
     asleep: "Tu dors : tu ne vois et n'entends personne jusqu'au lever du jour.",
+    electPrompt: "Qui doit être Maire ?",
     votePrompt: "Qui faut-il éliminer ?",
     votedCount: (voted: number, living: number) => `${voted} / ${living} ont voté`,
     abstain: "S'abstenir",
@@ -111,6 +113,10 @@ export const fr = {
     spectating:
       "Tu es spectateur : tu vois et entends toute la partie, mais les vivants ne te voient pas et tu ne peux plus agir ni voter.",
     shootPick: "Tu es mort : choisis le joueur que tu emportes avec toi.",
+    tieBreakPick: "Tu es le Maire : choisis qui est éliminé.",
+    mayorChoosing: (mayor: string) => `${mayor}, le Maire, choisit…`,
+    successorPick: "Tu es mort : désigne le nouveau Maire.",
+    mayorNaming: (mayor: string) => `${mayor} désigne son successeur…`,
     hunterAiming: (hunter: string) => `${hunter} choisit sur qui tirer…`,
     everyRole: "Les rôles de chacun",
     playAgain: "Rejouer",
@@ -127,6 +133,10 @@ export const fr = {
     dawnNobody: "Le jour se lève. Personne n'est mort cette nuit.",
     dawnDeaths: (victims: string) => `Le jour se lève. Cette nuit, le village a perdu ${victims}.`,
     discussion: "Le village débat : qui sont les Loups-Garous ?",
+    election: "Le village élit son Maire.",
+    elected: (name: string) => `${name} est élu Maire.`,
+    electedByLot: (name: string) => `Le sort désigne ${name} comme Maire.`,
+    tieBreak: (tied: string) => `Égalité entre ${tied} : le Maire choisit qui est éliminé.`,
     vote: "Le village vote.",
     voteEliminated: (name: string, role: string) =>
       `Le village a éliminé ${name}, qui était ${role}.`,
@@ -135,6 +145,9 @@ export const fr = {
       `${hunter}, le Chasseur, emporte quelqu'un avec lui : il choisit sur qui tirer.`,
     shot: (name: string, role: string) => `Le Chasseur a tiré sur ${name}, qui était ${role}.`,
     shotLost: "Le Chasseur n'a tiré sur personne.",
+    succession: (mayor: string) => `${mayor}, le Maire, désigne son successeur.`,
+    successor: (name: string) => `${name} devient Maire.`,
+    successorByLot: (name: string) => `Le sort désigne ${name} comme nouveau Maire.`,
     victory: {
       village: "Le Village gagne : les Loups-Garous sont morts.",
       werewolves: "Les Loups-Garous gagnent : le village est à eux.",
@@ -211,5 +224,6 @@ export const fr = {
     spectating: "Tu es mort : tu ne peux plus agir.",
     notInPlay: "Ce joueur n'est plus en jeu.",
     yourself: "Tu ne peux pas te choisir toi-même.",
+    notTied: "Choisis parmi les joueurs à égalité.",
   } satisfies Record<Rejection, string>,
 };

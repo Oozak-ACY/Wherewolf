@@ -132,6 +132,9 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         onPoison={lobby.poison}
         onVote={lobby.vote}
         onShoot={lobby.shoot}
+        onElect={lobby.elect}
+        onBreakTie={lobby.breakTie}
+        onNameSuccessor={lobby.nameSuccessor}
         onPlayAgain={lobby.playAgain}
         onLeave={() => {
           call.leave();
@@ -204,6 +207,9 @@ function Lobby(props: {
   onPoison: (player: PlayerId) => void;
   onVote: (designated: PlayerId | null) => void;
   onShoot: (player: PlayerId) => void;
+  onElect: (candidate: PlayerId) => void;
+  onBreakTie: (player: PlayerId) => void;
+  onNameSuccessor: (player: PlayerId) => void;
   onPlayAgain: () => void;
   onLeave: () => void;
 }) {
@@ -261,6 +267,9 @@ function Lobby(props: {
               onPoison={props.onPoison}
               onVote={props.onVote}
               onShoot={props.onShoot}
+              onElect={props.onElect}
+              onBreakTie={props.onBreakTie}
+              onNameSuccessor={props.onNameSuccessor}
               onPlayAgain={props.onPlayAgain}
             />
             {view.role && <button onClick={() => setCardOpen(true)}>{fr.game.myCard}</button>}

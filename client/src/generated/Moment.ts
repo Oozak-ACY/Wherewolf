@@ -24,7 +24,24 @@ picks: Array<Pick> | null, } | { "type": "witchsTurn",
  * What the Witch knows and did this Turn. Only the Witch and the
  * Spectators see it.
  */
-witch: WitchSight | null, } | { "type": "dawn", deaths: Array<PlayerId>, } | { "type": "discussion" } | { "type": "vote", 
+witch: WitchSight | null, } | { "type": "dawn", deaths: Array<PlayerId>, } | { "type": "discussion" } | { "type": "election", 
+/**
+ * Who has already voted, but not for whom.
+ */
+voted: Array<PlayerId>, 
+/**
+ * This Player's own vote so far.
+ */
+yourBallot: Ballot | null, } | { "type": "electionResult", 
+/**
+ * Who voted for whom, in the order they first voted.
+ */
+ballots: Array<Ballot>, mayor: PlayerId, 
+/**
+ * Whether the Mayor was drawn at random, among the tied (or among
+ * all the living if nobody voted).
+ */
+byLot: boolean, } | { "type": "vote", 
 /**
  * Who has already voted (or abstained), but not for whom.
  */
@@ -32,8 +49,21 @@ voted: Array<PlayerId>,
 /**
  * This Player's own vote so far.
  */
-yourBallot: Ballot | null, } | { "type": "voteResult", 
+yourBallot: Ballot | null, } | { "type": "tieBreak", 
 /**
  * Who voted for whom, in the order they first voted.
  */
-ballots: Array<Ballot>, eliminated: PlayerId | null, } | { "type": "huntersShot", hunter: PlayerId, } | { "type": "shotResult", hunter: PlayerId, shot: PlayerId | null, } | { "type": "victory", winner: Camp, };
+ballots: Array<Ballot>, 
+/**
+ * The Players tied with the most votes.
+ */
+tied: Array<PlayerId>, } | { "type": "voteResult", 
+/**
+ * Who voted for whom, in the order they first voted.
+ */
+ballots: Array<Ballot>, eliminated: PlayerId | null, } | { "type": "huntersShot", hunter: PlayerId, } | { "type": "shotResult", hunter: PlayerId, shot: PlayerId | null, } | { "type": "succession", mayor: PlayerId, } | { "type": "successionResult", successor: PlayerId, 
+/**
+ * Whether they were drawn at random, the eliminated Mayor having
+ * named nobody in time.
+ */
+byLot: boolean, } | { "type": "victory", winner: Camp, };

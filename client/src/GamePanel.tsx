@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Ballot } from "./generated/Ballot";
 import type { Moment } from "./generated/Moment";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
@@ -16,6 +17,9 @@ type Props = {
   onPoison: (player: PlayerId) => void;
   onVote: (designated: PlayerId | null) => void;
   onShoot: (player: PlayerId) => void;
+  onElect: (candidate: PlayerId) => void;
+  onBreakTie: (player: PlayerId) => void;
+  onNameSuccessor: (player: PlayerId) => void;
   onPlayAgain: () => void;
 };
 
@@ -110,6 +114,27 @@ export function GamePanel(props: Props) {
           <p className="muted">{fr.game.asleep}</p>
         ))}
 
+      {moment.type === "election" && (
+        <>
+          <p className="muted">{fr.game.votedCount(moment.voted.length, living.length)}</p>
+          {me?.alive && (
+            <>
+              <p>{fr.game.electPrompt}</p>
+              <ChoiceList
+                players={living}
+                chosen={moment.yourBallot?.designated ?? null}
+                onChoose={props.onElect}
+              />
+              {moment.yourBallot?.designated != null && (
+                <p className="muted">{fr.game.yourVote(name(moment.yourBallot.designated))}</p>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {moment.type === "electionResult" && <BallotList ballots={moment.ballots} name={name} />}
+
       {moment.type === "vote" && (
         <>
           <p className="muted">{fr.game.votedCount(moment.voted.length, living.length)}</p>
@@ -139,15 +164,25 @@ export function GamePanel(props: Props) {
         </>
       )}
 
-      {moment.type === "voteResult" && moment.ballots.length > 0 && (
-        <ul className="ballots">
-          {moment.ballots.map((b) => (
-            <li key={b.voter}>
-              {fr.game.ballot(name(b.voter), b.designated === null ? null : name(b.designated))}
-            </li>
-          ))}
-        </ul>
+      {moment.type === "tieBreak" && (
+        <>
+          <BallotList ballots={moment.ballots} name={name} />
+          {view.mayor === view.you && me?.alive ? (
+            <>
+              <p>{fr.game.tieBreakPick}</p>
+              <ChoiceList
+                players={living.filter((p) => moment.tied.includes(p.id))}
+                chosen={null}
+                onChoose={props.onBreakTie}
+              />
+            </>
+          ) : (
+            view.mayor !== null && <p className="muted">{fr.game.mayorChoosing(name(view.mayor))}</p>
+          )}
+        </>
       )}
+
+      {moment.type === "voteResult" && <BallotList ballots={moment.ballots} name={name} />}
 
       {moment.type === "huntersShot" &&
         (moment.hunter === view.you ? (
@@ -157,6 +192,16 @@ export function GamePanel(props: Props) {
           </>
         ) : (
           <p className="muted">{fr.game.hunterAiming(name(moment.hunter))}</p>
+        ))}
+
+      {moment.type === "succession" &&
+        (moment.mayor === view.you ? (
+          <>
+            <p>{fr.game.successorPick}</p>
+            <ChoiceList players={living} chosen={null} onChoose={props.onNameSuccessor} />
+          </>
+        ) : (
+          <p className="muted">{fr.game.mayorNaming(name(moment.mayor))}</p>
         ))}
 
       {moment.type === "victory" && (
@@ -181,6 +226,20 @@ export function GamePanel(props: Props) {
           <p className="muted">{fr.game.waitingForHostToPlayAgain}</p>
         ))}
     </section>
+  );
+}
+
+/** Who voted for whom, once revealed. Nothing if nobody voted. */
+function BallotList(props: { ballots: Ballot[]; name: (id: PlayerId) => string }) {
+  if (props.ballots.length === 0) return null;
+  return (
+    <ul className="ballots">
+      {props.ballots.map((b) => (
+        <li key={b.voter}>
+          {fr.game.ballot(props.name(b.voter), b.designated === null ? null : props.name(b.designated))}
+        </li>
+      ))}
+    </ul>
   );
 }
 

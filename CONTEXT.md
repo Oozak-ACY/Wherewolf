@@ -21,7 +21,7 @@ A dead Player, or someone who joined after the Game started (they play the next 
 _Avoid_: Ghost, observer, dead player
 
 **Mayor**:
-A title (not a Role) that the living Players elect on the first Day. The Mayor settles ties in the Day vote.
+A title (not a Role) that the living Players elect on the first Day; a tied Election is drawn by lot. The Mayor settles ties in the Vote (if they don't in time, nobody is eliminated). When eliminated, the Mayor names a living successor, or one is drawn by lot.
 _Avoid_: Captain, sheriff, chief
 
 ## Game structure
@@ -57,7 +57,7 @@ Any Player's death, whether by the Werewolves, the Witch's poison, the Vote or t
 _Avoid_: Kill (for the generic case), removal
 
 **Death trigger**:
-What an Elimination sets off, like the Hunter's shot. Triggers are resolved one at a time, in the order the deaths happened, right after the announcement of those deaths (the dawn, the Vote's result, or a previous shot); a death they cause can set off another. Victory is checked only once every trigger is resolved. Until their trigger is resolved, the eliminated Player stays at the table rather than becoming a Spectator: the living see and hear them, and they know only what the living know.
+What an Elimination sets off: the Hunter's shot, or the Mayor naming a successor (a Hunter who is also Mayor shoots first). Triggers are resolved one at a time, in the order the deaths happened, right after the announcement of those deaths (the dawn, the Vote's result, or a previous shot); a death they cause can set off another. Victory is checked only once every trigger is resolved. Until their trigger is resolved, the eliminated Player stays at the table rather than becoming a Spectator: the living see and hear them, and they know only what the living know.
 _Avoid_: On-death effect, last will
 
 **Election**:
@@ -81,7 +81,7 @@ Who may see and hear whom at the current Moment, as the Narrator decides it: the
 _Avoid_: Permissions, rooms
 
 **Moment**:
-One stretch of a Game that the Narrator announces and times on its own: a Night Turn, the dawn announcement, the Day discussion, the Vote, its result, the Hunter's shot and its result, or the victory screen. The current Moment decides what each Player sees and may do.
+One stretch of a Game that the Narrator announces and times on its own: a Night Turn, the dawn announcement, the Day discussion, the Election and its result, the Vote, the Mayor's tie-break, the Vote's result, the Hunter's shot, the Mayor's succession, the result of each, or the victory screen. The current Moment decides what each Player sees and may do.
 _Avoid_: Step, stage
 
 ## Roles

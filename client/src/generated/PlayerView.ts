@@ -39,6 +39,10 @@ spectating: boolean,
  */
 moment: Moment | null, 
 /**
+ * The Mayor, once elected.
+ */
+mayor: PlayerId | null, 
+/**
  * The visibility plan, from this Player's side: who they may see and
  * hear right now.
  */

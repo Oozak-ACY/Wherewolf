@@ -158,6 +158,13 @@ impl Table {
         self.outputs = self.engine.deadline_passed(timer.moment).unwrap();
     }
 
+    /// Lets every timer run out until the Vote begins.
+    fn until_the_vote(&mut self) {
+        while !matches!(self.view("P1").moment, Some(Moment::Vote { .. })) {
+            self.time_runs_out();
+        }
+    }
+
     /// Starts a Game of 7 with 2 Werewolves, who kill a Villager on the
     /// first Night. Returns the new Spectator's name.
     fn after_a_first_death() -> (Self, String) {
@@ -185,8 +192,8 @@ fn by_day_the_living_see_each_other_and_never_the_spectators() {
     let living = table.living();
     let living_refs: Vec<&str> = living.iter().map(String::as_str).collect();
 
-    // Dawn, the discussion, the Vote and its result.
-    for _ in 0..4 {
+    // Dawn, the discussion, the Election, its result, the Vote and its result.
+    for _ in 0..6 {
         for name in &living {
             let mut others = table.ids(&living_refs);
             others.remove(&table.id(name));
@@ -203,7 +210,7 @@ fn by_day_the_living_see_each_other_and_never_the_spectators() {
 
 impl Table {
     fn skip_to_the_next_night(&mut self) {
-        for _ in 0..4 {
+        for _ in 0..6 {
             self.time_runs_out();
         }
     }
@@ -239,8 +246,7 @@ fn on_the_victory_screen_everyone_sees_everyone_again() {
     let werewolf = table.with_role(Role::Werewolf)[0].clone();
     let villager = table.with_role(Role::Villager)[0].clone();
     table.pick(&werewolf, &villager);
-    table.time_runs_out();
-    table.time_runs_out();
+    table.until_the_vote();
     let werewolf_id = table.id(&werewolf);
     for voter in table.living() {
         table.act(
@@ -318,9 +324,7 @@ fn a_latecomer_plays_the_next_game() {
     table.names.push("Late".to_string());
     let werewolf = table.with_role(Role::Werewolf)[0].clone();
     let werewolf_id = table.id(&werewolf);
-    table.time_runs_out();
-    table.time_runs_out();
-    table.time_runs_out();
+    table.until_the_vote();
     for voter in table.living() {
         table.act(
             &voter,

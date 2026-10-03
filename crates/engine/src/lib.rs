@@ -70,11 +70,19 @@ pub enum Command {
     /// Witch's Turn: eliminate a living Player at dawn with the poison
     /// potion, once a Game.
     Poison { player: PlayerId },
+    /// The Election: vote for a living Player, yourself included, to be
+    /// Mayor. Can be changed until the Election ends.
+    Elect { candidate: PlayerId },
     /// The Vote: designate a Player to eliminate, or abstain with `None`.
     /// Can be changed until the Vote ends.
     Vote { designated: Option<PlayerId> },
+    /// The Mayor, on a tied Vote: choose which of the tied Players is
+    /// eliminated.
+    BreakTie { player: PlayerId },
     /// The eliminated Hunter's shot: eliminate a living Player, once.
     Shoot { player: PlayerId },
+    /// The eliminated Mayor: name a living Player to succeed them.
+    NameSuccessor { player: PlayerId },
     /// Host only, once the Game is over: everyone goes back to the Lobby.
     PlayAgain,
 }
@@ -115,10 +123,12 @@ pub enum Rejection {
     NotInPlay,
     /// A Player cannot choose themselves for this.
     Yourself,
+    /// The Mayor must choose among the Players tied by the Vote.
+    NotTied,
 }
 
-/// Where the engine draws its chance from (dealing the Roles, and later tie
-/// breaks), injected so a test can replay any Game.
+/// Where the engine draws its chance from (dealing the Roles, and drawing
+/// the Mayor by lot), injected so a test can replay any Game.
 pub trait Randomness: Send {
     /// A number in `0..n`, with `n > 0`.
     fn below(&mut self, n: usize) -> usize;
@@ -331,6 +341,8 @@ pub struct PlayerView {
     pub spectating: bool,
     /// What is happening in the Game right now. `None` in the Lobby.
     pub moment: Option<Moment>,
+    /// The Mayor, once elected.
+    pub mayor: Option<PlayerId>,
     /// The visibility plan, from this Player's side: who they may see and
     /// hear right now.
     pub receives: Vec<PlayerId>,
@@ -378,6 +390,23 @@ pub enum Moment {
     Dawn { deaths: Vec<PlayerId> },
     /// Day: the living debate.
     Discussion,
+    /// The first Day: the living elect the Mayor. Ballots stay secret until
+    /// everyone has voted or the timer ends.
+    Election {
+        /// Who has already voted, but not for whom.
+        voted: Vec<PlayerId>,
+        /// This Player's own vote so far.
+        your_ballot: Option<Ballot>,
+    },
+    /// The Election revealed, and who it made Mayor.
+    ElectionResult {
+        /// Who voted for whom, in the order they first voted.
+        ballots: Vec<Ballot>,
+        mayor: PlayerId,
+        /// Whether the Mayor was drawn at random, among the tied (or among
+        /// all the living if nobody voted).
+        by_lot: bool,
+    },
     /// Day: the living vote to eliminate someone. Ballots stay secret until
     /// everyone has voted or the timer ends.
     Vote {
@@ -385,6 +414,14 @@ pub enum Moment {
         voted: Vec<PlayerId>,
         /// This Player's own vote so far.
         your_ballot: Option<Ballot>,
+    },
+    /// Day: the Vote revealed and tied. The Mayor chooses which of the tied
+    /// Players is eliminated; if they don't in time, nobody is.
+    TieBreak {
+        /// Who voted for whom, in the order they first voted.
+        ballots: Vec<Ballot>,
+        /// The Players tied with the most votes.
+        tied: Vec<PlayerId>,
     },
     /// Day: the Vote revealed, and who it eliminated.
     VoteResult {
@@ -398,6 +435,15 @@ pub enum Moment {
     ShotResult {
         hunter: PlayerId,
         shot: Option<PlayerId>,
+    },
+    /// The eliminated Mayor names a living Player to succeed them.
+    Succession { mayor: PlayerId },
+    /// The new Mayor.
+    SuccessionResult {
+        successor: PlayerId,
+        /// Whether they were drawn at random, the eliminated Mayor having
+        /// named nobody in time.
+        by_lot: bool,
     },
     /// The Game is over. Every Role is revealed.
     Victory { winner: Camp },
@@ -507,6 +553,8 @@ struct Game {
     potions: Potions,
     /// The death triggers still to resolve, in the order the deaths happened.
     triggers: VecDeque<Trigger>,
+    /// `None` until the Election, on the first Day.
+    mayor: Option<PlayerId>,
 }
 
 /// What a Player's Elimination sets off, resolved one at a time before the
@@ -514,18 +562,23 @@ struct Game {
 #[derive(Debug, Clone, Copy)]
 enum Trigger {
     HuntersShot { hunter: PlayerId },
+    Succession { mayor: PlayerId },
 }
 
 impl Trigger {
-    /// The death trigger `role` sets off, if it has one.
-    fn of(role: Role, dead: PlayerId) -> Option<Self> {
-        (role == Role::Hunter).then_some(Trigger::HuntersShot { hunter: dead })
+    /// The death triggers `dead` sets off, in the order they are resolved:
+    /// a Hunter who is also Mayor shoots first, then names a successor.
+    fn set_off_by(dead: PlayerId, role: Option<Role>, was_mayor: bool) -> Vec<Self> {
+        let shot = (role == Some(Role::Hunter)).then_some(Trigger::HuntersShot { hunter: dead });
+        let succession = was_mayor.then_some(Trigger::Succession { mayor: dead });
+        shot.into_iter().chain(succession).collect()
     }
 
     /// The eliminated Player this trigger belongs to.
     fn owner(self) -> PlayerId {
         match self {
             Trigger::HuntersShot { hunter } => hunter,
+            Trigger::Succession { mayor } => mayor,
         }
     }
 }
@@ -557,8 +610,21 @@ enum MomentState {
     },
     Discussion,
     /// In the order they were cast.
+    Election {
+        ballots: Vec<Ballot>,
+    },
+    ElectionResult {
+        ballots: Vec<Ballot>,
+        mayor: PlayerId,
+        by_lot: bool,
+    },
+    /// In the order they were cast.
     Vote {
         ballots: Vec<Ballot>,
+    },
+    TieBreak {
+        ballots: Vec<Ballot>,
+        tied: Vec<PlayerId>,
     },
     VoteResult {
         ballots: Vec<Ballot>,
@@ -574,6 +640,15 @@ enum MomentState {
         shot: Option<PlayerId>,
         then: Resume,
     },
+    Succession {
+        mayor: PlayerId,
+        then: Resume,
+    },
+    SuccessionResult {
+        successor: PlayerId,
+        by_lot: bool,
+        then: Resume,
+    },
     Victory {
         winner: Camp,
     },
@@ -582,8 +657,9 @@ enum MomentState {
 /// How long the Narrator's announcements stay on screen, in seconds.
 pub const ANNOUNCEMENT_SECONDS: u32 = 10;
 
-/// The Player designated most often, unless several are tied (or nobody was).
-fn most_designated(designated: impl Iterator<Item = PlayerId>) -> Option<PlayerId> {
+/// The Players designated most often, tied, in the order they were first
+/// designated. Empty if nobody was.
+fn top_designated(designated: impl Iterator<Item = PlayerId>) -> Vec<PlayerId> {
     let mut counts: Vec<(PlayerId, usize)> = Vec::new();
     for id in designated {
         match counts.iter_mut().find(|(c, _)| *c == id) {
@@ -591,14 +667,28 @@ fn most_designated(designated: impl Iterator<Item = PlayerId>) -> Option<PlayerI
             None => counts.push((id, 1)),
         }
     }
-    let top = counts.iter().map(|&(_, n)| n).max()?;
-    match counts
-        .iter()
-        .filter(|&&(_, n)| n == top)
-        .collect::<Vec<_>>()[..]
-    {
-        [&(id, _)] => Some(id),
+    let top = counts.iter().map(|&(_, n)| n).max().unwrap_or(0);
+    counts
+        .into_iter()
+        .filter(|&(_, n)| n == top)
+        .map(|(id, _)| id)
+        .collect()
+}
+
+/// The single Player designated most often, unless several are tied (or
+/// nobody was).
+fn single_most_designated(designated: impl Iterator<Item = PlayerId>) -> Option<PlayerId> {
+    match top_designated(designated)[..] {
+        [id] => Some(id),
         _ => None,
+    }
+}
+
+/// Records `voter`'s ballot, replacing their earlier one.
+fn cast(ballots: &mut Vec<Ballot>, voter: PlayerId, designated: Option<PlayerId>) {
+    match ballots.iter_mut().find(|b| b.voter == voter) {
+        Some(ballot) => ballot.designated = designated,
+        None => ballots.push(Ballot { voter, designated }),
     }
 }
 
@@ -616,10 +706,15 @@ impl Game {
             MomentState::WitchsTurn { .. } => timers.witch,
             MomentState::Dawn { .. } => ANNOUNCEMENT_SECONDS,
             MomentState::Discussion => timers.discussion,
+            MomentState::Election { .. } => timers.election,
+            MomentState::ElectionResult { .. } => ANNOUNCEMENT_SECONDS,
             MomentState::Vote { .. } => timers.vote,
+            MomentState::TieBreak { .. } => timers.mayor_tie_break,
             MomentState::VoteResult { .. } => ANNOUNCEMENT_SECONDS,
             MomentState::HuntersShot { .. } => timers.hunter,
             MomentState::ShotResult { .. } => ANNOUNCEMENT_SECONDS,
+            MomentState::Succession { .. } => timers.mayor_successor,
+            MomentState::SuccessionResult { .. } => ANNOUNCEMENT_SECONDS,
             MomentState::Victory { .. } => return None,
         };
         Some(Timer {
@@ -654,9 +749,26 @@ impl Game {
                 deaths: deaths.clone(),
             },
             MomentState::Discussion => Moment::Discussion,
+            MomentState::Election { ballots } => Moment::Election {
+                voted: ballots.iter().map(|b| b.voter).collect(),
+                your_ballot: ballots.iter().find(|b| b.voter == viewer.id).copied(),
+            },
+            MomentState::ElectionResult {
+                ballots,
+                mayor,
+                by_lot,
+            } => Moment::ElectionResult {
+                ballots: ballots.clone(),
+                mayor: *mayor,
+                by_lot: *by_lot,
+            },
             MomentState::Vote { ballots } => Moment::Vote {
                 voted: ballots.iter().map(|b| b.voter).collect(),
                 your_ballot: ballots.iter().find(|b| b.voter == viewer.id).copied(),
+            },
+            MomentState::TieBreak { ballots, tied } => Moment::TieBreak {
+                ballots: ballots.clone(),
+                tied: tied.clone(),
             },
             MomentState::VoteResult {
                 ballots,
@@ -669,6 +781,13 @@ impl Game {
             MomentState::ShotResult { hunter, shot, .. } => Moment::ShotResult {
                 hunter: *hunter,
                 shot: *shot,
+            },
+            MomentState::Succession { mayor, .. } => Moment::Succession { mayor: *mayor },
+            MomentState::SuccessionResult {
+                successor, by_lot, ..
+            } => Moment::SuccessionResult {
+                successor: *successor,
+                by_lot: *by_lot,
             },
             MomentState::Victory { winner } => Moment::Victory { winner: *winner },
         }
@@ -778,6 +897,7 @@ impl Engine {
                         poison: true,
                     },
                     triggers: VecDeque::new(),
+                    mayor: None,
                 });
             }
             Command::Inspect { player } => {
@@ -845,6 +965,21 @@ impl Engine {
                 self.witch_sight_mut().poisoned = Some(player);
                 self.game_mut().potions.poison = false;
             }
+            Command::Elect { candidate } => {
+                let voter = self.require_living(seat)?;
+                if !matches!(self.state(), Some(MomentState::Election { .. })) {
+                    return Err(Rejection::NotNow);
+                }
+                self.require_in_play(Some(candidate))?;
+                let living = self.living().count();
+                let MomentState::Election { ballots } = &mut self.game_mut().state else {
+                    unreachable!("checked above")
+                };
+                cast(ballots, voter, Some(candidate));
+                if ballots.len() == living {
+                    self.end_election();
+                }
+            }
             Command::Vote { designated } => {
                 let voter = self.require_living(seat)?;
                 if !matches!(self.state(), Some(MomentState::Vote { .. })) {
@@ -854,14 +989,25 @@ impl Engine {
                 let MomentState::Vote { ballots } = &mut self.game_mut().state else {
                     unreachable!("checked above")
                 };
-                match ballots.iter_mut().find(|b| b.voter == voter) {
-                    Some(ballot) => ballot.designated = designated,
-                    None => ballots.push(Ballot { voter, designated }),
-                }
+                cast(ballots, voter, designated);
                 let everyone_voted = ballots.len() == self.living().count();
                 if everyone_voted {
                     self.end_vote();
                 }
+            }
+            Command::BreakTie { player } => {
+                let chooser = self.require_living(seat)?;
+                let Some(MomentState::TieBreak { ballots, tied }) = self.state() else {
+                    return Err(Rejection::NotNow);
+                };
+                if self.mayor() != Some(chooser) {
+                    return Err(Rejection::NotYourTurn);
+                }
+                if !tied.contains(&player) {
+                    return Err(Rejection::NotTied);
+                }
+                let ballots = ballots.clone();
+                self.announce_vote(ballots, Some(player));
             }
             Command::Shoot { player } => {
                 let shooter = self.seat_of(seat)?.id;
@@ -878,6 +1024,17 @@ impl Engine {
                     shot: Some(player),
                     then,
                 });
+            }
+            Command::NameSuccessor { player } => {
+                let namer = self.seat_of(seat)?.id;
+                let Some(&MomentState::Succession { mayor, then }) = self.state() else {
+                    return Err(Rejection::NotNow);
+                };
+                if namer != mayor {
+                    return Err(Rejection::NotYourTurn);
+                }
+                self.require_in_play(Some(player))?;
+                self.hand_over_mayor(player, false, then);
             }
             Command::PlayAgain => {
                 self.require_host(seat)?;
@@ -913,10 +1070,24 @@ impl Engine {
                 self.end_night(killed.into_iter().chain(sight.poisoned).collect());
             }
             MomentState::Dawn { .. } => self.resolve_triggers(Resume::Day),
-            MomentState::Discussion => self.game_mut().go_to(MomentState::Vote {
-                ballots: Vec::new(),
-            }),
+            // The Mayor is elected on the first Day only.
+            MomentState::Discussion if game.mayor.is_none() => {
+                self.game_mut().go_to(MomentState::Election {
+                    ballots: Vec::new(),
+                })
+            }
+            MomentState::Discussion | MomentState::ElectionResult { .. } => {
+                self.game_mut().go_to(MomentState::Vote {
+                    ballots: Vec::new(),
+                })
+            }
+            MomentState::Election { .. } => self.end_election(),
             MomentState::Vote { .. } => self.end_vote(),
+            // The Mayor did not choose: nobody is eliminated.
+            MomentState::TieBreak { ballots, .. } => {
+                let ballots = ballots.clone();
+                self.announce_vote(ballots, None);
+            }
             MomentState::VoteResult { .. } => self.resolve_triggers(Resume::Night),
             // The time is up: the shot is lost.
             &MomentState::HuntersShot { hunter, then } => {
@@ -927,6 +1098,13 @@ impl Engine {
                 })
             }
             &MomentState::ShotResult { then, .. } => self.resolve_triggers(then),
+            // The Mayor named nobody in time: a living Player is drawn.
+            &MomentState::Succession { then, .. } => {
+                let living: Vec<PlayerId> = self.living().map(|s| s.id).collect();
+                let successor = self.draw(&living);
+                self.hand_over_mayor(successor, true, then);
+            }
+            &MomentState::SuccessionResult { then, .. } => self.resolve_triggers(then),
             MomentState::Victory { .. } => return Err(Rejection::NotNow),
         }
         Ok(self.outputs())
@@ -1103,18 +1281,54 @@ impl Engine {
 
     /// The Player most picked by the Werewolves, unless several are tied.
     fn most_picked(&self) -> Option<PlayerId> {
-        most_designated(self.picks()?.iter().map(|p| p.victim))
+        single_most_designated(self.picks()?.iter().map(|p| p.victim))
+    }
+
+    /// The Election is over: it is revealed, and the most-voted Player becomes
+    /// Mayor. A tie, or an Election nobody voted in, is settled at random
+    /// among the tied, or among all the living.
+    fn end_election(&mut self) {
+        let MomentState::Election { ballots } = &self.game_mut().state else {
+            unreachable!("only an Election ends")
+        };
+        let ballots = ballots.clone();
+        let mut candidates = top_designated(ballots.iter().filter_map(|b| b.designated));
+        if candidates.is_empty() {
+            candidates = self.living().map(|s| s.id).collect();
+        }
+        let by_lot = candidates.len() > 1;
+        let mayor = self.draw(&candidates);
+        let game = self.game_mut();
+        game.mayor = Some(mayor);
+        game.go_to(MomentState::ElectionResult {
+            ballots,
+            mayor,
+            by_lot,
+        });
     }
 
     /// The Vote is over: it is revealed, and the most-designated Player dies.
+    /// A tie goes to the living Mayor, who chooses among the tied.
     fn end_vote(&mut self) {
-        let game = self.game_mut();
-        let MomentState::Vote { ballots } = &game.state else {
+        let MomentState::Vote { ballots } = &self.game_mut().state else {
             unreachable!("only a Vote ends")
         };
         let ballots = ballots.clone();
-        let eliminated = most_designated(ballots.iter().filter_map(|b| b.designated));
-        game.go_to(MomentState::VoteResult {
+        let tied = top_designated(ballots.iter().filter_map(|b| b.designated));
+        let mayor = self.mayor();
+        let mayor_alive = self.living().any(|s| Some(s.id) == mayor);
+        match tied[..] {
+            [id] => self.announce_vote(ballots, Some(id)),
+            [_, _, ..] if mayor_alive => self
+                .game_mut()
+                .go_to(MomentState::TieBreak { ballots, tied }),
+            _ => self.announce_vote(ballots, None),
+        }
+    }
+
+    /// The Vote's result: `eliminated`, if anyone, dies.
+    fn announce_vote(&mut self, ballots: Vec<Ballot>, eliminated: Option<PlayerId>) {
+        self.game_mut().go_to(MomentState::VoteResult {
             ballots,
             eliminated,
         });
@@ -1130,11 +1344,40 @@ impl Engine {
             Some(Trigger::HuntersShot { hunter }) => self
                 .game_mut()
                 .go_to(MomentState::HuntersShot { hunter, then }),
+            // Once a Camp has won (or nobody is left alive), a successor
+            // would change nothing.
+            Some(Trigger::Succession { .. }) if self.winner().is_some() => {
+                self.resolve_triggers(then)
+            }
+            Some(Trigger::Succession { mayor }) => self
+                .game_mut()
+                .go_to(MomentState::Succession { mayor, then }),
             None => match then {
                 Resume::Day => self.unless_won(MomentState::Discussion),
                 Resume::Night => self.unless_won(self.nightfall()),
             },
         }
+    }
+
+    /// One of `players`, at random. There must be at least one.
+    fn draw(&mut self, players: &[PlayerId]) -> PlayerId {
+        players[self.randomness.below(players.len())]
+    }
+
+    /// The Mayor, once elected.
+    fn mayor(&self) -> Option<PlayerId> {
+        self.game.as_ref().and_then(|g| g.mayor)
+    }
+
+    /// `successor` becomes Mayor, and everyone is told.
+    fn hand_over_mayor(&mut self, successor: PlayerId, by_lot: bool, then: Resume) {
+        let game = self.game_mut();
+        game.mayor = Some(successor);
+        game.go_to(MomentState::SuccessionResult {
+            successor,
+            by_lot,
+            then,
+        });
     }
 
     /// Moves on to `next`, unless a Camp has won: then the Game is over.
@@ -1167,15 +1410,16 @@ impl Engine {
         self.seats.iter().filter(|s| s.alive)
     }
 
-    /// `id` dies, setting off their death trigger, if their Role has one.
+    /// `id` dies, setting off their death triggers, if they have any.
     fn eliminate(&mut self, id: PlayerId) {
         let Some(seat) = self.seats.iter_mut().find(|s| s.id == id) else {
             return;
         };
         seat.alive = false;
-        if let Some(trigger) = seat.role.and_then(|role| Trigger::of(role, id)) {
-            self.game_mut().triggers.push_back(trigger);
-        }
+        let role = seat.role;
+        let game = self.game_mut();
+        let triggers = Trigger::set_off_by(id, role, game.mayor == Some(id));
+        game.triggers.extend(triggers);
     }
 
     /// Whether `seat` is a Spectator. An eliminated Player whose death
@@ -1185,10 +1429,13 @@ impl Engine {
         let Some(game) = &self.game else {
             return false;
         };
-        let aiming =
-            matches!(game.state, MomentState::HuntersShot { hunter, .. } if hunter == seat.id);
+        let acting = match game.state {
+            MomentState::HuntersShot { hunter, .. } => hunter == seat.id,
+            MomentState::Succession { mayor, .. } => mayor == seat.id,
+            _ => false,
+        };
         let waiting = game.triggers.iter().any(|t| t.owner() == seat.id);
-        !seat.alive && !aiming && !waiting
+        !seat.alive && !acting && !waiting
     }
 
     fn game_mut(&mut self) -> &mut Game {
@@ -1251,10 +1498,15 @@ impl Engine {
             Some(
                 MomentState::Dawn { .. }
                 | MomentState::Discussion
+                | MomentState::Election { .. }
+                | MomentState::ElectionResult { .. }
                 | MomentState::Vote { .. }
+                | MomentState::TieBreak { .. }
                 | MomentState::VoteResult { .. }
                 | MomentState::HuntersShot { .. }
-                | MomentState::ShotResult { .. },
+                | MomentState::ShotResult { .. }
+                | MomentState::Succession { .. }
+                | MomentState::SuccessionResult { .. },
             ) => true,
         }
     }
@@ -1319,6 +1571,7 @@ impl Engine {
                     role: self.role_card(s),
                     spectating: self.spectating(s),
                     moment: self.game.as_ref().map(|g| g.moment(s)),
+                    mayor: self.mayor(),
                     receives: self.received_by(s),
                     audience: self.audience_of(s),
                 };

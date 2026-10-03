@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { Moment } from "./generated/Moment";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { RoleCounts } from "./generated/RoleCounts";
 import { chooseFrenchVoice, createNarrator, lineTimeoutMs, narratorLine } from "./narrator";
@@ -211,5 +212,34 @@ describe("announcing the Hunter's shot", () => {
     const line = narratorLine({ type: "shotResult", hunter: 1, shot: null }, players, roles(1));
 
     expect(line).toBe("Le Chasseur n'a tiré sur personne.");
+  });
+});
+
+describe("announcing the Mayor", () => {
+  const players = [1, 2, 3, 4, 5].map((id) => player(id));
+  const say = (moment: Moment) => narratorLine(moment, players, roles(1));
+
+  test("the village elects its Mayor, and the result says whether it was drawn", () => {
+    expect(say({ type: "election", voted: [], yourBallot: null })).toBe("Le village élit son Maire.");
+    expect(say({ type: "electionResult", ballots: [], mayor: 2, byLot: false })).toBe(
+      "P2 est élu Maire.",
+    );
+    expect(say({ type: "electionResult", ballots: [], mayor: 2, byLot: true })).toBe(
+      "Le sort désigne P2 comme Maire.",
+    );
+  });
+
+  test("a tied Vote goes to the Mayor", () => {
+    const line = say({ type: "tieBreak", ballots: [], tied: [1, 2] });
+
+    expect(line).toBe("Égalité entre P1, P2 : le Maire choisit qui est éliminé.");
+  });
+
+  test("the eliminated Mayor names a successor, or the lot does", () => {
+    expect(say({ type: "succession", mayor: 1 })).toBe("P1, le Maire, désigne son successeur.");
+    expect(say({ type: "successionResult", successor: 3, byLot: false })).toBe("P3 devient Maire.");
+    expect(say({ type: "successionResult", successor: 3, byLot: true })).toBe(
+      "Le sort désigne P3 comme nouveau Maire.",
+    );
   });
 });

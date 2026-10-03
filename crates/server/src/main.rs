@@ -373,11 +373,20 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
             ClientMessage::Poison { player } => {
                 lobby.command(&seat, Command::Poison { player }, &outbox);
             }
+            ClientMessage::Elect { candidate } => {
+                lobby.command(&seat, Command::Elect { candidate }, &outbox);
+            }
             ClientMessage::Vote { designated } => {
                 lobby.command(&seat, Command::Vote { designated }, &outbox);
             }
+            ClientMessage::BreakTie { player } => {
+                lobby.command(&seat, Command::BreakTie { player }, &outbox);
+            }
             ClientMessage::Shoot { player } => {
                 lobby.command(&seat, Command::Shoot { player }, &outbox);
+            }
+            ClientMessage::NameSuccessor { player } => {
+                lobby.command(&seat, Command::NameSuccessor { player }, &outbox);
             }
             ClientMessage::PlayAgain => {
                 lobby.command(&seat, Command::PlayAgain, &outbox);
