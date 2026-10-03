@@ -156,7 +156,7 @@ impl Lobby {
         for (seat, view) in outputs.views() {
             if let Some(connection) = self.connections.get(seat) {
                 let _ = connection.outbox.send(ServerMessage::View {
-                    view: view.clone(),
+                    view: Box::new(view.clone()),
                     ends_in_ms,
                 });
             }

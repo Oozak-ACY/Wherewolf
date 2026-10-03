@@ -53,7 +53,7 @@ pub enum ClientMessage {
 pub enum ServerMessage {
     /// Everything this Player may know, sent after every change.
     View {
-        view: PlayerView,
+        view: Box<PlayerView>,
         /// Time left in the Game's current moment when this was sent, if it is timed.
         ends_in_ms: Option<u32>,
     },
