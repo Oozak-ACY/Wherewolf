@@ -2,6 +2,7 @@
 import type { PlayerId } from "./PlayerId";
 
 /**
- * A Werewolf's current choice of Victim.
+ * A Werewolf's current choice of Victim. `victim` is `None` for a Werewolf
+ * who passed: a pick for nobody.
  */
-export type Pick = { werewolf: PlayerId, victim: PlayerId, };
+export type Pick = { werewolf: PlayerId, victim: PlayerId | null, };

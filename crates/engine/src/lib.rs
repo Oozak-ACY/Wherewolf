@@ -70,8 +70,13 @@ pub enum Command {
     /// Witch's Turn: eliminate a living Player at dawn with the poison
     /// potion, once a Game.
     Poison { player: PlayerId },
-    /// Witch's Turn: use no more potions tonight. With Hidden Roles off,
-    /// her Turn ends at once.
+    /// Do nothing in this Moment, as letting its time run out would: the
+    /// Seer inspects nobody, a Werewolf picks nobody (and may still change
+    /// their mind), the Witch uses no more potions, the eliminated Hunter
+    /// shoots nobody, the Mayor on a tie eliminates nobody. With Hidden Roles
+    /// off, a Night Turn then ends as soon as its action is complete; with it
+    /// on, it runs its full time. Not when the eliminated Mayor names a
+    /// successor.
     Pass,
     /// The Election: vote for a living Player, yourself included, to be
     /// Mayor. Can be changed until the Election ends.
@@ -380,6 +385,9 @@ pub enum Moment {
         /// What the Seer learned this Turn. Only the Seer and the Spectators
         /// see it.
         inspection: Option<Inspection>,
+        /// Whether the Seer chose to inspect nobody tonight. Only the Seer
+        /// and the Spectators see it.
+        passed: bool,
     },
     /// Night: the Werewolves choose their Victim.
     WerewolvesTurn {
@@ -479,12 +487,13 @@ pub struct WitchSight {
     pub passed: bool,
 }
 
-/// A Werewolf's current choice of Victim.
+/// A Werewolf's current choice of Victim. `victim` is `None` for a Werewolf
+/// who passed: a pick for nobody.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[ts(export)]
 pub struct Pick {
     pub werewolf: PlayerId,
-    pub victim: PlayerId,
+    pub victim: Option<PlayerId>,
 }
 
 /// One living Player's vote. `designated` is `None` for an abstention.
@@ -607,6 +616,8 @@ enum Resume {
 enum MomentState {
     SeersTurn {
         inspection: Option<Inspection>,
+        /// She chose to inspect nobody tonight.
+        passed: bool,
     },
     /// In the order they were made.
     WerewolvesTurn {
@@ -667,10 +678,10 @@ enum MomentState {
 /// How long the Narrator's announcements stay on screen, in seconds.
 pub const ANNOUNCEMENT_SECONDS: u32 = 10;
 
-/// The Players designated most often, tied, in the order they were first
-/// designated. Empty if nobody was.
-fn top_designated(designated: impl Iterator<Item = PlayerId>) -> Vec<PlayerId> {
-    let mut counts: Vec<(PlayerId, usize)> = Vec::new();
+/// The choices made most often, tied, in the order they were first made.
+/// Empty if none was.
+fn top_choices<T: Copy + PartialEq>(designated: impl Iterator<Item = T>) -> Vec<T> {
+    let mut counts: Vec<(T, usize)> = Vec::new();
     for id in designated {
         match counts.iter_mut().find(|(c, _)| *c == id) {
             Some((_, n)) => *n += 1,
@@ -685,10 +696,10 @@ fn top_designated(designated: impl Iterator<Item = PlayerId>) -> Vec<PlayerId> {
         .collect()
 }
 
-/// The single Player designated most often, unless several are tied (or
-/// nobody was).
-fn single_most_designated(designated: impl Iterator<Item = PlayerId>) -> Option<PlayerId> {
-    match top_designated(designated)[..] {
+/// The single choice made most often, unless several are tied (or none was
+/// made).
+fn single_top_choice<T: Copy + PartialEq>(designated: impl Iterator<Item = T>) -> Option<T> {
+    match top_choices(designated)[..] {
         [id] => Some(id),
         _ => None,
     }
@@ -714,6 +725,7 @@ impl Game {
             // With Hidden Roles off, her Turn ends once she has read what she saw.
             MomentState::SeersTurn {
                 inspection: Some(_),
+                ..
             } if !hidden_roles => ANNOUNCEMENT_SECONDS,
             MomentState::SeersTurn { .. } => timers.seer,
             MomentState::WerewolvesTurn { .. } => timers.werewolves,
@@ -744,12 +756,14 @@ impl Game {
     /// This moment as `viewer` may see it.
     fn moment(&self, viewer: &Seat) -> Moment {
         match &self.state {
-            MomentState::SeersTurn { inspection } => Moment::SeersTurn {
+            MomentState::SeersTurn { inspection, passed } => {
                 // The Seer and the Spectators see it.
-                inspection: (viewer.role == Some(Role::Seer) || !viewer.alive)
-                    .then_some(*inspection)
-                    .flatten(),
-            },
+                let sees = viewer.role == Some(Role::Seer) || !viewer.alive;
+                Moment::SeersTurn {
+                    inspection: sees.then_some(*inspection).flatten(),
+                    passed: sees && *passed,
+                }
+            }
             MomentState::WerewolvesTurn { picks } => Moment::WerewolvesTurn {
                 // The Werewolves and the Spectators see them.
                 picks: (viewer.role == Some(Role::Werewolf) || !viewer.alive)
@@ -918,18 +932,7 @@ impl Engine {
                 });
             }
             Command::Inspect { player } => {
-                let seer = self.require_living(seat)?;
-                let is_seer = self.seat_of(seat)?.role == Some(Role::Seer);
-                let Some(MomentState::SeersTurn { inspection }) = self.state() else {
-                    return Err(Rejection::NotNow);
-                };
-                if !is_seer {
-                    return Err(Rejection::NotYourTurn);
-                }
-                // She inspects only once a Night.
-                if inspection.is_some() {
-                    return Err(Rejection::NotNow);
-                }
+                let seer = self.require_seers_turn(seat)?;
                 self.require_in_play(Some(player))?;
                 if player == seer {
                     return Err(Rejection::Yourself);
@@ -941,30 +944,23 @@ impl Engine {
                     .expect("a living Player of this Game has a Role");
                 let inspection = Some(Inspection { player, role });
                 if self.hidden_roles {
-                    self.game_mut().state = MomentState::SeersTurn { inspection };
+                    self.game_mut().state = MomentState::SeersTurn {
+                        inspection,
+                        passed: false,
+                    };
                 } else {
                     // Her action is complete: a new Moment, timed only for
                     // her to read what she saw.
-                    self.game_mut().go_to(MomentState::SeersTurn { inspection });
+                    self.game_mut().go_to(MomentState::SeersTurn {
+                        inspection,
+                        passed: false,
+                    });
                 }
             }
             Command::PickVictim { victim } => {
-                let werewolf = self.require_living(seat)?;
-                let is_werewolf = self.seat_of(seat)?.role == Some(Role::Werewolf);
-                if !matches!(self.state(), Some(MomentState::WerewolvesTurn { .. })) {
-                    return Err(Rejection::NotNow);
-                }
-                if !is_werewolf {
-                    return Err(Rejection::NotYourTurn);
-                }
+                let werewolf = self.require_werewolves_turn(seat)?;
                 self.require_in_play(Some(victim))?;
-                let picks = self.picks_mut();
-                picks.retain(|p| p.werewolf != werewolf);
-                picks.push(Pick { werewolf, victim });
-                // With Hidden Roles on, their Turn runs its full time anyway.
-                if let Some(victim) = self.unanimous_victim().filter(|_| !self.hidden_roles) {
-                    self.end_werewolves_turn(Some(victim));
-                }
+                self.pick(werewolf, Some(victim));
             }
             Command::Heal => {
                 self.require_witchs_turn(seat)?;
@@ -989,11 +985,56 @@ impl Engine {
                 self.game_mut().potions.poison = false;
                 self.end_witchs_turn_if_done();
             }
-            Command::Pass => {
-                self.require_witchs_turn(seat)?;
-                self.witch_sight_mut().passed = true;
-                self.end_witchs_turn_if_done();
-            }
+            Command::Pass => match self.state() {
+                Some(MomentState::WerewolvesTurn { .. }) => {
+                    let werewolf = self.require_werewolves_turn(seat)?;
+                    self.pick(werewolf, None);
+                }
+                Some(MomentState::SeersTurn { .. }) => {
+                    self.require_seers_turn(seat)?;
+                    if self.hidden_roles {
+                        // Her Turn runs its full time anyway.
+                        self.game_mut().state = MomentState::SeersTurn {
+                            inspection: None,
+                            passed: true,
+                        };
+                    } else {
+                        self.game_mut().go_to(Self::werewolves_turn());
+                    }
+                }
+                Some(MomentState::WitchsTurn { .. }) => {
+                    self.require_witchs_turn(seat)?;
+                    self.witch_sight_mut().passed = true;
+                    self.end_witchs_turn_if_done();
+                }
+                // The same as letting the time run out: the shot is lost.
+                Some(MomentState::HuntersShot { .. }) => {
+                    let (hunter, then) = self.require_hunters_shot(seat)?;
+                    self.game_mut().go_to(MomentState::ShotResult {
+                        hunter,
+                        shot: None,
+                        then,
+                    });
+                }
+                // The same as letting the time run out: nobody is eliminated.
+                Some(MomentState::TieBreak { .. }) => {
+                    let (ballots, _) = self.require_tie_break(seat)?;
+                    self.announce_vote(ballots, None);
+                }
+                // The eliminated Mayor must name a successor.
+                Some(&MomentState::Succession { mayor, .. }) => {
+                    let namer = self.seat_of(seat)?.id;
+                    return Err(if namer == mayor {
+                        Rejection::NotNow
+                    } else {
+                        Rejection::NotYourTurn
+                    });
+                }
+                _ => {
+                    self.require_living(seat)?;
+                    return Err(Rejection::NotNow);
+                }
+            },
             Command::Elect { candidate } => {
                 let voter = self.require_living(seat)?;
                 if !matches!(self.state(), Some(MomentState::Election { .. })) {
@@ -1025,27 +1066,14 @@ impl Engine {
                 }
             }
             Command::BreakTie { player } => {
-                let chooser = self.require_living(seat)?;
-                let Some(MomentState::TieBreak { ballots, tied }) = self.state() else {
-                    return Err(Rejection::NotNow);
-                };
-                if self.mayor() != Some(chooser) {
-                    return Err(Rejection::NotYourTurn);
-                }
+                let (ballots, tied) = self.require_tie_break(seat)?;
                 if !tied.contains(&player) {
                     return Err(Rejection::NotTied);
                 }
-                let ballots = ballots.clone();
                 self.announce_vote(ballots, Some(player));
             }
             Command::Shoot { player } => {
-                let shooter = self.seat_of(seat)?.id;
-                let Some(&MomentState::HuntersShot { hunter, then }) = self.state() else {
-                    return Err(Rejection::NotNow);
-                };
-                if shooter != hunter {
-                    return Err(Rejection::NotYourTurn);
-                }
+                let (hunter, then) = self.require_hunters_shot(seat)?;
                 self.require_in_play(Some(player))?;
                 self.eliminate(player);
                 self.game_mut().go_to(MomentState::ShotResult {
@@ -1160,6 +1188,36 @@ impl Engine {
         }
     }
 
+    /// The Player on this seat is the living Seer, it is her Turn, and she
+    /// has neither inspected nor passed yet: she acts only once a Night.
+    fn require_seers_turn(&self, token: &SeatToken) -> Result<PlayerId, Rejection> {
+        let seer = self.require_living(token)?;
+        let is_seer = self.seat_of(token)?.role == Some(Role::Seer);
+        let Some(MomentState::SeersTurn { inspection, passed }) = self.state() else {
+            return Err(Rejection::NotNow);
+        };
+        if !is_seer {
+            Err(Rejection::NotYourTurn)
+        } else if inspection.is_some() || *passed {
+            Err(Rejection::NotNow)
+        } else {
+            Ok(seer)
+        }
+    }
+
+    /// The Player on this seat is a living Werewolf, and it is their Turn.
+    fn require_werewolves_turn(&self, token: &SeatToken) -> Result<PlayerId, Rejection> {
+        let werewolf = self.require_living(token)?;
+        let is_werewolf = self.seat_of(token)?.role == Some(Role::Werewolf);
+        if !matches!(self.state(), Some(MomentState::WerewolvesTurn { .. })) {
+            Err(Rejection::NotNow)
+        } else if !is_werewolf {
+            Err(Rejection::NotYourTurn)
+        } else {
+            Ok(werewolf)
+        }
+    }
+
     /// The Player on this seat is the living Witch, it is her Turn, and she
     /// has not passed.
     fn require_witchs_turn(&self, token: &SeatToken) -> Result<(), Rejection> {
@@ -1175,6 +1233,35 @@ impl Engine {
         } else {
             Ok(())
         }
+    }
+
+    /// The Player on this seat is the eliminated Hunter, and it is his shot.
+    /// Returns him, and where the Game goes once his shot is resolved.
+    fn require_hunters_shot(&self, token: &SeatToken) -> Result<(PlayerId, Resume), Rejection> {
+        let shooter = self.seat_of(token)?.id;
+        let Some(&MomentState::HuntersShot { hunter, then }) = self.state() else {
+            return Err(Rejection::NotNow);
+        };
+        if shooter != hunter {
+            return Err(Rejection::NotYourTurn);
+        }
+        Ok((hunter, then))
+    }
+
+    /// The Player on this seat is the living Mayor, and the Vote is tied.
+    /// Returns the Vote's ballots and the Players tied.
+    fn require_tie_break(
+        &self,
+        token: &SeatToken,
+    ) -> Result<(Vec<Ballot>, Vec<PlayerId>), Rejection> {
+        let chooser = self.require_living(token)?;
+        let Some(MomentState::TieBreak { ballots, tied }) = self.state() else {
+            return Err(Rejection::NotNow);
+        };
+        if self.mayor() != Some(chooser) {
+            return Err(Rejection::NotYourTurn);
+        }
+        Ok((ballots.clone(), tied.clone()))
     }
 
     /// The chosen Player, if any, is a living Player of this Game.
@@ -1229,15 +1316,28 @@ impl Engine {
         })
     }
 
-    /// The Victim every living Werewolf picked, if they all agree.
-    fn unanimous_victim(&self) -> Option<PlayerId> {
+    /// Records (or changes) `werewolf`'s pick: a Victim, or nobody. With
+    /// Hidden Roles off, their Turn ends once every living Werewolf agrees.
+    fn pick(&mut self, werewolf: PlayerId, victim: Option<PlayerId>) {
+        let picks = self.picks_mut();
+        picks.retain(|p| p.werewolf != werewolf);
+        picks.push(Pick { werewolf, victim });
+        // With Hidden Roles on, their Turn runs its full time anyway.
+        if let Some(victim) = self.agreed_pick().filter(|_| !self.hidden_roles) {
+            self.end_werewolves_turn(victim);
+        }
+    }
+
+    /// What every living Werewolf picked, if they all agree: the same Victim,
+    /// or nobody if they all passed.
+    fn agreed_pick(&self) -> Option<Option<PlayerId>> {
         let picks = self.picks()?;
-        let mut victims = self
+        let mut choices = self
             .living()
             .filter(|s| s.role == Some(Role::Werewolf))
             .map(|s| picks.iter().find(|p| p.werewolf == s.id).map(|p| p.victim));
-        let first = victims.next()??;
-        victims.all(|v| v == Some(first)).then_some(first)
+        let first = choices.next()??;
+        choices.all(|c| c == Some(first)).then_some(first)
     }
 
     /// The Werewolves' picks, during their Turn.
@@ -1282,7 +1382,10 @@ impl Engine {
     /// Werewolves.
     fn nightfall(&self) -> MomentState {
         if self.wakes(Role::Seer) {
-            MomentState::SeersTurn { inspection: None }
+            MomentState::SeersTurn {
+                inspection: None,
+                passed: false,
+            }
         } else {
             Self::werewolves_turn()
         }
@@ -1348,9 +1451,10 @@ impl Engine {
         self.game_mut().go_to(MomentState::Dawn { deaths });
     }
 
-    /// The Player most picked by the Werewolves, unless several are tied.
+    /// The Player most picked by the Werewolves, unless several choices are
+    /// tied. Nobody, the pick of a Werewolf who passed, counts as a choice.
     fn most_picked(&self) -> Option<PlayerId> {
-        single_most_designated(self.picks()?.iter().map(|p| p.victim))
+        single_top_choice(self.picks()?.iter().map(|p| p.victim)).flatten()
     }
 
     /// The Election is over: it is revealed, and the most-voted Player becomes
@@ -1361,7 +1465,7 @@ impl Engine {
             unreachable!("only an Election ends")
         };
         let ballots = ballots.clone();
-        let mut candidates = top_designated(ballots.iter().filter_map(|b| b.designated));
+        let mut candidates = top_choices(ballots.iter().filter_map(|b| b.designated));
         if candidates.is_empty() {
             candidates = self.living().map(|s| s.id).collect();
         }
@@ -1383,7 +1487,7 @@ impl Engine {
             unreachable!("only a Vote ends")
         };
         let ballots = ballots.clone();
-        let tied = top_designated(ballots.iter().filter_map(|b| b.designated));
+        let tied = top_choices(ballots.iter().filter_map(|b| b.designated));
         let mayor = self.mayor();
         let mayor_alive = self.living().any(|s| Some(s.id) == mayor);
         match tied[..] {

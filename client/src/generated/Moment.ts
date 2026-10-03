@@ -14,7 +14,12 @@ export type Moment = { "type": "seersTurn",
  * What the Seer learned this Turn. Only the Seer and the Spectators
  * see it.
  */
-inspection: Inspection | null, } | { "type": "werewolvesTurn", 
+inspection: Inspection | null, 
+/**
+ * Whether the Seer chose to inspect nobody tonight. Only the Seer
+ * and the Spectators see it.
+ */
+passed: boolean, } | { "type": "werewolvesTurn", 
 /**
  * Each Werewolf's current pick, live. Only the Werewolves and the
  * Spectators see them.

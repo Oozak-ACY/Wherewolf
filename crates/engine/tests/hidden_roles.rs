@@ -290,7 +290,8 @@ fn off_the_seers_turn_ends_shortly_after_she_inspects() {
     assert!(matches!(
         table.moment(&seer),
         Moment::SeersTurn {
-            inspection: Some(_)
+            inspection: Some(_),
+            ..
         }
     ));
     table.time_runs_out();
@@ -418,7 +419,10 @@ fn on_a_dead_seers_turn_still_runs_its_full_time() {
 
     assert!(matches!(
         table.moment("P1"),
-        Moment::SeersTurn { inspection: None }
+        Moment::SeersTurn {
+            inspection: None,
+            ..
+        }
     ));
     assert_eq!(table.timer().seconds, 30);
     let player = table.id(&table.villager(0));
@@ -572,12 +576,13 @@ fn on_the_witch_passing_ends_nothing_but_her_choices() {
 }
 
 #[test]
-fn only_the_witch_passes_and_only_during_her_turn() {
+fn during_the_witchs_turn_only_the_witch_passes() {
     let mut table = Table::start(false);
+    // The Seer's Turn: passing is hers.
     let witch = table.one(Role::Witch);
     assert_eq!(
         table.engine.handle(&seat(&witch), Command::Pass),
-        Err(Rejection::NotNow)
+        Err(Rejection::NotYourTurn)
     );
     table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
     table.werewolves_pick(&table.villager(0));

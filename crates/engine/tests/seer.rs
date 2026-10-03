@@ -156,7 +156,7 @@ impl Table {
 
     fn inspection_seen_by(&self, name: &str) -> Option<Inspection> {
         match self.moment(name) {
-            Moment::SeersTurn { inspection } => *inspection,
+            Moment::SeersTurn { inspection, .. } => *inspection,
             other => panic!("{name} sees {other:?}"),
         }
     }

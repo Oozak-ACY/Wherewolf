@@ -171,7 +171,7 @@ fn werewolves_see_each_others_picks_live_and_nobody_else_does() {
 
     let expected = vec![Pick {
         werewolf: table.id(&first),
-        victim: table.id(&villager),
+        victim: Some(table.id(&villager)),
     }];
     assert_eq!(table.picks_seen_by(&first), Some(expected.clone()));
     assert_eq!(table.picks_seen_by(&second), Some(expected));

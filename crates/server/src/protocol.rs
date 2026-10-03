@@ -33,7 +33,9 @@ pub enum ClientMessage {
     /// Witch's Turn: eliminate a living Player at dawn with the poison
     /// potion, once a Game.
     Poison { player: PlayerId },
-    /// Witch's Turn: use no more potions tonight.
+    /// Do nothing in this Moment: the Seer inspects nobody, a Werewolf picks
+    /// nobody, the Witch uses no more potions, the eliminated Hunter shoots
+    /// nobody, the Mayor on a tie eliminates nobody. Not on succession.
     Pass,
     /// The Election: vote for a living Player, yourself included, to be
     /// Mayor. Can be changed until the Election ends.

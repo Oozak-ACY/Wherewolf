@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Ballot } from "./generated/Ballot";
 import type { Moment } from "./generated/Moment";
+import type { Pick } from "./generated/Pick";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
@@ -42,6 +43,8 @@ export function GamePanel(props: Props) {
       {moment.type === "seersTurn" &&
         (moment.inspection ? (
           <p>{fr.game.seerSaw(name(moment.inspection.player), fr.roles[moment.inspection.role].name)}</p>
+        ) : moment.passed ? (
+          <p className="muted">{fr.game.seerPassed}</p>
         ) : view.role?.role === "seer" && me?.alive ? (
           <>
             <p>{fr.game.seerPick}</p>
@@ -50,6 +53,7 @@ export function GamePanel(props: Props) {
               chosen={null}
               onChoose={props.onInspect}
             />
+            <button onClick={props.onPass}>{fr.game.seerPass}</button>
           </>
         ) : me?.alive ? (
           <p className="muted">{fr.game.asleep}</p>
@@ -59,23 +63,20 @@ export function GamePanel(props: Props) {
 
       {moment.type === "werewolvesTurn" &&
         (moment.picks && me?.alive ? (
-          <>
-            <p>{fr.game.werewolvesPick}</p>
-            <p className="muted">{fr.game.unanimity}</p>
-            <ChoiceList
-              players={living}
-              chosen={moment.picks.find((p) => p.werewolf === view.you)?.victim ?? null}
-              detail={(id) => {
-                const by = moment.picks!.filter((p) => p.victim === id).map((p) => name(p.werewolf));
-                return by.length > 0 ? fr.game.pickedBy(by) : null;
-              }}
-              onChoose={props.onPickVictim}
-            />
-          </>
+          <WerewolvesPick
+            picks={moment.picks}
+            you={view.you}
+            living={living}
+            name={name}
+            onPickVictim={props.onPickVictim}
+            onPass={props.onPass}
+          />
         ) : moment.picks ? (
           <ul className="ballots">
             {moment.picks.map((p) => (
-              <li key={p.werewolf}>{fr.game.ballot(name(p.werewolf), name(p.victim))}</li>
+              <li key={p.werewolf}>
+                {fr.game.pick(name(p.werewolf), p.victim === null ? null : name(p.victim))}
+              </li>
             ))}
           </ul>
         ) : (
@@ -178,6 +179,7 @@ export function GamePanel(props: Props) {
                 chosen={null}
                 onChoose={props.onBreakTie}
               />
+              <button onClick={props.onPass}>{fr.game.tieBreakPass}</button>
             </>
           ) : (
             view.mayor !== null && <p className="muted">{fr.game.mayorChoosing(name(view.mayor))}</p>
@@ -192,6 +194,7 @@ export function GamePanel(props: Props) {
           <>
             <p>{fr.game.shootPick}</p>
             <ChoiceList players={living} chosen={null} onChoose={props.onShoot} />
+            <button onClick={props.onPass}>{fr.game.shootPass}</button>
           </>
         ) : (
           <p className="muted">{fr.game.hunterAiming(name(moment.hunter))}</p>
@@ -229,6 +232,45 @@ export function GamePanel(props: Props) {
           <p className="muted">{fr.game.waitingForHostToPlayAgain}</p>
         ))}
     </section>
+  );
+}
+
+/** A living Werewolf's choice: a Victim, or nobody. Every Werewolf sees the others' picks. */
+function WerewolvesPick(props: {
+  picks: Pick[];
+  you: PlayerId;
+  living: PlayerSummary[];
+  name: (id: PlayerId) => string;
+  onPickVictim: (victim: PlayerId) => void;
+  onPass: () => void;
+}) {
+  const { picks, name } = props;
+  const mine = picks.find((p) => p.werewolf === props.you);
+  const pickedBy = (victim: PlayerId | null) =>
+    picks.filter((p) => p.victim === victim).map((p) => name(p.werewolf));
+  const passedBy = pickedBy(null);
+  return (
+    <>
+      <p>{fr.game.werewolvesPick}</p>
+      <p className="muted">{fr.game.unanimity}</p>
+      <ChoiceList
+        players={props.living}
+        chosen={mine?.victim ?? null}
+        detail={(id) => {
+          const by = pickedBy(id);
+          return by.length > 0 ? fr.game.pickedBy(by) : null;
+        }}
+        onChoose={props.onPickVictim}
+      />
+      <button
+        className={mine && mine.victim === null ? "chosen" : ""}
+        aria-pressed={mine?.victim === null}
+        onClick={props.onPass}
+      >
+        <span>{fr.game.werewolvesPass}</span>
+        {passedBy.length > 0 && <span className="muted"> {fr.game.pickedBy(passedBy)}</span>}
+      </button>
+    </>
   );
 }
 

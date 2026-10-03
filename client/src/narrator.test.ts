@@ -154,7 +154,7 @@ describe("announcing the Night", () => {
   test("night falls with the Seer's Turn, then the Werewolves wake", () => {
     const players = [1, 2, 3, 4, 5].map((id) => player(id));
 
-    expect(narratorLine({ type: "seersTurn", inspection: null }, players, settings(1))).toMatch(
+    expect(narratorLine({ type: "seersTurn", inspection: null, passed: false }, players, settings(1))).toMatch(
       /^La nuit tombe\./,
     );
     expect(narratorLine(werewolvesTurn, players, settings(1))).not.toMatch(/La nuit tombe/);
