@@ -195,7 +195,8 @@ pub struct PlayerSummary {
     pub connected: bool,
     /// Always true in the Lobby.
     pub alive: bool,
-    /// Revealed to everyone at Elimination.
+    /// Revealed to everyone at Elimination, unless Hidden Roles is on: then
+    /// only to the Spectators, and to everyone on the victory screen.
     pub revealed_role: Option<Role>,
 }
 
@@ -312,10 +313,14 @@ pub const TIMER_BOUNDS: std::ops::RangeInclusive<u32> = 10..=1800;
 
 /// The options the Host chooses before starting a Game.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct Settings {
     pub roles: RoleCounts,
     pub timers: Timers,
+    /// Eliminated Players' Roles stay hidden from the living, and every Night
+    /// Turn lasts its full time, so the Night's length reveals nothing.
+    pub hidden_roles: bool,
 }
 
 /// Everything one Player is allowed to know right now.
@@ -699,8 +704,12 @@ impl Game {
     }
 
     /// `None` once the Game is over: nothing is timed any more.
-    fn timer(&self, timers: &Timers) -> Option<Timer> {
+    fn timer(&self, timers: &Timers, hidden_roles: bool) -> Option<Timer> {
         let seconds = match self.state {
+            // With Hidden Roles off, her Turn ends once she has read what she saw.
+            MomentState::SeersTurn {
+                inspection: Some(_),
+            } if !hidden_roles => ANNOUNCEMENT_SECONDS,
             MomentState::SeersTurn { .. } => timers.seer,
             MomentState::WerewolvesTurn { .. } => timers.werewolves,
             MomentState::WitchsTurn { .. } => timers.witch,
@@ -802,6 +811,7 @@ pub struct Engine {
     /// `None` while the Role set follows the Narrator's suggestion.
     custom_roles: Option<RoleCounts>,
     timers: Timers,
+    hidden_roles: bool,
     /// `None` in the Lobby.
     game: Option<Game>,
     randomness: Box<dyn Randomness>,
@@ -825,6 +835,7 @@ impl Engine {
             next_id: 1,
             custom_roles: None,
             timers: Timers::default(),
+            hidden_roles: false,
             game: None,
             randomness: Box::new(randomness),
         }
@@ -882,6 +893,7 @@ impl Engine {
                 }
                 self.custom_roles = Some(settings.roles).filter(|&r| r != self.suggested_roles());
                 self.timers = settings.timers;
+                self.hidden_roles = settings.hidden_roles;
             }
             Command::Start => {
                 self.require_host(seat)?;
@@ -922,10 +934,14 @@ impl Engine {
                     .find(|s| s.id == player)
                     .and_then(|s| s.role)
                     .expect("a living Player of this Game has a Role");
-                let MomentState::SeersTurn { inspection } = &mut self.game_mut().state else {
-                    unreachable!("checked above")
-                };
-                *inspection = Some(Inspection { player, role });
+                let inspection = Some(Inspection { player, role });
+                if self.hidden_roles {
+                    self.game_mut().state = MomentState::SeersTurn { inspection };
+                } else {
+                    // Her action is complete: a new Moment, timed only for
+                    // her to read what she saw.
+                    self.game_mut().go_to(MomentState::SeersTurn { inspection });
+                }
             }
             Command::PickVictim { victim } => {
                 let werewolf = self.require_living(seat)?;
@@ -940,7 +956,8 @@ impl Engine {
                 let picks = self.picks_mut();
                 picks.retain(|p| p.werewolf != werewolf);
                 picks.push(Pick { werewolf, victim });
-                if let Some(victim) = self.unanimous_victim() {
+                // With Hidden Roles on, their Turn runs its full time anyway.
+                if let Some(victim) = self.unanimous_victim().filter(|_| !self.hidden_roles) {
                     self.end_werewolves_turn(Some(victim));
                 }
             }
@@ -955,6 +972,7 @@ impl Engine {
                 }
                 sight.healed = true;
                 self.game_mut().potions.healing = false;
+                self.end_witchs_turn_if_done();
             }
             Command::Poison { player } => {
                 self.require_witchs_turn(seat)?;
@@ -964,6 +982,7 @@ impl Engine {
                 self.require_in_play(Some(player))?;
                 self.witch_sight_mut().poisoned = Some(player);
                 self.game_mut().potions.poison = false;
+                self.end_witchs_turn_if_done();
             }
             Command::Elect { candidate } => {
                 let voter = self.require_living(seat)?;
@@ -1064,11 +1083,7 @@ impl Engine {
                 let victim = self.most_picked();
                 self.end_werewolves_turn(victim);
             }
-            MomentState::WitchsTurn { sight } => {
-                let sight = *sight;
-                let killed = sight.victim.filter(|_| !sight.healed);
-                self.end_night(killed.into_iter().chain(sight.poisoned).collect());
-            }
+            MomentState::WitchsTurn { .. } => self.end_witchs_turn(),
             MomentState::Dawn { .. } => self.resolve_triggers(Resume::Day),
             // The Mayor is elected on the first Day only.
             MomentState::Discussion if game.mayor.is_none() => {
@@ -1237,10 +1252,22 @@ impl Engine {
         self.game.as_ref().map(|g| &g.state)
     }
 
+    /// Whether `role` has a Turn tonight. With Hidden Roles off, the Turn of a
+    /// Role nobody living holds is skipped; with it on, every Role dealt in
+    /// this Game keeps its Turn, so the Night's length reveals nothing.
+    fn wakes(&self, role: Role) -> bool {
+        let mut holders = self.seats.iter().filter(|s| s.role == Some(role));
+        if self.hidden_roles {
+            holders.next().is_some()
+        } else {
+            holders.any(|s| s.alive)
+        }
+    }
+
     /// The first Turn of the Night. The Night order is the Seer, then the
-    /// Werewolves; the Turn of a Role nobody living holds is skipped.
+    /// Werewolves.
     fn nightfall(&self) -> MomentState {
-        if self.living().any(|s| s.role == Some(Role::Seer)) {
+        if self.wakes(Role::Seer) {
             MomentState::SeersTurn { inspection: None }
         } else {
             Self::werewolves_turn()
@@ -1253,9 +1280,9 @@ impl Engine {
     }
 
     /// The Werewolves have chosen their Victim, if any. The Witch wakes up
-    /// next; without a living Witch, the Night is over.
+    /// next, unless her Turn is skipped: then the Night is over.
     fn end_werewolves_turn(&mut self, victim: Option<PlayerId>) {
-        if self.living().any(|s| s.role == Some(Role::Witch)) {
+        if self.wakes(Role::Witch) {
             self.game_mut().go_to(MomentState::WitchsTurn {
                 sight: WitchSight {
                     victim,
@@ -1263,9 +1290,35 @@ impl Engine {
                     poisoned: None,
                 },
             });
+            self.end_witchs_turn_if_done();
         } else {
             self.end_night(victim.into_iter().collect());
         }
+    }
+
+    /// With Hidden Roles off, the Witch's Turn ends as soon as she has no
+    /// potion left that she could use tonight.
+    fn end_witchs_turn_if_done(&mut self) {
+        let Some(game) = &self.game else {
+            unreachable!("the Game is running")
+        };
+        let MomentState::WitchsTurn { sight } = game.state else {
+            unreachable!("only during the Witch's Turn")
+        };
+        let can_heal = game.potions.healing && sight.victim.is_some() && !sight.healed;
+        if !self.hidden_roles && !can_heal && !game.potions.poison {
+            self.end_witchs_turn();
+        }
+    }
+
+    /// The Witch's Turn is over, and with it the Night: the Victim dies
+    /// unless she saved them, and so does whoever she poisoned.
+    fn end_witchs_turn(&mut self) {
+        let MomentState::WitchsTurn { sight } = self.game_mut().state else {
+            unreachable!("only during the Witch's Turn")
+        };
+        let killed = sight.victim.filter(|_| !sight.healed);
+        self.end_night(killed.into_iter().chain(sight.poisoned).collect());
     }
 
     /// The Night is over: `deaths` die, and the village wakes up. They are
@@ -1462,6 +1515,7 @@ impl Engine {
         Settings {
             roles: self.custom_roles.unwrap_or_else(|| self.suggested_roles()),
             timers: self.timers,
+            hidden_roles: self.hidden_roles,
         }
     }
 
@@ -1530,12 +1584,14 @@ impl Engine {
     }
 
     /// Every seated Player, with the Roles `viewer` may know: the Roles of
-    /// the eliminated, and every Role for a Spectator or once the Game is over.
+    /// the eliminated (unless Hidden Roles is on), and every Role for a
+    /// Spectator or once the Game is over.
     fn players_seen_by(&self, viewer: &Seat) -> Vec<PlayerSummary> {
         let sees_every_role = self
             .game
             .as_ref()
             .is_some_and(|g| g.is_over() || self.spectating(viewer));
+        let sees_dead_roles = sees_every_role || !self.hidden_roles;
         self.seats
             .iter()
             .map(|s| PlayerSummary {
@@ -1543,7 +1599,9 @@ impl Engine {
                 name: s.name.clone(),
                 connected: s.connected,
                 alive: s.alive,
-                revealed_role: s.role.filter(|_| !s.alive || sees_every_role),
+                revealed_role: s
+                    .role
+                    .filter(|_| sees_every_role || (!s.alive && sees_dead_roles)),
             })
             .collect()
     }
@@ -1580,7 +1638,10 @@ impl Engine {
             .collect();
         Outputs {
             views,
-            timer: self.game.as_ref().and_then(|g| g.timer(&self.timers)),
+            timer: self
+                .game
+                .as_ref()
+                .and_then(|g| g.timer(&self.timers, self.hidden_roles)),
         }
     }
 }

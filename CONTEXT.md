@@ -69,7 +69,7 @@ The options the Host chooses in the Lobby before starting a Game: the Roles in p
 _Avoid_: Config, options, rules
 
 **Hidden Roles**:
-A Setting in which an eliminated Player's Role is not revealed to the living. To avoid leaking who is dead, every Night Turn then lasts its full time even when its Role is dead. With Hidden Roles off, the Turns of dead Roles are skipped.
+A Setting in which an eliminated Player's Role is not revealed to the living. To avoid leaking who is dead, every Night Turn then lasts its full time even when its Role is dead. With Hidden Roles off, the Turns of dead Roles are skipped, and a Turn ends as soon as its action is complete.
 _Avoid_: Secret mode, blind mode
 
 **Turn**:

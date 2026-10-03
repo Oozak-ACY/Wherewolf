@@ -1,8 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Moment } from "./generated/Moment";
 import type { PlayerSummary } from "./generated/PlayerSummary";
-import type { RoleCounts } from "./generated/RoleCounts";
-import { chooseFrenchVoice, createNarrator, lineTimeoutMs, narratorLine } from "./narrator";
+import {
+  chooseFrenchVoice,
+  createNarrator,
+  lineTimeoutMs,
+  narratorLine,
+  type NarratorSettings,
+} from "./narrator";
 
 /** A speech engine that only records what it was asked to say. */
 function fakeSpeech() {
@@ -139,8 +144,8 @@ function player(id: number, alive = true, revealedRole: PlayerSummary["revealedR
   return { id, name: `P${id}`, connected: true, alive, revealedRole } as PlayerSummary;
 }
 
-function roles(seer: number): RoleCounts {
-  return { werewolf: 1, seer, witch: 0, hunter: 0, villager: 4 - seer };
+function settings(seer: number, hiddenRoles = false): NarratorSettings {
+  return { roles: { werewolf: 1, seer, witch: 0, hunter: 0, villager: 4 - seer }, hiddenRoles };
 }
 
 describe("announcing the Night", () => {
@@ -149,22 +154,28 @@ describe("announcing the Night", () => {
   test("night falls with the Seer's Turn, then the Werewolves wake", () => {
     const players = [1, 2, 3, 4, 5].map((id) => player(id));
 
-    expect(narratorLine({ type: "seersTurn", inspection: null }, players, roles(1))).toMatch(
+    expect(narratorLine({ type: "seersTurn", inspection: null }, players, settings(1))).toMatch(
       /^La nuit tombe\./,
     );
-    expect(narratorLine(werewolvesTurn, players, roles(1))).not.toMatch(/La nuit tombe/);
+    expect(narratorLine(werewolvesTurn, players, settings(1))).not.toMatch(/La nuit tombe/);
   });
 
   test("without a Seer in play, night falls with the Werewolves' Turn", () => {
     const players = [1, 2, 3, 4, 5].map((id) => player(id));
 
-    expect(narratorLine(werewolvesTurn, players, roles(0))).toMatch(/^La nuit tombe\./);
+    expect(narratorLine(werewolvesTurn, players, settings(0))).toMatch(/^La nuit tombe\./);
   });
 
   test("once the Seer is dead, night falls with the Werewolves' Turn", () => {
     const players = [player(1, false, "seer"), ...[2, 3, 4, 5].map((id) => player(id))];
 
-    expect(narratorLine(werewolvesTurn, players, roles(1))).toMatch(/^La nuit tombe\./);
+    expect(narratorLine(werewolvesTurn, players, settings(1))).toMatch(/^La nuit tombe\./);
+  });
+
+  test("with Hidden Roles on, even a dead Seer's Turn opens the Night", () => {
+    const players = [player(1, false, "seer"), ...[2, 3, 4, 5].map((id) => player(id))];
+
+    expect(narratorLine(werewolvesTurn, players, settings(1, true))).not.toMatch(/La nuit tombe/);
   });
 
   test("the Witch wakes after the Werewolves, whatever she knows", () => {
@@ -172,7 +183,7 @@ describe("announcing the Night", () => {
     const sight = { victim: 2, healed: false, poisoned: null };
 
     for (const witch of [null, sight]) {
-      const line = narratorLine({ type: "witchsTurn", witch }, players, roles(1));
+      const line = narratorLine({ type: "witchsTurn", witch }, players, settings(1));
       expect(line).toBe("La Sorcière se réveille.");
     }
   });
@@ -182,10 +193,31 @@ describe("announcing the dawn", () => {
   test("every death is announced without its cause", () => {
     const players = [player(1, false, "villager"), player(2, false, "seer"), player(3)];
 
-    const line = narratorLine({ type: "dawn", deaths: [1, 2] }, players, roles(1));
+    const line = narratorLine({ type: "dawn", deaths: [1, 2] }, players, settings(1));
 
     expect(line).toBe("Le jour se lève. Cette nuit, le village a perdu P1 (Villageois), P2 (Voyante).");
     expect(line).not.toMatch(/poison|loup|sorci/i);
+  });
+
+  test("with Hidden Roles on, the dead are announced without their Role", () => {
+    const players = [player(1, false), player(2, false), player(3)];
+
+    const line = narratorLine({ type: "dawn", deaths: [1, 2] }, players, settings(1, true));
+
+    expect(line).toBe("Le jour se lève. Cette nuit, le village a perdu P1, P2.");
+  });
+});
+
+describe("announcing the Vote's result", () => {
+  test("the eliminated Player's Role is revealed, unless it is hidden", () => {
+    const vote: Moment = { type: "voteResult", ballots: [], eliminated: 2 };
+
+    expect(narratorLine(vote, [player(1), player(2, false, "witch")], settings(1))).toBe(
+      "Le village a éliminé P2, qui était Sorcière.",
+    );
+    expect(narratorLine(vote, [player(1), player(2, false)], settings(1, true))).toBe(
+      "Le village a éliminé P2.",
+    );
   });
 });
 
@@ -193,7 +225,7 @@ describe("announcing the Hunter's shot", () => {
   test("the eliminated Hunter is called to shoot", () => {
     const players = [player(1, false, "hunter"), player(2), player(3)];
 
-    const line = narratorLine({ type: "huntersShot", hunter: 1 }, players, roles(1));
+    const line = narratorLine({ type: "huntersShot", hunter: 1 }, players, settings(1));
 
     expect(line).toBe("P1, le Chasseur, emporte quelqu'un avec lui : il choisit sur qui tirer.");
   });
@@ -201,15 +233,23 @@ describe("announcing the Hunter's shot", () => {
   test("the shot reveals its target's Role", () => {
     const players = [player(1, false, "hunter"), player(2, false, "werewolf"), player(3)];
 
-    const line = narratorLine({ type: "shotResult", hunter: 1, shot: 2 }, players, roles(1));
+    const line = narratorLine({ type: "shotResult", hunter: 1, shot: 2 }, players, settings(1));
 
     expect(line).toBe("Le Chasseur a tiré sur P2, qui était Loup-Garou.");
+  });
+
+  test("with Hidden Roles on, the shot keeps its target's Role hidden", () => {
+    const players = [player(1, false), player(2, false), player(3)];
+
+    const line = narratorLine({ type: "shotResult", hunter: 1, shot: 2 }, players, settings(1, true));
+
+    expect(line).toBe("Le Chasseur a tiré sur P2.");
   });
 
   test("a Hunter who did not shoot in time", () => {
     const players = [player(1, false, "hunter"), player(2), player(3)];
 
-    const line = narratorLine({ type: "shotResult", hunter: 1, shot: null }, players, roles(1));
+    const line = narratorLine({ type: "shotResult", hunter: 1, shot: null }, players, settings(1));
 
     expect(line).toBe("Le Chasseur n'a tiré sur personne.");
   });
@@ -217,7 +257,7 @@ describe("announcing the Hunter's shot", () => {
 
 describe("announcing the Mayor", () => {
   const players = [1, 2, 3, 4, 5].map((id) => player(id));
-  const say = (moment: Moment) => narratorLine(moment, players, roles(1));
+  const say = (moment: Moment) => narratorLine(moment, players, settings(1));
 
   test("the village elects its Mayor, and the result says whether it was drawn", () => {
     expect(say({ type: "election", voted: [], yourBallot: null })).toBe("Le village élit son Maire.");

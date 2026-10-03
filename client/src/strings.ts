@@ -60,6 +60,9 @@ export const fr = {
       `${roles} rôle${roles > 1 ? "s" : ""} pour ${players} joueur${players > 1 ? "s" : ""}`,
     suggested: "Composition suggérée",
     timers: "Minuteries",
+    hiddenRoles: "Rôles cachés",
+    hiddenRolesOn: "Le rôle des morts reste caché aux vivants, et chaque tour de nuit dure tout son temps.",
+    hiddenRolesOff: "Le rôle de chaque mort est révélé à tous.",
     seconds: "s",
     less: (role: string) => `Un ${role} de moins`,
     more: (role: string) => `Un ${role} de plus`,
@@ -132,18 +135,21 @@ export const fr = {
     witchsTurn: "La Sorcière se réveille.",
     dawnNobody: "Le jour se lève. Personne n'est mort cette nuit.",
     dawnDeaths: (victims: string) => `Le jour se lève. Cette nuit, le village a perdu ${victims}.`,
+    // A role is `null` while Hidden Roles keeps it secret.
+    withRole: (name: string, role: string | null) => (role ? `${name} (${role})` : name),
     discussion: "Le village débat : qui sont les Loups-Garous ?",
     election: "Le village élit son Maire.",
     elected: (name: string) => `${name} est élu Maire.`,
     electedByLot: (name: string) => `Le sort désigne ${name} comme Maire.`,
     tieBreak: (tied: string) => `Égalité entre ${tied} : le Maire choisit qui est éliminé.`,
     vote: "Le village vote.",
-    voteEliminated: (name: string, role: string) =>
-      `Le village a éliminé ${name}, qui était ${role}.`,
+    voteEliminated: (name: string, role: string | null) =>
+      role ? `Le village a éliminé ${name}, qui était ${role}.` : `Le village a éliminé ${name}.`,
     voteNobody: "Personne n'est éliminé.",
     huntersShot: (hunter: string) =>
       `${hunter}, le Chasseur, emporte quelqu'un avec lui : il choisit sur qui tirer.`,
-    shot: (name: string, role: string) => `Le Chasseur a tiré sur ${name}, qui était ${role}.`,
+    shot: (name: string, role: string | null) =>
+      role ? `Le Chasseur a tiré sur ${name}, qui était ${role}.` : `Le Chasseur a tiré sur ${name}.`,
     shotLost: "Le Chasseur n'a tiré sur personne.",
     succession: (mayor: string) => `${mayor}, le Maire, désigne son successeur.`,
     successor: (name: string) => `${name} devient Maire.`,

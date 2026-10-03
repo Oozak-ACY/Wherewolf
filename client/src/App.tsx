@@ -235,7 +235,7 @@ function Lobby(props: {
   const share = () => navigator.share({ title: fr.lobby.shareTitle, url }).catch(() => {});
 
   const { call } = props;
-  useNarrator(view.moment && narratorLine(view.moment, view.players, view.settings.roles), call.narratorMic);
+  useNarrator(view.moment && narratorLine(view.moment, view.players, view.settings), call.narratorMic);
   useWakeLock(view.moment !== null);
 
   return (

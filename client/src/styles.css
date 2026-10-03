@@ -380,6 +380,22 @@ button.quiet {
   cursor: pointer;
 }
 
+/* Hidden Roles: a switch for the Host, read-only for everyone else. */
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+}
+
+.toggle input {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
 /* The private Role card, over everything. */
 .overlay {
   position: fixed;

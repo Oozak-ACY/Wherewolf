@@ -347,8 +347,8 @@ fn without_healing_the_victim_dies_at_dawn() {
 fn poison_eliminates_the_chosen_player_at_dawn() {
     let mut table = Table::start();
     let witch = table.witch();
-    let poisoned = table.villager(1);
-    table.time_runs_out();
+    let [victim, poisoned] = [table.villager(0), table.villager(2)];
+    table.werewolves_kill(&victim);
 
     let command = table.poison(&poisoned);
     table.act(&witch, command);
@@ -359,7 +359,10 @@ fn poison_eliminates_the_chosen_player_at_dawn() {
     );
     assert!(table.alive(&poisoned), "the poisoned die only at dawn");
     table.time_runs_out();
-    assert_eq!(table.dawn_deaths(), vec![table.id(&poisoned)]);
+    assert_eq!(
+        table.dawn_deaths(),
+        vec![table.id(&victim), table.id(&poisoned)]
+    );
     assert!(!table.alive(&poisoned));
 }
 
@@ -373,8 +376,8 @@ fn the_witch_can_heal_and_poison_on_the_same_night() {
     table.act(&witch, Command::Heal);
     let command = table.poison(&poisoned);
     table.act(&witch, command);
-    table.time_runs_out();
 
+    // With no potion left, her Turn ended at once.
     assert_eq!(table.dawn_deaths(), vec![table.id(&poisoned)]);
     assert!(table.alive(&victim));
 }
@@ -426,7 +429,6 @@ fn poisoning_the_last_werewolf_wins_the_game_for_the_village() {
 
     let command = table.poison(&werewolf);
     table.act(&witch, command);
-    table.time_runs_out();
     assert_eq!(table.dawn_deaths(), vec![table.id(&werewolf)]);
     table.time_runs_out();
 
@@ -453,10 +455,14 @@ fn each_potion_works_once_per_game() {
     table.werewolves_kill(&victim);
     table.act(&witch, Command::Heal);
     assert_eq!(table.refused(&witch, Command::Heal), Rejection::PotionUsed);
+    table.time_runs_out();
+    table.next_night();
+    table.werewolves_kill(&later);
+    assert_eq!(table.refused(&witch, Command::Heal), Rejection::PotionUsed);
+
     let command = table.poison(&poisoned);
     table.act(&witch, command);
-    let command = table.poison(&later);
-    assert_eq!(table.refused(&witch, command), Rejection::PotionUsed);
+
     assert_eq!(
         table.potions(&witch),
         Some(Potions {
@@ -464,14 +470,8 @@ fn each_potion_works_once_per_game() {
             poison: false,
         })
     );
-
-    table.time_runs_out();
-    table.next_night();
-    table.werewolves_kill(&later);
-
-    assert_eq!(table.refused(&witch, Command::Heal), Rejection::PotionUsed);
-    let command = table.poison(&victim);
-    assert_eq!(table.refused(&witch, command), Rejection::PotionUsed);
+    // A poison refused for having been used is covered with Hidden Roles on,
+    // since with it off her Turn ends once she has no potion left.
 }
 
 #[test]

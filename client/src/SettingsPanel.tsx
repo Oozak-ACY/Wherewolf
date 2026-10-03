@@ -71,6 +71,17 @@ export function SettingsPanel({ view, onChange, onStart }: Props) {
         <button onClick={() => setRoles(view.suggestedRoles)}>{fr.settings.suggested}</button>
       )}
 
+      <label className="toggle">
+        <h3>{fr.settings.hiddenRoles}</h3>
+        <input
+          type="checkbox"
+          checked={settings.hiddenRoles}
+          disabled={!isHost}
+          onChange={(e) => onChange({ ...settings, hiddenRoles: e.target.checked })}
+        />
+      </label>
+      <p className="muted">{settings.hiddenRoles ? fr.settings.hiddenRolesOn : fr.settings.hiddenRolesOff}</p>
+
       <details>
         <summary>
           <h3>{fr.settings.timers}</h3>

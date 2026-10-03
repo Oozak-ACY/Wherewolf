@@ -11,6 +11,7 @@ export type PlayerSummary = { id: PlayerId, name: string, connected: boolean,
  */
 alive: boolean, 
 /**
- * Revealed to everyone at Elimination.
+ * Revealed to everyone at Elimination, unless Hidden Roles is on: then
+ * only to the Spectators, and to everyone on the victory screen.
  */
 revealedRole: Role | null, };

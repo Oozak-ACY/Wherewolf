@@ -3,21 +3,25 @@
 import type { Moment } from "./generated/Moment";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
-import type { RoleCounts } from "./generated/RoleCounts";
+import type { Settings } from "./generated/Settings";
 import { fr } from "./strings";
 
+/** The Settings the Narrator's lines depend on. */
+export type NarratorSettings = Pick<Settings, "roles" | "hiddenRoles">;
+
 /** What the Narrator announces at `moment`: shown in the Game panel and read aloud. */
-export function narratorLine(moment: Moment, players: PlayerSummary[], roles: RoleCounts): string {
+export function narratorLine(moment: Moment, players: PlayerSummary[], settings: NarratorSettings): string {
   const name = (id: PlayerId) => players.find((p) => p.id === id)?.name ?? "?";
+  // `null` while Hidden Roles keeps it from this Player.
   const roleOf = (id: PlayerId) => {
     const role = players.find((p) => p.id === id)?.revealedRole;
-    return role ? fr.roles[role].name : "?";
+    return role ? fr.roles[role].name : null;
   };
   switch (moment.type) {
     case "seersTurn":
       return `${fr.narrator.nightfall} ${fr.narrator.seersTurn}`;
     case "werewolvesTurn":
-      return seerWakes(players, roles)
+      return seerWakes(players, settings)
         ? fr.narrator.werewolvesTurn
         : `${fr.narrator.nightfall} ${fr.narrator.werewolvesTurn}`;
     case "witchsTurn":
@@ -26,7 +30,7 @@ export function narratorLine(moment: Moment, players: PlayerSummary[], roles: Ro
       return moment.deaths.length === 0
         ? fr.narrator.dawnNobody
         : fr.narrator.dawnDeaths(
-            moment.deaths.map((id) => `${name(id)} (${roleOf(id)})`).join(", "),
+            moment.deaths.map((id) => fr.narrator.withRole(name(id), roleOf(id))).join(", "),
           );
     case "discussion":
       return fr.narrator.discussion;
@@ -60,11 +64,13 @@ export function narratorLine(moment: Moment, players: PlayerSummary[], roles: Ro
 }
 
 /**
- * Whether the Night opens with the Seer's Turn: a Seer is in play and nobody
- * has seen her die. Otherwise the Werewolves' Turn opens it.
+ * Whether the Night opens with the Seer's Turn: a Seer is in play and, unless
+ * Hidden Roles keeps her Turn going after her death, nobody has seen her die.
+ * Otherwise the Werewolves' Turn opens it.
  */
-function seerWakes(players: PlayerSummary[], roles: RoleCounts): boolean {
-  return roles.seer > 0 && !players.some((p) => !p.alive && p.revealedRole === "seer");
+function seerWakes(players: PlayerSummary[], { roles, hiddenRoles }: NarratorSettings): boolean {
+  const seerDead = players.some((p) => !p.alive && p.revealedRole === "seer");
+  return roles.seer > 0 && (hiddenRoles || !seerDead);
 }
 
 /**

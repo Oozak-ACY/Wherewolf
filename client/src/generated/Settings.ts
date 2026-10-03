@@ -5,4 +5,9 @@ import type { Timers } from "./Timers";
 /**
  * The options the Host chooses before starting a Game.
  */
-export type Settings = { roles: RoleCounts, timers: Timers, };
+export type Settings = { roles: RoleCounts, timers: Timers, 
+/**
+ * Eliminated Players' Roles stay hidden from the living, and every Night
+ * Turn lasts its full time, so the Night's length reveals nothing.
+ */
+hiddenRoles: boolean, };
