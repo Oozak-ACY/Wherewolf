@@ -70,6 +70,9 @@ pub enum Command {
     /// Witch's Turn: eliminate a living Player at dawn with the poison
     /// potion, once a Game.
     Poison { player: PlayerId },
+    /// Witch's Turn: use no more potions tonight. With Hidden Roles off,
+    /// her Turn ends at once.
+    Pass,
     /// The Election: vote for a living Player, yourself included, to be
     /// Mayor. Can be changed until the Election ends.
     Elect { candidate: PlayerId },
@@ -472,6 +475,8 @@ pub struct WitchSight {
     pub healed: bool,
     /// Who she poisoned tonight.
     pub poisoned: Option<PlayerId>,
+    /// Whether she has passed: she uses no more potions tonight.
+    pub passed: bool,
 }
 
 /// A Werewolf's current choice of Victim.
@@ -984,6 +989,11 @@ impl Engine {
                 self.game_mut().potions.poison = false;
                 self.end_witchs_turn_if_done();
             }
+            Command::Pass => {
+                self.require_witchs_turn(seat)?;
+                self.witch_sight_mut().passed = true;
+                self.end_witchs_turn_if_done();
+            }
             Command::Elect { candidate } => {
                 let voter = self.require_living(seat)?;
                 if !matches!(self.state(), Some(MomentState::Election { .. })) {
@@ -1150,14 +1160,18 @@ impl Engine {
         }
     }
 
-    /// The Player on this seat is the living Witch, and it is her Turn.
+    /// The Player on this seat is the living Witch, it is her Turn, and she
+    /// has not passed.
     fn require_witchs_turn(&self, token: &SeatToken) -> Result<(), Rejection> {
         self.require_living(token)?;
         let is_witch = self.seat_of(token)?.role == Some(Role::Witch);
-        if !matches!(self.state(), Some(MomentState::WitchsTurn { .. })) {
-            Err(Rejection::NotNow)
-        } else if !is_witch {
+        let Some(MomentState::WitchsTurn { sight }) = self.state() else {
+            return Err(Rejection::NotNow);
+        };
+        if !is_witch {
             Err(Rejection::NotYourTurn)
+        } else if sight.passed {
+            Err(Rejection::NotNow)
         } else {
             Ok(())
         }
@@ -1288,6 +1302,7 @@ impl Engine {
                     victim,
                     healed: false,
                     poisoned: None,
+                    passed: false,
                 },
             });
             self.end_witchs_turn_if_done();
@@ -1296,8 +1311,8 @@ impl Engine {
         }
     }
 
-    /// With Hidden Roles off, the Witch's Turn ends as soon as she has no
-    /// potion left that she could use tonight.
+    /// With Hidden Roles off, the Witch's Turn ends as soon as she has
+    /// passed, or has no potion left that she could use tonight.
     fn end_witchs_turn_if_done(&mut self) {
         let Some(game) = &self.game else {
             unreachable!("the Game is running")
@@ -1306,7 +1321,8 @@ impl Engine {
             unreachable!("only during the Witch's Turn")
         };
         let can_heal = game.potions.healing && sight.victim.is_some() && !sight.healed;
-        if !self.hidden_roles && !can_heal && !game.potions.poison {
+        let done = sight.passed || (!can_heal && !game.potions.poison);
+        if !self.hidden_roles && done {
             self.end_witchs_turn();
         }
     }

@@ -14,6 +14,7 @@ type Props = {
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onHeal: () => void;
+  onPass: () => void;
   onPoison: (player: PlayerId) => void;
   onVote: (designated: PlayerId | null) => void;
   onShoot: (player: PlayerId) => void;
@@ -93,7 +94,8 @@ export function GamePanel(props: Props) {
               <p>{fr.game.witchHealed(name(moment.witch.victim))}</p>
             )}
             {moment.witch.poisoned !== null && <p>{fr.game.witchPoisoned(name(moment.witch.poisoned))}</p>}
-            {me?.alive && view.role?.potions && (
+            {moment.witch.passed && <p className="muted">{fr.game.witchPassed}</p>}
+            {me?.alive && view.role?.potions && !moment.witch.passed && (
               <>
                 <p className="muted">
                   {fr.game.potionsLeft(view.role.potions.healing, view.role.potions.poison)}
@@ -107,6 +109,7 @@ export function GamePanel(props: Props) {
                     <ChoiceList players={living} chosen={null} onChoose={props.onPoison} />
                   </>
                 )}
+                <button onClick={props.onPass}>{fr.game.pass}</button>
               </>
             )}
           </>

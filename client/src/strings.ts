@@ -96,6 +96,8 @@ export const fr = {
     witchPoisoned: (name: string) => `${name} est empoisonné.`,
     heal: "Utiliser la potion de guérison",
     poisonPick: "Utiliser la potion de poison sur :",
+    pass: "Ne plus rien faire cette nuit",
+    witchPassed: "La Sorcière ne fait plus rien cette nuit.",
     potionsLeft: (healing: boolean, poison: boolean) =>
       healing && poison
         ? "Il te reste tes deux potions."

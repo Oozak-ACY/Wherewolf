@@ -33,6 +33,8 @@ pub enum ClientMessage {
     /// Witch's Turn: eliminate a living Player at dawn with the poison
     /// potion, once a Game.
     Poison { player: PlayerId },
+    /// Witch's Turn: use no more potions tonight.
+    Pass,
     /// The Election: vote for a living Player, yourself included, to be
     /// Mayor. Can be changed until the Election ends.
     Elect { candidate: PlayerId },

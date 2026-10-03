@@ -180,7 +180,7 @@ describe("announcing the Night", () => {
 
   test("the Witch wakes after the Werewolves, whatever she knows", () => {
     const players = [1, 2, 3, 4, 5].map((id) => player(id));
-    const sight = { victim: 2, healed: false, poisoned: null };
+    const sight = { victim: 2, healed: false, poisoned: null, passed: false };
 
     for (const witch of [null, sight]) {
       const line = narratorLine({ type: "witchsTurn", witch }, players, settings(1));

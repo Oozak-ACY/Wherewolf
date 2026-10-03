@@ -278,6 +278,7 @@ fn the_witch_sees_the_victim_and_nobody_else_living_does() {
             victim: Some(table.id(&victim)),
             healed: false,
             poisoned: None,
+            passed: false,
         })
     );
     for name in table.everyone().iter().filter(|n| **n != witch) {
@@ -298,6 +299,7 @@ fn the_witch_sees_when_there_is_no_victim_and_cannot_heal() {
             victim: None,
             healed: false,
             poisoned: None,
+            passed: false,
         })
     );
     assert_eq!(table.refused(&witch, Command::Heal), Rejection::NoVictim);

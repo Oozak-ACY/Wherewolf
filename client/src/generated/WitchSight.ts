@@ -16,4 +16,8 @@ healed: boolean,
 /**
  * Who she poisoned tonight.
  */
-poisoned: PlayerId | null, };
+poisoned: PlayerId | null, 
+/**
+ * Whether she has passed: she uses no more potions tonight.
+ */
+passed: boolean, };

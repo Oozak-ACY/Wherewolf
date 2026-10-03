@@ -529,3 +529,62 @@ fn on_a_witch_with_no_potion_left_still_has_her_turn() {
         );
     }
 }
+
+// The Witch passing.
+
+#[test]
+fn off_the_witch_passing_ends_her_turn_and_the_victim_dies() {
+    let mut table = Table::start(false);
+    let witch = table.one(Role::Witch);
+    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+    let victim = table.villager(0);
+    table.werewolves_pick(&victim);
+
+    table.act(&witch, Command::Pass);
+
+    let victim = table.id(&victim);
+    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim]));
+}
+
+#[test]
+fn on_the_witch_passing_ends_nothing_but_her_choices() {
+    let mut table = Table::start(true);
+    let witch = table.one(Role::Witch);
+    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+    table.werewolves_pick(&table.villager(0));
+    table.time_runs_out();
+    let before = table.timer();
+
+    table.act(&witch, Command::Pass);
+
+    assert_eq!(table.timer(), before);
+    assert!(matches!(
+        table.moment(&witch),
+        Moment::WitchsTurn { witch: Some(sight) } if sight.passed
+    ));
+    let player = table.id(&table.villager(1));
+    for command in [Command::Heal, Command::Poison { player }, Command::Pass] {
+        assert_eq!(
+            table.engine.handle(&seat(&witch), command),
+            Err(Rejection::NotNow)
+        );
+    }
+}
+
+#[test]
+fn only_the_witch_passes_and_only_during_her_turn() {
+    let mut table = Table::start(false);
+    let witch = table.one(Role::Witch);
+    assert_eq!(
+        table.engine.handle(&seat(&witch), Command::Pass),
+        Err(Rejection::NotNow)
+    );
+    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+    table.werewolves_pick(&table.villager(0));
+
+    let villager = table.villager(1);
+    assert_eq!(
+        table.engine.handle(&seat(&villager), Command::Pass),
+        Err(Rejection::NotYourTurn)
+    );
+}
