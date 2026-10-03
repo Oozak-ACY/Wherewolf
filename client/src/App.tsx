@@ -105,7 +105,7 @@ function Home({ onOpenLobby }: { onOpenLobby: (code: string) => void }) {
 
 function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
   const lobby = useLobby(code);
-  const call = useCall(lobby.ticket, lobby.view?.audience ?? null);
+  const call = useCall(lobby.ticket, lobby.view?.audience ?? null, lobby.refreshTicket);
 
   if (lobby.status === "notFound") {
     return (
@@ -322,7 +322,7 @@ function CallNotices({ call }: { call: Call }) {
   }
   if (call.audioBlocked) {
     return (
-      <button className="primary" onClick={call.startAudio}>
+      <button className="primary" onClick={call.unlock}>
         {fr.call.enableSound}
       </button>
     );

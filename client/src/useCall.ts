@@ -47,12 +47,22 @@ const REDRAW_ON = [
  * `audience` is who may see and hear this Player right now, as the Narrator
  * decides: only they may subscribe to this device's camera and microphone
  * (ADR 0001, the publisher-side lever). `null` until the first view arrives.
+ *
+ * `refreshTicket` asks the game server for a new ticket, whose permissions
+ * match the current Moment, to get back into the call after losing it.
  */
-export function useCall(ticket: CallTicket | null, audience: PlayerId[] | null) {
+export function useCall(
+  ticket: CallTicket | null,
+  audience: PlayerId[] | null,
+  refreshTicket: () => void,
+) {
   const room = useRef<Room | null>(null);
   const allowed = useRef<PlayerId[] | null>(audience);
   const [status, setStatus] = useState<CallStatus>("idle");
   const [mic, setMic] = useState<MicStatus>("pending");
+  // Browsers only let sound play after a tap. False after a reload that took
+  // the seat back on its own, until the Player taps to enable sound.
+  const [unlocked, setUnlocked] = useState(false);
   const [, redraw] = useReducer((n: number) => n + 1, 0);
 
   /** Lets only the current audience subscribe to this device's tracks. */
@@ -81,6 +91,7 @@ export function useCall(ticket: CallTicket | null, audience: PlayerId[] | null) 
 
   /** Runs inside the "Rejoindre" tap: unlocks the Narrator's voice and call audio. */
   const unlock = useCallback(() => {
+    setUnlocked(true);
     unlockSpeech();
     ensureRoom()
       .startAudio()
@@ -137,6 +148,22 @@ export function useCall(ticket: CallTicket | null, audience: PlayerId[] | null) 
     if (ticket) void connect(ticket);
   }, [ticket, connect]);
 
+  // LiveKit gave up (a locked screen, another app, a lost network): ask for a
+  // fresh ticket now, and again whenever the page comes back.
+  useEffect(() => {
+    if (status !== "failed") return;
+    refreshTicket();
+    const resume = () => {
+      if (document.visibilityState === "visible") refreshTicket();
+    };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("online", resume);
+    return () => {
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("online", resume);
+    };
+  }, [status, refreshTicket]);
+
   const leave = useCallback(() => {
     void room.current?.disconnect();
   }, []);
@@ -181,15 +208,16 @@ export function useCall(ticket: CallTicket | null, audience: PlayerId[] | null) 
   return {
     status,
     mic,
-    /** Browsers may still block call audio until another tap. */
-    audioBlocked: status === "connected" && !(room.current?.canPlaybackAudio ?? true),
+    /** Sound needs another tap: the seat came back without one, or the browser blocks call audio. */
+    audioBlocked:
+      !unlocked ||
+      (status === "connected" && !(room.current?.canPlaybackAudio ?? true)),
     member,
     voices,
     narratorMic,
     unlock,
     retryMic: enableMedia,
-    retryConnect: () => ticket && void connect(ticket),
-    startAudio: () => void room.current?.startAudio(),
+    retryConnect: refreshTicket,
     leave,
   };
 }

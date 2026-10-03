@@ -6,7 +6,14 @@ import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
 import type { Settings } from "./generated/Settings";
 import { openLobbySocket, parse, send } from "./server";
-import { rememberName, seatToken } from "./seat";
+import {
+  forgetSeatedLobby,
+  rememberedName,
+  rememberName,
+  rememberSeatedLobby,
+  seatedLobby,
+  seatToken,
+} from "./seat";
 
 export type LobbyStatus = "idle" | "connecting" | "joined" | "reconnecting" | "notFound";
 
@@ -29,15 +36,21 @@ export function useLobby(code: string) {
   const attempt = useRef(0);
   const retry = useRef<number | undefined>(undefined);
 
+  const sendJoin = useCallback(
+    (ws: WebSocket) => send(ws, { type: "join", name: name.current, seatToken: seatToken() }),
+    [],
+  );
+
   const connect = useCallback(() => {
     const ws = openLobbySocket(code);
     socket.current = ws;
-    ws.onopen = () => send(ws, { type: "join", name: name.current, seatToken: seatToken() });
+    ws.onopen = () => sendJoin(ws);
     ws.onmessage = (event) => {
       const message = parse(event.data);
       switch (message.type) {
         case "view":
           seated.current = true;
+          rememberSeatedLobby(code);
           attempt.current = 0;
           setView(message.view);
           setEndsAt(message.endsInMs === null ? null : Date.now() + message.endsInMs);
@@ -56,6 +69,7 @@ export function useLobby(code: string) {
           break;
         case "lobbyNotFound":
           seated.current = false;
+          forgetSeatedLobby(code);
           ws.close();
           setStatus("notFound");
           break;
@@ -68,7 +82,7 @@ export function useLobby(code: string) {
       attempt.current += 1;
       retry.current = window.setTimeout(connect, delay);
     };
-  }, [code]);
+  }, [code, sendJoin]);
 
   const join = useCallback(
     (displayName: string) => {
@@ -83,11 +97,46 @@ export function useLobby(code: string) {
 
   const leave = useCallback(() => {
     seated.current = false;
+    forgetSeatedLobby(code);
     const ws = socket.current;
     if (ws?.readyState === WebSocket.OPEN) send(ws, { type: "leave" });
     ws?.close();
     socket.current = null;
-  }, []);
+  }, [code]);
+
+  // Back from a locked screen, another app or a lost network: reconnect now
+  // rather than at the end of the retry backoff.
+  useEffect(() => {
+    const resume = () => {
+      if (!seated.current) return;
+      const state = socket.current?.readyState;
+      if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) return;
+      window.clearTimeout(retry.current);
+      attempt.current = 0;
+      connect();
+    };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("online", resume);
+    window.addEventListener("pageshow", resume);
+    return () => {
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("online", resume);
+      window.removeEventListener("pageshow", resume);
+    };
+  }, [connect]);
+
+  // Reopening the link of a Lobby this browser is seated in takes the seat
+  // back at once, mid-Game included: no form to fill while the Game goes on.
+  useEffect(() => {
+    const remembered = rememberedName();
+    if (seatedLobby() === code && remembered.trim()) join(remembered);
+  }, [code, join]);
+
+  /** Joins again over the open socket, for a fresh call ticket matching the current Moment. */
+  const refreshTicket = useCallback(() => {
+    const ws = socket.current;
+    if (seated.current && ws?.readyState === WebSocket.OPEN) sendJoin(ws);
+  }, [sendJoin]);
 
   const command = useCallback((message: ClientMessage) => {
     const ws = socket.current;
@@ -150,6 +199,7 @@ export function useLobby(code: string) {
     endsAt,
     rejection,
     ticket,
+    refreshTicket,
     join,
     leave,
     updateSettings,

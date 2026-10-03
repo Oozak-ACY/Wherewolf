@@ -3,6 +3,7 @@
 
 const TOKEN_KEY = "wherewolf.seatToken";
 const NAME_KEY = "wherewolf.name";
+const LOBBY_KEY = "wherewolf.seatedIn";
 
 export function seatToken(): string {
   const stored = read(TOKEN_KEY);
@@ -21,6 +22,19 @@ export function rememberName(name: string): void {
   write(NAME_KEY, name);
 }
 
+/** The Lobby this browser holds a seat in, so reopening its link takes it back. */
+export function seatedLobby(): string | null {
+  return read(LOBBY_KEY);
+}
+
+export function rememberSeatedLobby(code: string): void {
+  write(LOBBY_KEY, code);
+}
+
+export function forgetSeatedLobby(code: string): void {
+  if (read(LOBBY_KEY) === code) remove(LOBBY_KEY);
+}
+
 function read(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -34,5 +48,13 @@ function write(key: string, value: string): void {
     localStorage.setItem(key, value);
   } catch {
     // Private browsing: the seat simply won't survive a reload.
+  }
+}
+
+function remove(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Nothing could have been stored.
   }
 }
