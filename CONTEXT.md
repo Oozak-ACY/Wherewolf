@@ -20,6 +20,10 @@ _Avoid_: Game master, GM, MJ, bot
 A dead Player, or someone who joined after the Game started (they play the next Game). They keep watching the whole Game, including every Night Turn and every Role, and can talk with other Spectators, but the living can no longer see or hear them.
 _Avoid_: Ghost, observer, dead player
 
+**Disconnected**:
+A Player whose browser has lost contact. They keep their seat and reclaim it by reopening the link on the same browser. In the Lobby, a Player who stays Disconnected for the whole Grace period loses their seat as if they had Left; once the Game has started, their seat is always kept. The Host cannot start the Game while anyone is Disconnected.
+_Avoid_: Offline, AFK, absent
+
 **Mayor**:
 A title (not a Role) that the living Players elect on the first Day; a tied Election is drawn by lot. The Mayor settles ties in the Vote (if they don't in time, nobody is eliminated). When eliminated, the Mayor names a living successor, or one is drawn by lot.
 _Avoid_: Captain, sheriff, chief
@@ -65,8 +69,12 @@ The vote on the first Day in which the living Players choose the Mayor.
 _Avoid_: Mayor vote (ambiguous with the Vote)
 
 **Settings**:
-The options the Host chooses in the Lobby before starting a Game: the Roles in play, the timers, and Hidden Roles.
+The options the Host chooses in the Lobby before starting a Game: the Roles in play, the timers, Hidden Roles and the Grace period.
 _Avoid_: Config, options, rules
+
+**Grace period**:
+A Setting: how long a Disconnected Player keeps their seat in the Lobby before it is freed as if they had Left (60 seconds by default). Changing it applies at once to Players already Disconnected. It counts from the moment the Player disconnected, or from the return to the Lobby for a Player still Disconnected when a Game ends. A Player whose seat was freed comes back as a newcomer.
+_Avoid_: Timeout, kick, AFK delay
 
 **Hidden Roles**:
 A Setting in which an eliminated Player's Role is not revealed to the living. To avoid leaking who is dead, every Night Turn then lasts its full time even when its Role is dead. With Hidden Roles off, the Turns of dead Roles are skipped, and a Turn ends as soon as its action is complete.
