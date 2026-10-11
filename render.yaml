@@ -1,0 +1,25 @@
+# Render Blueprint for the game server (see docs/deploy.md).
+# The LiveKit keys are `sync: false`: Render asks for them when the Blueprint
+# is applied, and they live only in Render's environment, never in the repo.
+services:
+  - type: web
+    name: wherewolf-server
+    runtime: rust
+    plan: free
+    region: frankfurt
+    buildCommand: cargo build --release -p wherewolf-server
+    startCommand: ./target/release/wherewolf-server
+    # Redeploy on pushes to main that touch the server, not client-only changes.
+    buildFilter:
+      paths:
+        - crates/**
+        - Cargo.toml
+        - Cargo.lock
+        - render.yaml
+    envVars:
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false

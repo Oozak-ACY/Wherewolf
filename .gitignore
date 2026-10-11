@@ -2,5 +2,6 @@
 node_modules/
 /client/dist
 .env
+.env.deploy
 # Local copy of the prototype branch (never merged, see #1)
 /prototype/
