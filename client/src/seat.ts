@@ -1,9 +1,13 @@
 // The seat token lives in this browser only: reopening a Lobby link here
-// reclaims the same seat. No account needed.
+// reclaims the same seat. No account needed. The display name and the mic
+// mode are remembered here too.
+
+import type { MicMode } from "./micControl";
 
 const TOKEN_KEY = "wherewolf.seatToken";
 const NAME_KEY = "wherewolf.name";
 const LOBBY_KEY = "wherewolf.seatedIn";
+const MIC_MODE_KEY = "wherewolf.micMode";
 
 export function seatToken(): string {
   const stored = read(TOKEN_KEY);
@@ -33,6 +37,15 @@ export function rememberSeatedLobby(code: string): void {
 
 export function forgetSeatedLobby(code: string): void {
   if (read(LOBBY_KEY) === code) remove(LOBBY_KEY);
+}
+
+/** How this Player talks on this browser: push-to-talk until they choose. */
+export function rememberedMicMode(): MicMode {
+  return read(MIC_MODE_KEY) === "open" ? "open" : "pushToTalk";
+}
+
+export function rememberMicMode(mode: MicMode): void {
+  write(MIC_MODE_KEY, mode);
 }
 
 function read(key: string): string | null {

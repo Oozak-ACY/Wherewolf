@@ -4,6 +4,7 @@ import type { Moment } from "./generated/Moment";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { Settings } from "./generated/Settings";
+import type { NarratorSpeaking } from "./micControl";
 import { fr } from "./strings";
 
 /** The Settings the Narrator's lines depend on. */
@@ -123,27 +124,25 @@ export function chooseFrenchVoice(voices: SpeechSynthesisVoice[]): SpeechSynthes
   return ranked[0]?.v ?? null;
 }
 
-/** This Player's microphone, as the Narrator needs it. */
-export type Mic = { mute(): void; unmute(): void };
-
 export type NarratorDeps = {
   speech: Pick<SpeechSynthesis, "speak" | "cancel">;
   utterance: (text: string) => SpeechSynthesisUtterance;
-  mic: Mic;
+  /** Told when a line starts and ends, to keep this Player's mic muted meanwhile. */
+  speaking: NarratorSpeaking;
   /** The voice to speak with, looked up at each line: voices load late. */
   voice: () => SpeechSynthesisVoice | null;
 };
 
 /**
  * How long a line may keep the mic muted. `onend` never fires when speech is
- * blocked, so the mic comes back after this even if the browser stays silent.
+ * blocked, so the line counts as ended after this even if the browser stays silent.
  */
 export function lineTimeoutMs(text: string): number {
   return 1000 + 80 * text.length;
 }
 
 /** Reads the Narrator's lines aloud, muting this Player's mic while each one plays. */
-export function createNarrator({ speech, utterance, mic, voice }: NarratorDeps) {
+export function createNarrator({ speech, utterance, speaking, voice }: NarratorDeps) {
   // The line playing now; an earlier line's end no longer concerns the mic.
   let playing: SpeechSynthesisUtterance | null = null;
   let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -152,7 +151,7 @@ export function createNarrator({ speech, utterance, mic, voice }: NarratorDeps) 
     if (line !== playing) return;
     playing = null;
     clearTimeout(timeout);
-    mic.unmute();
+    speaking.ended();
   };
 
   return {
@@ -166,13 +165,13 @@ export function createNarrator({ speech, utterance, mic, voice }: NarratorDeps) 
       line.lang = "fr-FR";
       line.voice = voice();
       playing = line;
-      mic.mute();
+      speaking.started();
       timeout = setTimeout(() => done(line), lineTimeoutMs(text));
       line.onend = () => done(line);
       line.onerror = () => done(line);
       speech.speak(line);
     },
-    /** Silences the current line, if any, and gives the mic back. */
+    /** Silences the current line, if any, and ends it for the mic. */
     stop() {
       const line = playing;
       if (!line) return;

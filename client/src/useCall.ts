@@ -6,11 +6,14 @@ import {
   Room,
   RoomEvent,
   Track,
+  type LocalTrack,
   type Participant,
 } from "livekit-client";
 import type { CallTicket } from "./generated/CallTicket";
 import type { PlayerId } from "./generated/PlayerId";
+import { createMicControl, type MicMode, type NarratorSpeaking } from "./micControl";
 import { unlockSpeech } from "./narrator";
+import { rememberedMicMode, rememberMicMode } from "./seat";
 
 /** Why this Player's microphone could not start. */
 export type MicProblem = "refused" | "missing" | "unavailable";
@@ -60,6 +63,18 @@ export function useCall(
   const allowed = useRef<PlayerId[] | null>(audience);
   const [status, setStatus] = useState<CallStatus>("idle");
   const [mic, setMic] = useState<MicStatus>("pending");
+  // This Player's microphone track, published or about to be.
+  const micTrack = useRef<LocalTrack | null>(null);
+  // Muting is a track mute: never revoke `canPublish` nor republish (ADR 0001).
+  const [control] = useState(() =>
+    createMicControl(rememberedMicMode(), (live) => {
+      setMicLive(live);
+      void (live ? micTrack.current?.unmute() : micTrack.current?.mute())?.catch(() => {});
+    }),
+  );
+  const [micMode, setMicMode] = useState<MicMode>(() => control.mode());
+  const [micLive, setMicLive] = useState(() => control.live());
+  const [wantsToTalk, setWantsToTalk] = useState(() => control.wantsToTalk());
   // Browsers only let sound play after a tap. False after a reload that took
   // the seat back on its own, until the Player taps to enable sound.
   const [unlocked, setUnlocked] = useState(false);
@@ -101,22 +116,29 @@ export function useCall(
   const enableMedia = useCallback(async () => {
     const me = ensureRoom().localParticipant;
     setMic("pending");
+    let tracks: LocalTrack[] = [];
     try {
-      await me.enableCameraAndMicrophone();
-      setMic("on");
-      return;
+      // Both at once, so a browser asks only once. A retry may already have the camera.
+      tracks = await me.createTracks({ audio: true, video: !me.getTrackPublication(Track.Source.Camera) });
     } catch {
       // One of the two failed, which fails both: retry each on its own.
     }
+    let audio = tracks.find((track) => track.kind === Track.Kind.Audio);
     try {
-      await me.setMicrophoneEnabled(true);
+      audio ??= (await me.createTracks({ audio: true }))[0];
+      micTrack.current = audio;
+      // Published muted unless the Player already wants to talk: no live audio escapes.
+      if (!control.live()) await audio.mute();
+      await me.publishTrack(audio);
       setMic("on");
     } catch (error) {
+      audio?.stop();
       setMic(micProblem(error));
     }
     // Optional: without it the Player shows as a card back.
-    await me.setCameraEnabled(true).catch(() => {});
-  }, [ensureRoom]);
+    const camera = tracks.find((track) => track.kind === Track.Kind.Video);
+    await (camera ? me.publishTrack(camera) : me.setCameraEnabled(true)).catch(() => {});
+  }, [ensureRoom, control]);
 
   // The key changes only when the audience does, not on every view.
   const audienceKey = audience?.join(",") ?? null;
@@ -186,14 +208,29 @@ export function useCall(
     };
   };
 
-  /** Mutes this Player's microphone while the Narrator speaks, then brings it back. */
-  const narratorMic = useMemo(() => {
-    const set = (muted: boolean) => {
-      const mic = room.current?.localParticipant.getTrackPublication(Track.Source.Microphone);
-      void (muted ? mic?.mute() : mic?.unmute())?.catch(() => {});
+  /** Mutes this Player's microphone while the Narrator speaks; only the Player brings it back. */
+  const narratorSpeaking: NarratorSpeaking = useMemo(
+    () => ({ started: control.narratorStarted, ended: control.narratorEnded }),
+    [control],
+  );
+
+  /** What the Player does to talk, shown on the button even while the Narrator mutes them. */
+  const talk = useMemo(() => {
+    const andShow = (act: () => void) => () => {
+      act();
+      setWantsToTalk(control.wantsToTalk());
     };
-    return { mute: () => set(true), unmute: () => set(false) };
-  }, []);
+    return {
+      press: andShow(control.press),
+      release: andShow(control.release),
+      toggle: andShow(control.toggle),
+      chooseMode: (mode: MicMode) => {
+        andShow(() => control.setMode(mode))();
+        setMicMode(mode);
+        rememberMicMode(mode);
+      },
+    };
+  }, [control]);
 
   /** Every remote voice this device currently receives. */
   const voices = (): Track[] => {
@@ -214,7 +251,19 @@ export function useCall(
       (status === "connected" && !(room.current?.canPlaybackAudio ?? true)),
     member,
     voices,
-    narratorMic,
+    narratorSpeaking,
+    /** How this Player talks, remembered on this browser. */
+    micMode,
+    chooseMicMode: talk.chooseMode,
+    /** Whether this Player's published mic is live right now. */
+    micLive,
+    /** Whether the Player wants to talk; the Narrator may still keep the mic muted. */
+    wantsToTalk,
+    /** Push-to-talk: the button or Space went down, or up. */
+    pressToTalk: talk.press,
+    releaseToTalk: talk.release,
+    /** Open mic: the Player mutes or unmutes themselves. */
+    toggleMic: talk.toggle,
     unlock,
     retryMic: enableMedia,
     retryConnect: refreshTicket,

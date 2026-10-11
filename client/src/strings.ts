@@ -221,6 +221,10 @@ export const fr = {
       unavailable: "Impossible d'utiliser le micro, peut-être déjà pris par une autre application : réessaie.",
     } satisfies Record<MicProblem, string>,
     enableSound: "Activer le son de l'appel",
+    holdToTalk: "Maintenir pour parler",
+    muteMe: "Couper mon micro",
+    unmuteMe: "Réactiver mon micro",
+    openMic: "Micro ouvert",
   },
 
   rejection: {

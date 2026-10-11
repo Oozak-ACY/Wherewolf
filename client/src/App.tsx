@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CallGrid, Voice } from "./CallGrid";
 import { GamePanel } from "./GamePanel";
+import { MicButton } from "./MicButton";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
@@ -237,7 +238,7 @@ function Lobby(props: {
   const share = () => navigator.share({ title: fr.lobby.shareTitle, url }).catch(() => {});
 
   const { call } = props;
-  useNarrator(view.moment && narratorLine(view.moment, view.players, view.settings), call.narratorMic);
+  useNarrator(view.moment && narratorLine(view.moment, view.players, view.settings), call.narratorSpeaking);
   useWakeLock(view.moment !== null);
 
   return (
@@ -296,6 +297,9 @@ function Lobby(props: {
           {fr.lobby.leave}
         </button>
       </aside>
+
+      {/* A failed mic shows its error and retry instead, in the call's notices. */}
+      {call.mic === "on" && <MicButton call={call} />}
     </div>
   );
 }

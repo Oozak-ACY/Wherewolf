@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Moment } from "./generated/Moment";
 import type { PlayerSummary } from "./generated/PlayerSummary";
+import { createMicControl, type MicMode } from "./micControl";
 import {
   chooseFrenchVoice,
   createNarrator,
@@ -21,17 +22,24 @@ function fakeSpeech() {
   };
 }
 
-function fakeMic() {
-  return { muted: false, mute() { this.muted = true; }, unmute() { this.muted = false; } };
+/** This Player's mic, live unless the Narrator speaks or they don't want to talk. */
+function fakeMic(mode: MicMode) {
+  const control = createMicControl(mode, () => {});
+  return {
+    control,
+    get muted() {
+      return !control.live();
+    },
+  };
 }
 
-function setup(voice: SpeechSynthesisVoice | null = null) {
+function setup(voice: SpeechSynthesisVoice | null = null, mode: MicMode = "open") {
   const speech = fakeSpeech();
-  const mic = fakeMic();
+  const mic = fakeMic(mode);
   const narrator = createNarrator({
     speech,
     utterance: (text) => ({ text }) as SpeechSynthesisUtterance,
-    mic,
+    speaking: { started: mic.control.narratorStarted, ended: mic.control.narratorEnded },
     voice: () => voice,
   });
   return { speech, mic, narrator };
@@ -89,6 +97,48 @@ describe("the Narrator speaking a line", () => {
     narrator.stop();
 
     expect(speech.cancel).toHaveBeenCalled();
+    expect(mic.muted).toBe(false);
+  });
+
+  test("in push-to-talk, a line ending never opens the mic of a Player not holding", () => {
+    const { speech, mic, narrator } = setup(null, "pushToTalk");
+    const first = "Le village débat : qui sont les Loups-Garous ?";
+
+    narrator.say(first);
+    narrator.say("Le village vote.");
+    speech.said[0].onend?.({} as SpeechSynthesisEvent);
+    speech.finish();
+    expect(mic.muted).toBe(true);
+
+    narrator.say(first);
+    vi.advanceTimersByTime(lineTimeoutMs(first));
+    expect(mic.muted).toBe(true);
+
+    narrator.say(first);
+    narrator.stop();
+    expect(mic.muted).toBe(true);
+  });
+
+  test("in push-to-talk, holding through a line makes the mic live once it ends", () => {
+    const { speech, mic, narrator } = setup(null, "pushToTalk");
+    mic.control.press();
+
+    narrator.say("Le village vote.");
+    expect(mic.muted).toBe(true);
+    speech.finish();
+
+    expect(mic.muted).toBe(false);
+  });
+
+  test("in push-to-talk, pressing during a line makes the mic live only after it", () => {
+    const { mic, narrator } = setup(null, "pushToTalk");
+    const line = "Le village vote.";
+
+    narrator.say(line);
+    mic.control.press();
+    expect(mic.muted).toBe(true);
+
+    vi.advanceTimersByTime(lineTimeoutMs(line));
     expect(mic.muted).toBe(false);
   });
 

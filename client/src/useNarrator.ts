@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
-import { chooseFrenchVoice, createNarrator, type Mic } from "./narrator";
+import type { NarratorSpeaking } from "./micControl";
+import { chooseFrenchVoice, createNarrator } from "./narrator";
 
 /**
- * Reads `line` aloud each time it changes, muting `mic` while it plays. The
- * line stays on screen either way: a phone on silent mode only shows it.
+ * Reads `line` aloud each time it changes, telling `speaking` while it plays
+ * so this Player's mic stays muted. The line stays on screen either way: a
+ * phone on silent mode only shows it.
  */
-export function useNarrator(line: string | null, mic: Mic) {
+export function useNarrator(line: string | null, speaking: NarratorSpeaking) {
   const narrator = useRef<ReturnType<typeof createNarrator> | null>(null);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export function useNarrator(line: string | null, mic: Mic) {
     narrator.current = createNarrator({
       speech,
       utterance: (text) => new SpeechSynthesisUtterance(text),
-      mic,
+      speaking,
       voice: () => (voice ??= chooseFrenchVoice(speech.getVoices())),
     });
     return () => {
@@ -29,7 +31,7 @@ export function useNarrator(line: string | null, mic: Mic) {
       narrator.current?.stop();
       narrator.current = null;
     };
-  }, [mic]);
+  }, [speaking]);
 
   useEffect(() => {
     if (line) narrator.current?.say(line);

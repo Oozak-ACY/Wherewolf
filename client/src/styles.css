@@ -280,6 +280,50 @@ button.quiet {
   opacity: 0.85;
 }
 
+/* How this Player talks: within thumb reach at the bottom of a portrait phone. */
+.mic-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+
+.mic-button {
+  flex: 1;
+  min-height: 64px;
+  font-size: 1.1rem;
+  /* Holding it must not select text, open a callout or menu, scroll or zoom. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Wants to talk; dimmed while the Narrator keeps the mic muted. */
+.mic-button[data-wants="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.mic-button[data-wants="true"][data-live="false"] {
+  opacity: 0.6;
+}
+
+.mic-mode {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 /* Wider screens: the call takes the space, the invite sits beside it. */
 @media (min-width: 900px) {
   .screen:has(.lobby) {
@@ -291,6 +335,14 @@ button.quiet {
     grid-template-columns: minmax(0, 1fr) 320px;
     align-items: start;
     gap: 24px;
+  }
+
+  .lobby > aside {
+    grid-row: 1 / span 2;
+  }
+
+  .mic-bar {
+    grid-column: 1;
   }
 
   .call-grid {
