@@ -1,8 +1,8 @@
 //! Wherewolf game server. Holds every Lobby in memory and relays: each
 //! Player's messages go to the Narrator engine, and each Player gets back the
 //! view the engine produced for them. No game rule lives here. It also runs
-//! the timer of each moment of a Game, and lets each seated Player into the
-//! Lobby's video call.
+//! the timer of each moment of a Game and each Disconnected Player's Grace
+//! period, and lets each seated Player into the Lobby's video call.
 
 mod call;
 mod media;
@@ -27,8 +27,8 @@ use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use tower_http::cors::CorsLayer;
 use wherewolf_engine::{
-    Command, Engine, LobbyCode, MomentId, Outputs, PlayerView, Randomness, Rejection, SeatToken,
-    Timer,
+    Command, DisconnectionId, Engine, LobbyCode, MomentId, Outputs, PlayerView, Randomness,
+    Rejection, SeatToken, Timer,
 };
 
 use call::CallConfig;
@@ -42,6 +42,9 @@ const MAX_SEAT_TOKEN_LEN: usize = 128;
 
 type Outbox = mpsc::UnboundedSender<ServerMessage>;
 
+/// Every Lobby, by code.
+type Lobbies = Mutex<HashMap<String, Arc<Mutex<Lobby>>>>;
+
 /// One Lobby: its engine, its video call room, plus the live connection of
 /// each seated Player.
 struct Lobby {
@@ -52,10 +55,15 @@ struct Lobby {
     connections: HashMap<SeatToken, Connection>,
     /// The timer of the Game's current moment, if it has one.
     timer: Option<ArmedTimer>,
+    /// The Grace period of each Disconnected Player, in the Lobby.
+    grace_periods: HashMap<DisconnectionId, ArmedGracePeriod>,
     /// Applies who may see and hear whom to the call. `None` without video.
     media: Option<Media>,
     /// This Lobby itself, for the timer tasks to come back to.
     me: Weak<Mutex<Lobby>>,
+    code: String,
+    /// Every Lobby, to forget this one once a Grace period frees its last seat.
+    lobbies: Weak<Lobbies>,
 }
 
 struct ArmedTimer {
@@ -65,6 +73,20 @@ struct ArmedTimer {
 }
 
 impl Drop for ArmedTimer {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+
+/// A Disconnected Player's Grace period, counting down in the Lobby.
+struct ArmedGracePeriod {
+    /// When the server first saw this Disconnection.
+    since: Instant,
+    seconds: u32,
+    task: JoinHandle<()>,
+}
+
+impl Drop for ArmedGracePeriod {
     fn drop(&mut self) {
         self.task.abort();
     }
@@ -87,6 +109,7 @@ impl Lobby {
     /// and applies its visibility plan to the call.
     fn arm_and_relay(&mut self, outputs: &Outputs) {
         self.arm(outputs.timer());
+        self.arm_grace_periods(outputs);
         self.relay(outputs);
         if let Some(media) = &self.media {
             media.follow(outputs);
@@ -123,6 +146,60 @@ impl Lobby {
             ends_at: Instant::now() + duration,
             task,
         });
+    }
+
+    /// Keeps each Grace period still running, re-arms those whose length
+    /// changed (still counted from the Disconnection, so one already over
+    /// fires at once), and drops those that ended.
+    fn arm_grace_periods(&mut self, outputs: &Outputs) {
+        let mut armed = std::mem::take(&mut self.grace_periods);
+        for grace in outputs.grace_periods() {
+            let since = match armed.remove(&grace.disconnection) {
+                Some(running) if running.seconds == grace.seconds => {
+                    self.grace_periods.insert(grace.disconnection, running);
+                    continue;
+                }
+                Some(running) => running.since,
+                None => Instant::now(),
+            };
+            let task = self.grace_period_task(grace.disconnection, since, grace.seconds);
+            self.grace_periods.insert(
+                grace.disconnection,
+                ArmedGracePeriod {
+                    since,
+                    seconds: grace.seconds,
+                    task,
+                },
+            );
+        }
+    }
+
+    /// Tells the engine how long `disconnection` has lasted once its Grace
+    /// period is over, and forgets the Lobby if that freed its last seat.
+    fn grace_period_task(
+        &self,
+        disconnection: DisconnectionId,
+        since: Instant,
+        seconds: u32,
+    ) -> JoinHandle<()> {
+        let lobby = self.me.clone();
+        let lobbies = self.lobbies.clone();
+        let code = self.code.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep_until(since + Duration::from_secs(seconds.into())).await;
+            let Some(lobby) = lobby.upgrade() else { return };
+            let mut guard = lobby.lock().unwrap();
+            let elapsed = u32::try_from(since.elapsed().as_secs()).unwrap_or(u32::MAX);
+            // Refused if the Player came back or the Game started.
+            if let Ok(outputs) = guard.engine.grace_period_passed(disconnection, elapsed) {
+                guard.arm_and_relay(&outputs);
+            }
+            let empty = guard.engine.is_empty();
+            drop(guard);
+            if let (true, Some(lobbies)) = (empty, lobbies.upgrade()) {
+                forget_if_empty(&lobbies, &code);
+            }
+        })
     }
 
     /// Feeds a seated Player's command to the engine, telling them if it was refused.
@@ -175,7 +252,7 @@ impl Randomness for OsRandomness {
 
 #[derive(Clone, Default)]
 struct AppState {
-    lobbies: Arc<Mutex<HashMap<String, Arc<Mutex<Lobby>>>>>,
+    lobbies: Arc<Lobbies>,
     next_connection_id: Arc<AtomicU64>,
     /// `None` when the LiveKit keys are not configured: Lobbies work, without video.
     call: Option<Arc<CallConfig>>,
@@ -185,15 +262,16 @@ impl AppState {
     fn lobby(&self, code: &str) -> Option<Arc<Mutex<Lobby>>> {
         self.lobbies.lock().unwrap().get(code).cloned()
     }
+}
 
-    fn forget_if_empty(&self, code: &str) {
-        let mut lobbies = self.lobbies.lock().unwrap();
-        if lobbies
-            .get(code)
-            .is_some_and(|l| l.lock().unwrap().engine.is_empty())
-        {
-            lobbies.remove(code);
-        }
+/// Forgets the Lobby `code` once nobody is seated in it.
+fn forget_if_empty(lobbies: &Lobbies, code: &str) {
+    let mut lobbies = lobbies.lock().unwrap();
+    if lobbies
+        .get(code)
+        .is_some_and(|l| l.lock().unwrap().engine.is_empty())
+    {
+        lobbies.remove(code);
     }
 }
 
@@ -250,8 +328,11 @@ async fn create_lobby(State(state): State<AppState>) -> Json<CreatedLobby> {
             call_room,
             connections: HashMap::new(),
             timer: None,
+            grace_periods: HashMap::new(),
             media,
             me: me.clone(),
+            code: code.clone(),
+            lobbies: Arc::downgrade(&state.lobbies),
         })
     });
     lobbies.insert(code.clone(), lobby);
@@ -351,7 +432,7 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
                     lobby.connections.remove(token);
                     seat = None;
                     drop(lobby);
-                    state.forget_if_empty(&code);
+                    forget_if_empty(&state.lobbies, &code);
                 }
                 break;
             }
@@ -398,7 +479,8 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
     }
 
     // The socket is gone. Unless a newer connection took the seat over, the
-    // Player is now disconnected but keeps their seat.
+    // Player is now Disconnected but keeps their seat (in the Lobby, for the
+    // Grace period).
     if let Some(token) = seat {
         let mut lobby = lobby.lock().unwrap();
         let current = lobby

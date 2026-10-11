@@ -10,4 +10,9 @@ export type Settings = { roles: RoleCounts, timers: Timers,
  * Eliminated Players' Roles stay hidden from the living, and every Night
  * Turn lasts its full time, so the Night's length reveals nothing.
  */
-hiddenRoles: boolean, };
+hiddenRoles: boolean, 
+/**
+ * How long, in seconds, a Disconnected Player keeps their seat in the
+ * Lobby before it is freed as if they had Left.
+ */
+gracePeriod: number, };

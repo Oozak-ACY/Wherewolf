@@ -55,7 +55,8 @@ pub enum Command {
     /// next becomes Host.
     Leave,
     /// The seat's connection dropped (phone locked, network lost). The seat is
-    /// kept, so joining again with the same token reclaims it.
+    /// kept, so joining again with the same token reclaims it; in the Lobby,
+    /// only until the Grace period runs out.
     Disconnect,
     /// Host only: replace the Settings.
     UpdateSettings { settings: Settings },
@@ -118,6 +119,8 @@ pub enum Rejection {
     GameStarted,
     /// That cannot be done at this moment of the Game.
     NotNow,
+    /// The Game cannot start while a seated Player is Disconnected.
+    PlayersDisconnected,
     /// Someone else's Turn: only the Seer inspects, only the Werewolves pick
     /// a Victim, only the Witch uses potions.
     NotYourTurn,
@@ -319,6 +322,12 @@ impl Default for Timers {
 /// Every timer lasts between these many seconds.
 pub const TIMER_BOUNDS: std::ops::RangeInclusive<u32> = 10..=1800;
 
+/// The Grace period lasts between these many seconds, like a timer.
+pub const GRACE_PERIOD_BOUNDS: std::ops::RangeInclusive<u32> = TIMER_BOUNDS;
+
+/// How long a Disconnected Player keeps their seat in the Lobby, by default.
+pub const DEFAULT_GRACE_PERIOD: u32 = 60;
+
 /// The options the Host chooses before starting a Game.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -329,6 +338,9 @@ pub struct Settings {
     /// Eliminated Players' Roles stay hidden from the living, and every Night
     /// Turn lasts its full time, so the Night's length reveals nothing.
     pub hidden_roles: bool,
+    /// How long, in seconds, a Disconnected Player keeps their seat in the
+    /// Lobby before it is freed as if they had Left.
+    pub grace_period: u32,
 }
 
 /// Everything one Player is allowed to know right now.
@@ -517,14 +529,44 @@ pub struct Timer {
     pub seconds: u32,
 }
 
+/// Identifies one Disconnection of one seat, so a Grace period armed for a
+/// Player who has since come back (or left again) can be told apart.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DisconnectionId(u32);
+
+impl DisconnectionId {
+    /// Takes the id `counter` holds, and moves it on to the next one.
+    fn next(counter: &mut u32) -> Self {
+        let id = Self(*counter);
+        *counter += 1;
+        id
+    }
+}
+
+/// A Disconnected Player's Grace period, running in the Lobby: once
+/// `seconds` have passed since the server first saw `disconnection`, it calls
+/// [`Engine::grace_period_passed`]. `seconds` follows the Settings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GracePeriod {
+    pub disconnection: DisconnectionId,
+    pub player: PlayerId,
+    pub seconds: u32,
+}
+
 /// What the engine produces after an accepted command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outputs {
     views: Vec<(SeatToken, PlayerView)>,
     timer: Option<Timer>,
+    grace_periods: Vec<GracePeriod>,
 }
 
 impl Outputs {
+    /// Every Grace period running now. Empty once the Game has started.
+    pub fn grace_periods(&self) -> &[GracePeriod] {
+        &self.grace_periods
+    }
+
     /// The current moment's timer, if it has one. Unchanged until the moment ends.
     pub fn timer(&self) -> Option<Timer> {
         self.timer
@@ -556,7 +598,8 @@ struct Seat {
     token: SeatToken,
     id: PlayerId,
     name: String,
-    connected: bool,
+    /// `None` while connected.
+    disconnection: Option<DisconnectionId>,
     /// Dealt when the Game starts.
     role: Option<Role>,
     alive: bool,
@@ -831,6 +874,8 @@ pub struct Engine {
     custom_roles: Option<RoleCounts>,
     timers: Timers,
     hidden_roles: bool,
+    grace_period: u32,
+    next_disconnection: u32,
     /// `None` in the Lobby.
     game: Option<Game>,
     randomness: Box<dyn Randomness>,
@@ -855,6 +900,8 @@ impl Engine {
             custom_roles: None,
             timers: Timers::default(),
             hidden_roles: false,
+            grace_period: DEFAULT_GRACE_PERIOD,
+            next_disconnection: 1,
             game: None,
             randomness: Box::new(randomness),
         }
@@ -869,7 +916,7 @@ impl Engine {
                 }
                 if let Some(reclaimed) = self.seat_mut(seat) {
                     reclaimed.name = name;
-                    reclaimed.connected = true;
+                    reclaimed.disconnection = None;
                     return Ok(self.outputs());
                 }
                 if self.seats.len() >= MAX_PLAYERS {
@@ -881,7 +928,7 @@ impl Engine {
                     token: seat.clone(),
                     id,
                     name,
-                    connected: true,
+                    disconnection: None,
                     role: None,
                     // Someone arriving after the start watches as a Spectator.
                     alive: self.game.is_none(),
@@ -894,7 +941,15 @@ impl Engine {
                 self.seats.remove(index);
             }
             Command::Disconnect => {
-                self.seat_mut(seat).ok_or(Rejection::NotSeated)?.connected = false;
+                let next = &mut self.next_disconnection;
+                let seat = self
+                    .seats
+                    .iter_mut()
+                    .find(|s| &s.token == seat)
+                    .ok_or(Rejection::NotSeated)?;
+                if seat.disconnection.is_none() {
+                    seat.disconnection = Some(DisconnectionId::next(next));
+                }
             }
             Command::UpdateSettings { settings } => {
                 self.require_host(seat)?;
@@ -907,12 +962,14 @@ impl Engine {
                 if settings.roles.total() > MAX_PLAYERS
                     || settings.roles.witch > MAX_WITCHES
                     || !timers_valid
+                    || !GRACE_PERIOD_BOUNDS.contains(&settings.grace_period)
                 {
                     return Err(Rejection::InvalidSettings);
                 }
                 self.custom_roles = Some(settings.roles).filter(|&r| r != self.suggested_roles());
                 self.timers = settings.timers;
                 self.hidden_roles = settings.hidden_roles;
+                self.grace_period = settings.grace_period;
             }
             Command::Start => {
                 self.require_host(seat)?;
@@ -1102,6 +1159,12 @@ impl Engine {
                 for seat in &mut self.seats {
                     seat.role = None;
                     seat.alive = true;
+                    // Back in the Lobby, a Disconnected Player's Grace period
+                    // starts now.
+                    if seat.disconnection.is_some() {
+                        seat.disconnection =
+                            Some(DisconnectionId::next(&mut self.next_disconnection));
+                    }
                 }
             }
         }
@@ -1160,6 +1223,28 @@ impl Engine {
             &MomentState::SuccessionResult { then, .. } => self.resolve_triggers(then),
             MomentState::Victory { .. } => return Err(Rejection::NotNow),
         }
+        Ok(self.outputs())
+    }
+
+    /// Called by the server once `disconnection` has lasted `elapsed` seconds.
+    /// In the Lobby, if that is the whole Grace period, the seat is freed as
+    /// if the Player had Left. Refused if the Player has since come back,
+    /// their seat is already freed, the Game has started, or the Grace period
+    /// is not over yet.
+    pub fn grace_period_passed(
+        &mut self,
+        disconnection: DisconnectionId,
+        elapsed: u32,
+    ) -> Result<Outputs, Rejection> {
+        if self.game.is_some() || elapsed < self.grace_period {
+            return Err(Rejection::NotNow);
+        }
+        let index = self
+            .seats
+            .iter()
+            .position(|s| s.disconnection == Some(disconnection))
+            .ok_or(Rejection::NotNow)?;
+        self.seats.remove(index);
         Ok(self.outputs())
     }
 
@@ -1622,6 +1707,8 @@ impl Engine {
             Some(Rejection::NotEnoughPlayers)
         } else if self.settings().roles.total() != self.seats.len() {
             Some(Rejection::RoleCountMismatch)
+        } else if self.seats.iter().any(|s| s.disconnection.is_some()) {
+            Some(Rejection::PlayersDisconnected)
         } else {
             None
         }
@@ -1636,6 +1723,7 @@ impl Engine {
             roles: self.custom_roles.unwrap_or_else(|| self.suggested_roles()),
             timers: self.timers,
             hidden_roles: self.hidden_roles,
+            grace_period: self.grace_period,
         }
     }
 
@@ -1717,7 +1805,7 @@ impl Engine {
             .map(|s| PlayerSummary {
                 id: s.id,
                 name: s.name.clone(),
-                connected: s.connected,
+                connected: s.disconnection.is_none(),
                 alive: s.alive,
                 revealed_role: s
                     .role
@@ -1732,6 +1820,7 @@ impl Engine {
             return Outputs {
                 views: Vec::new(),
                 timer: None,
+                grace_periods: Vec::new(),
             };
         };
         let views = self
@@ -1762,6 +1851,24 @@ impl Engine {
                 .game
                 .as_ref()
                 .and_then(|g| g.timer(&self.timers, self.hidden_roles)),
+            grace_periods: self.grace_periods(),
         }
+    }
+
+    /// The Grace periods running: only in the Lobby.
+    fn grace_periods(&self) -> Vec<GracePeriod> {
+        if self.game.is_some() {
+            return Vec::new();
+        }
+        self.seats
+            .iter()
+            .filter_map(|s| {
+                Some(GracePeriod {
+                    disconnection: s.disconnection?,
+                    player: s.id,
+                    seconds: self.grace_period,
+                })
+            })
+            .collect()
     }
 }

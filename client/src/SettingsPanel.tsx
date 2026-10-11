@@ -82,6 +82,24 @@ export function SettingsPanel({ view, onChange, onStart }: Props) {
       </label>
       <p className="muted">{settings.hiddenRoles ? fr.settings.hiddenRolesOn : fr.settings.hiddenRolesOff}</p>
 
+      <ul className="timers">
+        <li>
+          <label htmlFor="grace-period">{fr.settings.gracePeriod}</label>
+          {isHost ? (
+            <TimerInput
+              id="grace-period"
+              seconds={settings.gracePeriod}
+              onCommit={(gracePeriod) => onChange({ ...settings, gracePeriod })}
+            />
+          ) : (
+            <strong id="grace-period">
+              {settings.gracePeriod} {fr.settings.seconds}
+            </strong>
+          )}
+        </li>
+      </ul>
+      <p className="muted">{fr.settings.gracePeriodHint}</p>
+
       <details>
         <summary>
           <h3>{fr.settings.timers}</h3>
@@ -111,7 +129,11 @@ export function SettingsPanel({ view, onChange, onStart }: Props) {
           <button className="primary" disabled={view.startBlockedBy !== null} onClick={onStart}>
             {fr.settings.start}
           </button>
-          {view.startBlockedBy && <p className="muted">{fr.rejection[view.startBlockedBy]}</p>}
+          {view.startBlockedBy && (
+            <p className={view.startBlockedBy === "playersDisconnected" ? "error" : "muted"}>
+              {fr.rejection[view.startBlockedBy]}
+            </p>
+          )}
         </>
       ) : (
         <p className="muted">{fr.settings.waitingForHost}</p>
