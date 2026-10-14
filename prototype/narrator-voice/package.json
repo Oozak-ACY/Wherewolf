@@ -1,0 +1,12 @@
+{
+  "name": "wherewolf-prototype-narrator-voice",
+  "description": "PROTOTYPE, throwaway: ElevenLabs Narrator voice on the Table device",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "proto": "vite --host"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
+  }
+}

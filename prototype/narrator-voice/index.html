@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PROTOTYPE · Narrator voice</title>
+<style>
+  :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 12px 12px 80px; background: #111; color: #eee; font-size: 15px; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  .banner { background: #a33; color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 13px; margin-bottom: 10px; }
+  fieldset { border: 1px solid #333; border-radius: 8px; margin: 0 0 10px; padding: 8px 10px; }
+  legend { color: #aaa; font-size: 13px; }
+  label { display: block; margin: 6px 0; font-size: 14px; }
+  select, input[type=text], textarea { width: 100%; box-sizing: border-box; background: #222; color: #eee; border: 1px solid #444; border-radius: 6px; padding: 8px; font-size: 15px; }
+  input[type=range] { width: 100%; }
+  button { background: #2b4a7a; color: #fff; border: 0; border-radius: 8px; padding: 10px 12px; font-size: 15px; margin: 3px 2px; }
+  button.secondary { background: #333; }
+  button.big { width: 100%; padding: 16px; font-size: 18px; background: #3a7a2b; }
+  button:disabled { opacity: .4; }
+  .lines button { display: block; width: 100%; text-align: left; margin: 4px 0; background: #222; border: 1px solid #333; }
+  .lines button small { color: #8a8; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 auto; }
+  #now { position: fixed; left: 0; right: 0; bottom: 0; background: #000; border-top: 1px solid #333; padding: 10px 12px; font-size: 14px; }
+  #now b { color: #fd6; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  td, th { border-bottom: 1px solid #2a2a2a; padding: 4px 3px; text-align: left; vertical-align: top; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bad { color: #f77; } .ok { color: #7d7; } .mid { color: #fd6; }
+  .table { background: #1b1b22; border: 1px solid #3a3a55; border-radius: 10px; padding: 8px 10px; margin: 8px 0; }
+  .tableTitle { font-weight: 600; margin-bottom: 4px; }
+  .fader { display: grid; grid-template-columns: 9em 1fr 3.5em; align-items: center; gap: 8px; }
+  .fader .pct { text-align: right; font-variant-numeric: tabular-nums; }
+  summary { color: #aaa; font-size: 13px; margin: 6px 0; }
+  pre { white-space: pre-wrap; font-size: 12px; color: #aaa; margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="banner">PROTOTYPE, throwaway. Answers one question: is an ElevenLabs Narrator good enough, fast enough and cheap enough on the Table device?</div>
+<h1>Narrator voice</h1>
+
+<button class="big" id="unlock">1. Tap once to unlock audio</button>
+
+<fieldset>
+  <legend>Voice</legend>
+  <label>Engine
+    <select id="engine">
+      <option value="eleven">ElevenLabs</option>
+      <option value="browser">Browser speech (today's Narrator)</option>
+    </select>
+  </label>
+  <label>ElevenLabs voice <select id="voice"><option>loading…</option></select></label>
+  <div class="row">
+    <button class="secondary" id="previewVoice">Preview (library sample)</button>
+    <button class="secondary" id="addVoice">Add library voice to my voices</button>
+  </div>
+  <label>Model
+    <select id="model">
+      <option value="eleven_flash_v2_5">eleven_flash_v2_5 (fastest)</option>
+      <option value="eleven_turbo_v2_5">eleven_turbo_v2_5</option>
+      <option value="eleven_multilingual_v2">eleven_multilingual_v2 (richest v2)</option>
+      <option value="eleven_v3">eleven_v3 (most expressive)</option>
+    </select>
+  </label>
+  <label>Speed <span id="speedVal">1.0</span><input type="range" id="speed" min="0.7" max="1.2" step="0.05" value="1" /></label>
+  <label>Stability <span id="stabilityVal">0.5</span> (low = more dramatic, high = steadier)<input type="range" id="stability" min="0" max="1" step="0.05" value="0.5" /></label>
+</fieldset>
+
+<fieldset>
+  <legend>The table</legend>
+  <label>Players (for lines with names)<input type="text" id="players" value="Camille, Thomas, Léa, Hugo, Inès, Malo, Jade, Noé" /></label>
+  <label>Gap between lines in the scripted run: <span id="gapVal">3</span>s (Players confirming on their phones)<input type="range" id="gap" min="0" max="10" step="1" value="3" /></label>
+  <label><input type="checkbox" id="prefetch" checked /> Pre-generate the next line while the current one plays (scripted run)</label>
+  <div class="row">
+    <button id="script">▶ Scripted Night + Day (no taps)</button>
+    <button class="secondary" id="stop">■ Stop</button>
+  </div>
+  <div class="row">
+    <button class="secondary" id="warm">Warm cache: all fixed lines</button>
+    <button class="secondary" id="clear">Clear cache</button>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Ambiance (Table device only)</legend>
+  <div id="ambianceStatus" style="font-size:13px;color:#aaa">Sounds load when you tap Unlock audio.</div>
+  <label><input type="checkbox" id="withAmbiance" checked /> Ambiance in the scripted run</label>
+  <div class="table">
+    <div class="tableTitle">Host's mixing table</div>
+    <div id="faders"></div>
+  </div>
+  <div class="row" id="beds"></div>
+  <div class="row" id="sfx"></div>
+  <details><summary>Prototype tuning (fixed in code later)</summary><div id="mixer"></div></details>
+  <pre id="mixState"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>Lines (tap to play)</legend>
+  <div class="lines" id="lines"></div>
+  <label>Free text<textarea id="free" rows="2">Le village s'endort. Fermez tous les yeux.</textarea></label>
+  <button id="sayFree">Say it</button>
+</fieldset>
+
+<fieldset>
+  <legend>Credits</legend>
+  <div id="usage">…</div>
+  <button class="secondary" id="refreshUsage">Refresh</button>
+</fieldset>
+
+<fieldset>
+  <legend>Log (latency = tap/trigger → sound starts)</legend>
+  <div id="summary"></div>
+  <table>
+    <thead><tr><th>#</th><th>Line</th><th>How</th><th>Latency</th><th>Length</th><th>Chars</th></tr></thead>
+    <tbody id="log"></tbody>
+  </table>
+  <pre id="errors"></pre>
+</fieldset>
+
+<div id="now">Idle</div>
+<script type="module" src="/main.js"></script>
+</body>
+</html>

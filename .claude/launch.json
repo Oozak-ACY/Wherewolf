@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "client", "run", "dev", "--", "--port", "5173"],
       "port": 5173
+    },
+    {
+      "name": "proto-narrator-voice",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "prototype/narrator-voice", "run", "proto", "--", "--port", "5180"],
+      "port": 5180
     }
   ]
 }
