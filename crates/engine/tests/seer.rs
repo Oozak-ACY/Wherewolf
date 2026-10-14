@@ -59,7 +59,13 @@ impl Table {
         engine
             .handle(&seat("P1"), Command::UpdateSettings { settings })
             .unwrap();
-        let outputs = engine.handle(&seat("P1"), Command::Start).unwrap();
+        engine.handle(&seat("P1"), Command::Start).unwrap();
+        // Everyone confirms their Role: the first Night falls.
+        let mut outputs = None;
+        for name in &names {
+            outputs = Some(engine.handle(&seat(name), Command::ConfirmRole).unwrap());
+        }
+        let outputs = outputs.unwrap();
         let players = names
             .into_iter()
             .map(|name| {

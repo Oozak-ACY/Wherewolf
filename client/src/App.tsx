@@ -119,6 +119,7 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         rejection={lobby.rejection}
         onSettingsChange={lobby.updateSettings}
         onStart={lobby.start}
+        onConfirmRole={lobby.confirmRole}
         onInspect={lobby.inspect}
         onPickVictim={lobby.pickVictim}
         onHeal={lobby.heal}
@@ -193,6 +194,7 @@ function Lobby(props: {
   rejection: Rejection | null;
   onSettingsChange: (settings: Settings) => void;
   onStart: () => void;
+  onConfirmRole: () => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onHeal: () => void;
@@ -243,7 +245,12 @@ function Lobby(props: {
 
       <aside className="stack">
         {view.role && cardOpen && (
-          <RoleCardView card={view.role} view={view} onClose={() => setCardOpen(false)} />
+          <RoleCardView
+            card={view.role}
+            view={view}
+            onConfirm={props.onConfirmRole}
+            onClose={() => setCardOpen(false)}
+          />
         )}
         {view.moment ? (
           <>
@@ -251,6 +258,7 @@ function Lobby(props: {
               view={view}
               moment={view.moment}
               endsAt={props.endsAt}
+              onConfirmRole={props.onConfirmRole}
               onInspect={props.onInspect}
               onPickVictim={props.onPickVictim}
               onHeal={props.onHeal}

@@ -60,7 +60,13 @@ impl Table {
         engine
             .handle(&seat("P1"), Command::UpdateSettings { settings })
             .unwrap();
-        let outputs = engine.handle(&seat("P1"), Command::Start).unwrap();
+        engine.handle(&seat("P1"), Command::Start).unwrap();
+        // Everyone confirms their Role: the first Night falls.
+        let mut outputs = None;
+        for name in &names {
+            outputs = Some(engine.handle(&seat(name), Command::ConfirmRole).unwrap());
+        }
+        let outputs = outputs.unwrap();
         let players = names
             .into_iter()
             .map(|name| {
@@ -670,7 +676,7 @@ fn play_again_brings_everyone_back_to_the_same_lobby() {
     }
     assert_eq!(table.outputs.timer(), None);
     table.act("P1", Command::Start);
-    assert!(matches!(table.moment("P2"), Moment::WerewolvesTurn { .. }));
+    assert!(matches!(table.moment("P2"), Moment::RoleReveal { .. }));
 }
 
 #[test]

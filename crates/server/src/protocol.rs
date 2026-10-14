@@ -22,8 +22,11 @@ pub enum ClientMessage {
     Leave,
     /// Host only: replace the Settings.
     UpdateSettings { settings: Settings },
-    /// Host only: deal the Roles and start the Game.
+    /// Host only: deal the Roles and start the Game, on the Role reveal.
     Start,
+    /// The Role reveal: "I've seen my Role". Confirming again changes
+    /// nothing.
+    ConfirmRole,
     /// Seer's Turn: see the Role of another living Player, once.
     Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.

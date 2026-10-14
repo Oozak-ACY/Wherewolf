@@ -19,6 +19,9 @@ export function narratorLine(moment: Moment, players: PlayerSummary[], settings:
     return role ? fr.roles[role].name : null;
   };
   switch (moment.type) {
+    // The same line for the whole reveal: the Table device says it once.
+    case "roleReveal":
+      return fr.narrator.roleReveal;
     case "seersTurn":
       return `${fr.narrator.nightfall} ${fr.narrator.seersTurn}`;
     case "werewolvesTurn":

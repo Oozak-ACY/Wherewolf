@@ -60,8 +60,11 @@ pub enum Command {
     Disconnect,
     /// Host only: replace the Settings.
     UpdateSettings { settings: Settings },
-    /// Host only: deal the Roles and start the Game.
+    /// Host only: deal the Roles and start the Game, on the Role reveal.
     Start,
+    /// The Role reveal: "I've seen my Role". Confirming again changes
+    /// nothing.
+    ConfirmRole,
     /// Seer's Turn: see the Role of another living Player, once.
     Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.
@@ -392,6 +395,15 @@ impl PlayerView {
 )]
 #[ts(export)]
 pub enum Moment {
+    /// The Game opens: each Player reads their Role on their phone and
+    /// confirms it. Untimed: the first Night falls once every living Player
+    /// has confirmed.
+    RoleReveal {
+        /// How many living Players have not confirmed yet, never who.
+        still_reading: u32,
+        /// Whether this Player has confirmed.
+        confirmed: bool,
+    },
     /// Night: the Seer inspects another living Player's Role.
     SeersTurn {
         /// What the Seer learned this Turn. Only the Seer and the Spectators
@@ -657,6 +669,10 @@ enum Resume {
 /// Where the Game stands.
 #[derive(Debug)]
 enum MomentState {
+    /// Who has confirmed seeing their Role.
+    RoleReveal {
+        confirmed: Vec<PlayerId>,
+    },
     SeersTurn {
         inspection: Option<Inspection>,
         /// She chose to inspect nobody tonight.
@@ -765,6 +781,8 @@ impl Game {
     /// `None` once the Game is over: nothing is timed any more.
     fn timer(&self, timers: &Timers, hidden_roles: bool) -> Option<Timer> {
         let seconds = match self.state {
+            // Everyone takes the time they need to read their Role.
+            MomentState::RoleReveal { .. } => return None,
             // With Hidden Roles off, her Turn ends once she has read what she saw.
             MomentState::SeersTurn {
                 inspection: Some(_),
@@ -797,8 +815,13 @@ impl Game {
     }
 
     /// This moment as `viewer` may see it.
-    fn moment(&self, viewer: &Seat) -> Moment {
+    /// `living`: how many Players are alive.
+    fn moment(&self, viewer: &Seat, living: usize) -> Moment {
         match &self.state {
+            MomentState::RoleReveal { confirmed } => Moment::RoleReveal {
+                still_reading: (living - confirmed.len()) as u32,
+                confirmed: confirmed.contains(&viewer.id),
+            },
             MomentState::SeersTurn { inspection, passed } => {
                 // The Seer and the Spectators see it.
                 let sees = viewer.role == Some(Role::Seer) || !viewer.alive;
@@ -978,7 +1001,9 @@ impl Engine {
                 }
                 self.deal();
                 self.game = Some(Game {
-                    state: self.nightfall(),
+                    state: MomentState::RoleReveal {
+                        confirmed: Vec::new(),
+                    },
                     moment_id: MomentId(0),
                     potions: Potions {
                         healing: true,
@@ -987,6 +1012,20 @@ impl Engine {
                     triggers: VecDeque::new(),
                     mayor: None,
                 });
+            }
+            Command::ConfirmRole => {
+                let player = self.require_living(seat)?;
+                let living = self.living().count();
+                let MomentState::RoleReveal { confirmed } = &mut self.game_mut().state else {
+                    return Err(Rejection::NotNow);
+                };
+                if !confirmed.contains(&player) {
+                    confirmed.push(player);
+                }
+                if confirmed.len() == living {
+                    let night = self.nightfall();
+                    self.game_mut().go_to(night);
+                }
             }
             Command::Inspect { player } => {
                 let seer = self.require_seers_turn(seat)?;
@@ -1179,6 +1218,8 @@ impl Engine {
             return Err(Rejection::NotNow);
         }
         match &game.state {
+            // Untimed: no deadline ever passes.
+            MomentState::RoleReveal { .. } => return Err(Rejection::NotNow),
             MomentState::SeersTurn { .. } => self.game_mut().go_to(Self::werewolves_turn()),
             MomentState::WerewolvesTurn { .. } => {
                 let victim = self.most_picked();
@@ -1758,7 +1799,8 @@ impl Engine {
             Some(MomentState::SeersTurn { .. } | MomentState::WitchsTurn { .. }) => false,
             Some(MomentState::WerewolvesTurn { .. }) => werewolf(receiver) && werewolf(sender),
             Some(
-                MomentState::Dawn { .. }
+                MomentState::RoleReveal { .. }
+                | MomentState::Dawn { .. }
                 | MomentState::Discussion
                 | MomentState::Election { .. }
                 | MomentState::ElectionResult { .. }
@@ -1823,6 +1865,7 @@ impl Engine {
                 grace_periods: Vec::new(),
             };
         };
+        let living = self.living().count();
         let views = self
             .seats
             .iter()
@@ -1837,7 +1880,7 @@ impl Engine {
                     start_blocked_by: self.start_blocker(),
                     role: self.role_card(s),
                     spectating: self.spectating(s),
-                    moment: self.game.as_ref().map(|g| g.moment(s)),
+                    moment: self.game.as_ref().map(|g| g.moment(s, living)),
                     mayor: self.mayor(),
                     receives: self.received_by(s),
                     audience: self.audience_of(s),

@@ -43,7 +43,7 @@ The state of a Game while the Host is Disconnected: every timer stops and the Na
 _Avoid_: Frozen, on hold
 
 **Game**:
-One complete session of Werewolf, from the moment the Host starts it until one Camp wins. Takes 5 to 12 Players. It opens with each Player seeing their Role on their phone; the first Night falls only once every Player has confirmed they have seen it.
+One complete session of Werewolf, from the moment the Host starts it until one Camp wins. Takes 5 to 12 Players. It opens with each Player seeing their Role on their phone; the first Night falls only once every living Player has confirmed they have seen it (the Role reveal).
 _Avoid_: Match, party
 
 **Phase**:
@@ -97,7 +97,7 @@ _Remote only._ Who may see and hear whom at the current Moment, as the Narrator 
 _Avoid_: Permissions, rooms
 
 **Moment**:
-One stretch of a Game that the Narrator announces and times on its own: a Night Turn, the dawn announcement, the Day discussion, the Election and its result, the Vote, the Mayor's tie-break, the Vote's result, the Hunter's shot, the Mayor's succession, the result of each, or the victory screen. The current Moment decides what each Player sees and may do.
+One stretch of a Game that the Narrator announces and times on its own: the Role reveal (untimed: it ends once every living Player has confirmed seeing their Role), a Night Turn, the dawn announcement, the Day discussion, the Election and its result, the Vote, the Mayor's tie-break, the Vote's result, the Hunter's shot, the Mayor's succession, the result of each, or the victory screen. The current Moment decides what each Player sees and may do.
 _Avoid_: Step, stage
 
 ## Roles

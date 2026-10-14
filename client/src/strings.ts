@@ -89,6 +89,10 @@ export const fr = {
 
   game: {
     myCard: "Voir ma carte",
+    confirmRole: "J'ai vu mon rôle",
+    stillReading: (reading: number) =>
+      reading === 1 ? "1 joueur lit encore son rôle." : `${reading} joueurs lisent encore leur rôle.`,
+    roleConfirmed: "La nuit tombera quand tout le monde aura vu son rôle.",
     spectator: "spectateur",
     seerPick: "Choisis le joueur dont tu veux découvrir le rôle.",
     seerSaw: (name: string, role: string) => `${name} est ${role}.`,
@@ -144,6 +148,7 @@ export const fr = {
   // What the Narrator announces at each moment, shown in the banner and read aloud
   // on the Table device. Keep them short.
   narrator: {
+    roleReveal: "Chacun découvre son rôle en secret sur son téléphone.",
     nightfall: "La nuit tombe.",
     seersTurn: "La Voyante se réveille.",
     werewolvesTurn: "Les Loups-Garous se réveillent.",

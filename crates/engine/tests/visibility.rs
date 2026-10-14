@@ -109,6 +109,7 @@ impl Table {
         };
         table.act("P1", Command::UpdateSettings { settings });
         table.act("P1", Command::Start);
+        table.everyone_confirms();
         table
     }
 
@@ -117,6 +118,13 @@ impl Table {
             .engine
             .handle(&seat(name), command)
             .unwrap_or_else(|reason| panic!("{name} was refused: {reason:?}"));
+    }
+
+    /// Every Player confirms their Role: the first Night falls.
+    fn everyone_confirms(&mut self) {
+        for name in self.names.clone() {
+            self.act(&name, Command::ConfirmRole);
+        }
     }
 
     fn with_role(&self, role: Role) -> Vec<String> {
@@ -360,6 +368,7 @@ fn during_the_seers_turn_she_and_every_living_player_see_and_hear_nobody() {
     };
     table.act("P1", Command::UpdateSettings { settings });
     table.act("P1", Command::Start);
+    table.everyone_confirms();
     table.act("Late", join("Late"));
     let late = table.id("Late");
     let seer = table.with_role(Role::Seer)[0].clone();

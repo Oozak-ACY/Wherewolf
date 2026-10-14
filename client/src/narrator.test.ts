@@ -124,6 +124,18 @@ function settings(seer: number, hiddenRoles = false): NarratorSettings {
   return { roles: { werewolf: 1, seer, witch: 0, hunter: 0, villager: 4 - seer }, hiddenRoles };
 }
 
+describe("announcing the Role reveal", () => {
+  test("asks everyone to read their Role, never naming one, once for the whole reveal", () => {
+    const players = [1, 2, 3, 4, 5].map((id) => player(id));
+
+    const first = narratorLine({ type: "roleReveal", stillReading: 5, confirmed: false }, players, settings(1));
+    const later = narratorLine({ type: "roleReveal", stillReading: 1, confirmed: true }, players, settings(1));
+
+    expect(first).toBe("Chacun découvre son rôle en secret sur son téléphone.");
+    expect(later).toBe(first);
+  });
+});
+
 describe("announcing the Night", () => {
   const werewolvesTurn = { type: "werewolvesTurn", picks: null } as const;
 

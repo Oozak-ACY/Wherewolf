@@ -12,6 +12,7 @@ type Props = {
   view: PlayerView;
   moment: Moment;
   endsAt: number | null;
+  onConfirmRole: () => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onHeal: () => void;
@@ -39,6 +40,20 @@ export function GamePanel(props: Props) {
       </p>
       {props.endsAt !== null && <Countdown endsAt={props.endsAt} />}
       {view.spectating && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}
+
+      {moment.type === "roleReveal" && (
+        <>
+          <p className="muted">{fr.game.stillReading(moment.stillReading)}</p>
+          {!view.spectating &&
+            (moment.confirmed ? (
+              <p className="muted">{fr.game.roleConfirmed}</p>
+            ) : (
+              <button className="primary" onClick={props.onConfirmRole}>
+                {fr.game.confirmRole}
+              </button>
+            ))}
+        </>
+      )}
 
       {moment.type === "seersTurn" &&
         (moment.inspection ? (

@@ -12,9 +12,19 @@ export function roleImageUrl(role: Role): string {
   return `/roles/${role}.png`;
 }
 
-/** A Player's own Role card, shown privately on their phone. */
-export function RoleCardView(props: { card: RoleCard; view: PlayerView; onClose: () => void }) {
+/**
+ * A Player's own Role card, shown privately on their phone. During the Role
+ * reveal, closing it the first time confirms the Player has seen their Role.
+ */
+export function RoleCardView(props: {
+  card: RoleCard;
+  view: PlayerView;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
   const { card, view } = props;
+  const confirming =
+    view.moment?.type === "roleReveal" && !view.moment.confirmed && !view.spectating;
   const role = fr.roles[card.role];
   const camp = fr.camps[card.camp];
   const fellows = card.fellowWerewolves.map(
@@ -41,8 +51,15 @@ export function RoleCardView(props: { card: RoleCard; view: PlayerView; onClose:
               : fr.roleCard.loneWerewolf}
           </p>
         )}
-        <button className="primary" onClick={props.onClose} autoFocus>
-          {fr.roleCard.close}
+        <button
+          className="primary"
+          onClick={() => {
+            if (confirming) props.onConfirm();
+            props.onClose();
+          }}
+          autoFocus
+        >
+          {confirming ? fr.game.confirmRole : fr.roleCard.close}
         </button>
       </article>
     </div>

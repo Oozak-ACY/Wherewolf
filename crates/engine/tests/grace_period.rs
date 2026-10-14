@@ -327,6 +327,9 @@ fn the_host_can_start_once_the_disconnected_players_seat_is_freed() {
 /// (not the Werewolf) Disconnected from the start of the Night.
 fn play_a_game_with(lobby: &mut Lobby, disconnected: &str) {
     lobby.act("P1", Command::Start);
+    for name in (1..=5).map(player) {
+        lobby.act(&name, Command::ConfirmRole);
+    }
     let werewolf = (1..=5)
         .map(player)
         .find(|n| lobby.view(n).role.as_ref().unwrap().role == Role::Werewolf)

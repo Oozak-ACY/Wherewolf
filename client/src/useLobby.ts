@@ -148,6 +148,7 @@ export function useLobby(code: string) {
     [command],
   );
   const start = useCallback(() => command({ type: "start" }), [command]);
+  const confirmRole = useCallback(() => command({ type: "confirmRole" }), [command]);
   const inspect = useCallback(
     (player: PlayerId) => command({ type: "inspect", player }),
     [command],
@@ -204,6 +205,7 @@ export function useLobby(code: string) {
     leave,
     updateSettings,
     start,
+    confirmRole,
     inspect,
     pickVictim,
     heal,

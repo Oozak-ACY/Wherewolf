@@ -9,7 +9,15 @@ import type { WitchSight } from "./WitchSight";
 /**
  * A moment of the Game, as one Player sees it.
  */
-export type Moment = { "type": "seersTurn", 
+export type Moment = { "type": "roleReveal", 
+/**
+ * How many living Players have not confirmed yet, never who.
+ */
+stillReading: number, 
+/**
+ * Whether this Player has confirmed.
+ */
+confirmed: boolean, } | { "type": "seersTurn", 
 /**
  * What the Seer learned this Turn. Only the Seer and the Spectators
  * see it.
