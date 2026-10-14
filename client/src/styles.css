@@ -580,3 +580,27 @@ button.chosen {
   background: var(--surface);
   color: var(--text);
 }
+
+/* The join QR code, over everything: black on white so any camera reads it. */
+.qr-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  color: #333;
+  font-weight: 400;
+}
+
+.qr-screen svg {
+  width: min(100%, calc(100dvh - 96px));
+  height: auto;
+}

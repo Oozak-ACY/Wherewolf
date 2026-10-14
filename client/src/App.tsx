@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { GamePanel } from "./GamePanel";
+import { joinLink, lobbyCodeFromPath } from "./joinLink";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
 import type { Settings } from "./generated/Settings";
 import { narratorLine, speaksAloud, unlockSpeech } from "./narrator";
 import { PlayerGrid } from "./PlayerGrid";
+import { QrCodeView } from "./QrCodeView";
 import { RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
@@ -14,12 +16,6 @@ import { fr } from "./strings";
 import { useLobby } from "./useLobby";
 import { useNarrator } from "./useNarrator";
 import { useWakeLock } from "./useWakeLock";
-
-const LOBBY_PATH = /^\/l\/([A-Za-z0-9]+)\/?$/;
-
-function lobbyUrl(code: string): string {
-  return `${window.location.origin}/l/${code}`;
-}
 
 function usePath(): [string, (path: string) => void] {
   const [path, setPath] = useState(window.location.pathname);
@@ -37,7 +33,7 @@ function usePath(): [string, (path: string) => void] {
 
 export function App() {
   const [path, navigate] = usePath();
-  const code = LOBBY_PATH.exec(path)?.[1]?.toUpperCase();
+  const code = lobbyCodeFromPath(path);
   return (
     <main className="screen">
       {code ? (
@@ -217,8 +213,10 @@ function Lobby(props: {
   useEffect(() => {
     if (started) setCardOpen(true);
   }, [started]);
-  const url = lobbyUrl(view.code);
+  const url = joinLink(window.location.origin, view.code);
   const [copied, setCopied] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+  const isHost = view.you === view.host;
 
   const copy = async () => {
     try {
@@ -280,8 +278,10 @@ function Lobby(props: {
               <button onClick={copy}>{copied ? fr.lobby.copied : fr.lobby.copy}</button>
               {"share" in navigator && <button onClick={share}>{fr.lobby.share}</button>}
             </div>
+            {isHost && <button onClick={() => setQrOpen(true)}>{fr.lobby.showQrCode}</button>}
           </section>
         )}
+        {isHost && !started && qrOpen && <QrCodeView link={url} onClose={() => setQrOpen(false)} />}
         <button className="quiet" onClick={props.onLeave}>
           {fr.lobby.leave}
         </button>
