@@ -1,17 +1,16 @@
 import { useEffect, useRef } from "react";
-import type { NarratorSpeaking } from "./micControl";
 import { chooseFrenchVoice, createNarrator } from "./narrator";
 
 /**
- * Reads `line` aloud each time it changes, telling `speaking` while it plays
- * so this Player's mic stays muted. The line stays on screen either way: a
- * phone on silent mode only shows it.
+ * Reads `line` aloud each time it changes, when `aloud`: only on the Table
+ * device. The line stays on screen either way: other phones, and a phone on
+ * silent mode, only show it.
  */
-export function useNarrator(line: string | null, speaking: NarratorSpeaking) {
+export function useNarrator(line: string | null, aloud: boolean) {
   const narrator = useRef<ReturnType<typeof createNarrator> | null>(null);
 
   useEffect(() => {
-    if (!("speechSynthesis" in window)) return;
+    if (!aloud || !("speechSynthesis" in window)) return;
     const speech = window.speechSynthesis;
     // Some browsers list their voices at once, others only after `voiceschanged`,
     // and some iOS versions never fire it: look again while there is none.
@@ -23,7 +22,6 @@ export function useNarrator(line: string | null, speaking: NarratorSpeaking) {
     narrator.current = createNarrator({
       speech,
       utterance: (text) => new SpeechSynthesisUtterance(text),
-      speaking,
       voice: () => (voice ??= chooseFrenchVoice(speech.getVoices())),
     });
     return () => {
@@ -31,7 +29,7 @@ export function useNarrator(line: string | null, speaking: NarratorSpeaking) {
       narrator.current?.stop();
       narrator.current = null;
     };
-  }, [speaking]);
+  }, [aloud]);
 
   useEffect(() => {
     if (line) narrator.current?.say(line);

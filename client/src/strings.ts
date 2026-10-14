@@ -138,8 +138,8 @@ export const fr = {
     waitingForHostToPlayAgain: "L'hôte peut relancer une partie.",
   },
 
-  // What the Narrator announces at each moment, shown in the banner and read aloud.
-  // Keep them short: each one mutes every mic while it plays.
+  // What the Narrator announces at each moment, shown in the banner and read aloud
+  // on the Table device. Keep them short.
   narrator: {
     nightfall: "La nuit tombe.",
     seersTurn: "La Voyante se réveille.",

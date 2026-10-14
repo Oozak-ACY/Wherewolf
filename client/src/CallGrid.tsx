@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { Track } from "livekit-client";
-import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
-import { fr } from "./strings";
+import { CardBack, gridSize, TileLabel, tileClasses } from "./PlayerGrid";
 import type { CallMember } from "./useCall";
 
 type Props = {
@@ -10,61 +9,25 @@ type Props = {
   member: (identity: string, isYou: boolean) => CallMember | null;
 };
 
-/** One tile per seated Player, in the order they joined. */
+/** One tile per seated Player, in the order they joined, with their camera. */
 export function CallGrid({ view, member }: Props) {
-  const count = view.players.length;
-  // Fewer, bigger tiles while the Lobby fills up; 12 still fit a portrait phone.
-  const size = count <= 4 ? "small" : count <= 9 ? "medium" : "large";
   return (
-    <ul className="call-grid" data-size={size}>
+    <ul className="call-grid" data-size={gridSize(view.players.length)}>
       {view.players.map((player) => {
         const isYou = player.id === view.you;
+        const media = member(String(player.id), isYou);
+        const classes = tileClasses(player);
+        if (media?.speaking) classes.push("speaking");
         return (
-          <PlayerTile
-            key={player.id}
-            player={player}
-            isYou={isYou}
-            isHost={player.id === view.host}
-            isMayor={player.id === view.mayor}
-            member={member(String(player.id), isYou)}
-          />
+          <li key={player.id} className={classes.join(" ")}>
+            {/* Under the video too: it shows until the first frame arrives. */}
+            <CardBack />
+            {media?.camera && <Video track={media.camera} mirrored={isYou} />}
+            <TileLabel view={view} player={player} />
+          </li>
         );
       })}
     </ul>
-  );
-}
-
-function PlayerTile(props: {
-  player: PlayerSummary;
-  isYou: boolean;
-  isHost: boolean;
-  isMayor: boolean;
-  member: CallMember | null;
-}) {
-  const { player, isYou, member } = props;
-  const classes = ["tile"];
-  if (!player.connected) classes.push("offline");
-  if (!player.alive) classes.push("dead");
-  if (member?.speaking) classes.push("speaking");
-  return (
-    <li className={classes.join(" ")}>
-      {/* Under the video too: it shows until the first frame arrives. */}
-      <CardBack />
-      {member?.camera && <Video track={member.camera} mirrored={isYou} />}
-      <div className="tile-label">
-        <span className="name">
-          {player.name}
-          {isYou && <span className="muted"> ({fr.lobby.you})</span>}
-        </span>
-        {props.isHost && <span className="badge">{fr.lobby.host}</span>}
-        {props.isMayor && <span className="badge">{fr.lobby.mayor}</span>}
-        {player.revealedRole && (
-          <span className="badge role">{fr.roles[player.revealedRole].name}</span>
-        )}
-        {!player.alive && !player.revealedRole && <span className="muted">{fr.game.spectator}</span>}
-        {!player.connected && <span className="muted">{fr.lobby.offline}</span>}
-      </div>
-    </li>
   );
 }
 
@@ -92,16 +55,4 @@ function Video({ track, mirrored }: { track: Track; mirrored: boolean }) {
 export function Voice({ track }: { track: Track }) {
   const ref = useAttached<HTMLAudioElement>(track);
   return <audio ref={ref} autoPlay />;
-}
-
-/** A Player without a camera shows as the back of a Role card. */
-function CardBack() {
-  return (
-    <div className="card-back" aria-hidden="true">
-      <svg viewBox="0 0 40 40" className="emblem">
-        <circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M24 9a11 11 0 1 0 7 17A13 13 0 0 1 24 9z" fill="currentColor" />
-      </svg>
-    </div>
-  );
 }

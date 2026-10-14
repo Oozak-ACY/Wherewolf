@@ -1,18 +1,16 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CallGrid, Voice } from "./CallGrid";
 import { GamePanel } from "./GamePanel";
-import { MicButton } from "./MicButton";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
 import type { Settings } from "./generated/Settings";
-import { narratorLine } from "./narrator";
+import { narratorLine, speaksAloud, unlockSpeech } from "./narrator";
+import { PlayerGrid } from "./PlayerGrid";
 import { RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
 import { SettingsPanel } from "./SettingsPanel";
 import { fr } from "./strings";
-import { useCall, type Call } from "./useCall";
 import { useLobby } from "./useLobby";
 import { useNarrator } from "./useNarrator";
 import { useWakeLock } from "./useWakeLock";
@@ -106,7 +104,6 @@ function Home({ onOpenLobby }: { onOpenLobby: (code: string) => void }) {
 
 function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
   const lobby = useLobby(code);
-  const call = useCall(lobby.ticket, lobby.view?.audience ?? null, lobby.refreshTicket);
 
   if (lobby.status === "notFound") {
     return (
@@ -122,7 +119,6 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
       <Lobby
         view={lobby.view}
         endsAt={lobby.endsAt}
-        call={call}
         reconnecting={lobby.status === "reconnecting"}
         rejection={lobby.rejection}
         onSettingsChange={lobby.updateSettings}
@@ -139,7 +135,6 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         onNameSuccessor={lobby.nameSuccessor}
         onPlayAgain={lobby.playAgain}
         onLeave={() => {
-          call.leave();
           lobby.leave();
           onExit();
         }}
@@ -153,8 +148,8 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
       connecting={lobby.status === "connecting"}
       error={lobby.rejection && fr.rejection[lobby.rejection]}
       onJoin={(name) => {
-        // Still inside the "Rejoindre" tap: the only moment iOS lets us unlock audio.
-        call.unlock();
+        // Still inside the "Rejoindre" tap: the only moment iOS lets us unlock speech.
+        unlockSpeech();
         lobby.join(name);
       }}
     />
@@ -198,7 +193,6 @@ function JoinForm(props: {
 function Lobby(props: {
   view: PlayerView;
   endsAt: number | null;
-  call: Call;
   reconnecting: boolean;
   rejection: Rejection | null;
   onSettingsChange: (settings: Settings) => void;
@@ -237,21 +231,16 @@ function Lobby(props: {
 
   const share = () => navigator.share({ title: fr.lobby.shareTitle, url }).catch(() => {});
 
-  const { call } = props;
-  useNarrator(view.moment && narratorLine(view.moment, view.players, view.settings), call.narratorSpeaking);
+  useNarrator(view.moment && narratorLine(view.moment, view.players, view.settings), speaksAloud(view));
   useWakeLock(view.moment !== null);
 
   return (
     <div className="lobby">
-      <section className="call stack">
+      <section className="stack">
         {props.reconnecting && <p className="banner">{fr.join.connectionLost}</p>}
-        <CallNotices call={call} />
         {props.rejection && <p className="error">{fr.rejection[props.rejection]}</p>}
         <h2>{fr.lobby.players(view.players.length)}</h2>
-        <CallGrid view={view} member={call.member} />
-        {call.voices().map((track) => (
-          <Voice key={track.sid} track={track} />
-        ))}
+        <PlayerGrid view={view} />
       </section>
 
       <aside className="stack">
@@ -297,39 +286,6 @@ function Lobby(props: {
           {fr.lobby.leave}
         </button>
       </aside>
-
-      {/* A failed mic shows its error and retry instead, in the call's notices. */}
-      {call.mic === "on" && <MicButton call={call} />}
     </div>
   );
-}
-
-/** What stands between this Player and a working call, with the way out. */
-function CallNotices({ call }: { call: Call }) {
-  if (call.status === "failed") {
-    return (
-      <div className="notice">
-        <p>{fr.call.failed}</p>
-        <button onClick={call.retryConnect}>{fr.call.retry}</button>
-      </div>
-    );
-  }
-  if (call.mic !== "pending" && call.mic !== "on") {
-    return (
-      <div className="notice" role="alert">
-        <p>
-          <strong>{fr.call.micRequired}</strong> {fr.call.micHelp[call.mic]}
-        </p>
-        <button onClick={call.retryMic}>{fr.call.retry}</button>
-      </div>
-    );
-  }
-  if (call.audioBlocked) {
-    return (
-      <button className="primary" onClick={call.unlock}>
-        {fr.call.enableSound}
-      </button>
-    );
-  }
-  return null;
 }

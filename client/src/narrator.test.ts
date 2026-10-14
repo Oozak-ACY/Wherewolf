@@ -1,147 +1,41 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { Moment } from "./generated/Moment";
 import type { PlayerSummary } from "./generated/PlayerSummary";
-import { createMicControl, type MicMode } from "./micControl";
 import {
   chooseFrenchVoice,
   createNarrator,
-  lineTimeoutMs,
   narratorLine,
+  speaksAloud,
   type NarratorSettings,
 } from "./narrator";
 
 /** A speech engine that only records what it was asked to say. */
 function fakeSpeech() {
   const said: SpeechSynthesisUtterance[] = [];
+  /** What the engine was told, in order: "cancel" or the text spoken. */
+  const log: string[] = [];
   return {
     said,
-    speak: (utterance: SpeechSynthesisUtterance) => said.push(utterance),
-    cancel: vi.fn(),
-    /** The browser finished the latest line. */
-    finish: () => said.at(-1)?.onend?.({} as SpeechSynthesisEvent),
-  };
-}
-
-/** This Player's mic, live unless the Narrator speaks or they don't want to talk. */
-function fakeMic(mode: MicMode) {
-  const control = createMicControl(mode, () => {});
-  return {
-    control,
-    get muted() {
-      return !control.live();
+    log,
+    speak: (utterance: SpeechSynthesisUtterance) => {
+      said.push(utterance);
+      log.push(utterance.text);
     },
+    cancel: () => log.push("cancel"),
   };
 }
 
-function setup(voice: SpeechSynthesisVoice | null = null, mode: MicMode = "open") {
+function setup(voice: SpeechSynthesisVoice | null = null) {
   const speech = fakeSpeech();
-  const mic = fakeMic(mode);
   const narrator = createNarrator({
     speech,
     utterance: (text) => ({ text }) as SpeechSynthesisUtterance,
-    speaking: { started: mic.control.narratorStarted, ended: mic.control.narratorEnded },
     voice: () => voice,
   });
-  return { speech, mic, narrator };
+  return { speech, narrator };
 }
 
-beforeEach(() => vi.useFakeTimers());
-afterEach(() => vi.useRealTimers());
-
 describe("the Narrator speaking a line", () => {
-  test("re-enables the mic after the timeout when onend never fires", () => {
-    const { mic, narrator } = setup();
-    const line = "Le village vote.";
-
-    narrator.say(line);
-    expect(mic.muted).toBe(true);
-
-    vi.advanceTimersByTime(lineTimeoutMs(line) - 1);
-    expect(mic.muted).toBe(true);
-    vi.advanceTimersByTime(1);
-    expect(mic.muted).toBe(false);
-  });
-
-  test("re-enables the mic as soon as the line ends", () => {
-    const { speech, mic, narrator } = setup();
-
-    narrator.say("Le village vote.");
-    speech.finish();
-
-    expect(mic.muted).toBe(false);
-  });
-
-  test("a new line cuts the previous one and keeps the mic muted until it ends", () => {
-    const { speech, mic, narrator } = setup();
-    const first = "Le village débat : qui sont les Loups-Garous ?";
-    const second = "Le village vote.";
-
-    narrator.say(first);
-    vi.advanceTimersByTime(lineTimeoutMs(first) - 100);
-    narrator.say(second);
-    expect(speech.cancel).toHaveBeenCalled();
-
-    // The first line's timeout and a late onend must not unmute during the second.
-    vi.advanceTimersByTime(200);
-    speech.said[0].onend?.({} as SpeechSynthesisEvent);
-    expect(mic.muted).toBe(true);
-
-    vi.advanceTimersByTime(lineTimeoutMs(second));
-    expect(mic.muted).toBe(false);
-  });
-
-  test("stopping mid-line silences it and gives the mic back", () => {
-    const { speech, mic, narrator } = setup();
-
-    narrator.say("Le village vote.");
-    narrator.stop();
-
-    expect(speech.cancel).toHaveBeenCalled();
-    expect(mic.muted).toBe(false);
-  });
-
-  test("in push-to-talk, a line ending never opens the mic of a Player not holding", () => {
-    const { speech, mic, narrator } = setup(null, "pushToTalk");
-    const first = "Le village débat : qui sont les Loups-Garous ?";
-
-    narrator.say(first);
-    narrator.say("Le village vote.");
-    speech.said[0].onend?.({} as SpeechSynthesisEvent);
-    speech.finish();
-    expect(mic.muted).toBe(true);
-
-    narrator.say(first);
-    vi.advanceTimersByTime(lineTimeoutMs(first));
-    expect(mic.muted).toBe(true);
-
-    narrator.say(first);
-    narrator.stop();
-    expect(mic.muted).toBe(true);
-  });
-
-  test("in push-to-talk, holding through a line makes the mic live once it ends", () => {
-    const { speech, mic, narrator } = setup(null, "pushToTalk");
-    mic.control.press();
-
-    narrator.say("Le village vote.");
-    expect(mic.muted).toBe(true);
-    speech.finish();
-
-    expect(mic.muted).toBe(false);
-  });
-
-  test("in push-to-talk, pressing during a line makes the mic live only after it", () => {
-    const { mic, narrator } = setup(null, "pushToTalk");
-    const line = "Le village vote.";
-
-    narrator.say(line);
-    mic.control.press();
-    expect(mic.muted).toBe(true);
-
-    vi.advanceTimersByTime(lineTimeoutMs(line));
-    expect(mic.muted).toBe(false);
-  });
-
   test("speaks in French with the chosen voice", () => {
     const thomas = { name: "Thomas", lang: "fr-FR" } as SpeechSynthesisVoice;
     const { speech, narrator } = setup(thomas);
@@ -149,6 +43,38 @@ describe("the Narrator speaking a line", () => {
     narrator.say("Le village vote.");
 
     expect(speech.said).toMatchObject([{ text: "Le village vote.", lang: "fr-FR", voice: thomas }]);
+  });
+
+  test("a new line cuts the previous one", () => {
+    const { speech, narrator } = setup();
+
+    narrator.say("Le village débat : qui sont les Loups-Garous ?");
+    narrator.say("Le village vote.");
+
+    expect(speech.log.slice(-3)).toEqual([
+      "Le village débat : qui sont les Loups-Garous ?",
+      "cancel",
+      "Le village vote.",
+    ]);
+  });
+
+  test("stopping silences the line playing", () => {
+    const { speech, narrator } = setup();
+
+    narrator.say("Le village vote.");
+    narrator.stop();
+
+    expect(speech.log.at(-1)).toBe("cancel");
+  });
+});
+
+describe("which phone reads the Narrator's lines aloud", () => {
+  test("the Host's phone, the Table device, speaks", () => {
+    expect(speaksAloud({ you: 1, host: 1 })).toBe(true);
+  });
+
+  test("every other phone stays silent", () => {
+    expect(speaksAloud({ you: 2, host: 1 })).toBe(false);
   });
 });
 
