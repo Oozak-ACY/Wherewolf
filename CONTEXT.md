@@ -1,6 +1,6 @@
 # Wherewolf
 
-A Werewolf (social deduction) game for friends playing remotely from their phones' browsers, over an in-app voice and video call, with the game run by the machine instead of a human moderator.
+A Werewolf (social deduction) game for friends sitting around one table, each with their phone, with the game run by the machine instead of a human moderator: the Narrator's voice calls the Game out loud, and Players act secretly on their phones. Remote play (over an in-app voice and video call) is deferred to a later Mode; terms marked _Remote only_ belong to it.
 
 ## People
 
@@ -9,23 +9,27 @@ A person taking part in a Game. Every participant is a Player; nobody sits out t
 _Avoid_: User, participant
 
 **Host**:
-The Player who created the Lobby. Only they can configure the Roles and start the Game; once it starts they are an ordinary Player.
+The Player who created the Lobby. Only they can configure the Roles and start the Game. Their phone is the Table device. Once the Game starts they play as an ordinary Player, except that until a Mayor is elected they may end the Day's debate early.
 _Avoid_: Admin, owner, game master
 
 **Narrator**:
-The automated moderator that runs the Game: deals Roles, calls each Phase, collects actions and announces outcomes.
+The automated moderator that runs the Game: deals Roles, calls each Phase out loud from the Table device, collects actions from the Players' phones and announces outcomes.
 _Avoid_: Game master, GM, MJ, bot
 
+**Table device**:
+The Host's phone, put on loudspeaker: the only device that gives the Narrator its voice for the whole table. Every other phone stays silent, and private information (a Role, the Seer's inspection) is only ever shown on its owner's screen, never spoken.
+_Avoid_: Speaker, main screen, host phone
+
 **Spectator**:
-A dead Player, or someone who joined after the Game started (they play the next Game). They keep watching the whole Game, including every Night Turn and every Role, and can talk with other Spectators, but the living can no longer see or hear them.
+A dead Player, or someone who joined after the Game started (they play the next Game). Their phone shows the whole Game, including every Night Turn and every Role; at the table they stay silent. _Remote only:_ they can talk with other Spectators, but the living can no longer see or hear them.
 _Avoid_: Ghost, observer, dead player
 
 **Disconnected**:
-A Player whose browser has lost contact. They keep their seat and reclaim it by reopening the link on the same browser. In the Lobby, a Player who stays Disconnected for the whole Grace period loses their seat as if they had Left; once the Game has started, their seat is always kept. The Host cannot start the Game while anyone is Disconnected.
+A Player whose browser has lost contact. They keep their seat and reclaim it by reopening the link on the same browser. In the Lobby, a Player who stays Disconnected for the whole Grace period loses their seat as if they had Left; once the Game has started, their seat is always kept. The Host cannot start the Game while anyone is Disconnected. While the Host is Disconnected during a Game, the table has no Narrator voice, so the Game is Paused.
 _Avoid_: Offline, AFK, absent
 
 **Mayor**:
-A title (not a Role) that the living Players elect on the first Day; a tied Election is drawn by lot. The Mayor settles ties in the Vote (if they don't in time, nobody is eliminated). When eliminated, the Mayor names a living successor, or one is drawn by lot.
+A title (not a Role) that the living Players elect on the first Day; a tied Election is drawn by lot. The Mayor may end the Day's debate early, and settles ties in the Vote (if they don't in time, nobody is eliminated). When eliminated, the Mayor names a living successor, or one is drawn by lot.
 _Avoid_: Captain, sheriff, chief
 
 ## Game structure
@@ -34,8 +38,12 @@ _Avoid_: Captain, sheriff, chief
 The gathering place before a Game, reached by a shared link or code, where Players join with a display name.
 _Avoid_: Room, waiting room
 
+**Paused**:
+The state of a Game while the Host is Disconnected: every timer stops and the Narrator stays silent until the Host reclaims their seat, then the Game resumes exactly where it stopped.
+_Avoid_: Frozen, on hold
+
 **Game**:
-One complete session of Werewolf, from the moment the Host starts it until one Camp wins. Takes 5 to 12 Players.
+One complete session of Werewolf, from the moment the Host starts it until one Camp wins. Takes 5 to 12 Players. It opens with each Player seeing their Role on their phone; the first Night falls only once every Player has confirmed they have seen it.
 _Avoid_: Match, party
 
 **Phase**:
@@ -81,11 +89,11 @@ A Setting in which an eliminated Player's Role is not revealed to the living. To
 _Avoid_: Secret mode, blind mode
 
 **Turn**:
-The moment during the Night when one Role (or the Werewolves together) wakes up to act, while everyone else stays asleep.
+The moment during the Night when one Role (or the Werewolves together) wakes up to act, while everyone else stays asleep. It ends as soon as its action is confirmed on the phones (every Werewolf confirming the same Victim, for the Werewolves), or when its timer runs out.
 _Avoid_: Step, action phase
 
 **Visibility plan**:
-Who may see and hear whom at the current Moment, as the Narrator decides it: the living see each other by Day, only the Werewolves see each other during their Turn, and Spectators see everyone while no living Player sees them. The media server enforces it.
+_Remote only._ Who may see and hear whom at the current Moment, as the Narrator decides it: the living see each other by Day, only the Werewolves see each other during their Turn, and Spectators see everyone while no living Player sees them. The media server enforces it.
 _Avoid_: Permissions, rooms
 
 **Moment**:
