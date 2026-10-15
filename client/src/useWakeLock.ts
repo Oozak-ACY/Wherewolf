@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 
 /**
- * Keeps the screen on while `active`. A phone that locks mid-Game would drop
- * out of the call and miss the Narrator. The browser releases the lock when
+ * Keeps the screen on while `active`. A phone that locks mid-Game, behind
+ * its sleeping screen, would miss its Player's Turn, and the Table device its
+ * Narrator's next line. The browser releases the lock when
  * the page is hidden, so it is taken again each time the page comes back.
  */
 export function useWakeLock(active: boolean) {

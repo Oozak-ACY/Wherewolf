@@ -124,7 +124,7 @@ export const fr = {
           : poison
             ? "Il te reste la potion de poison."
             : "Tu as utilisé tes deux potions.",
-    asleep: "Tu dors : tu ne vois et n'entends personne jusqu'au lever du jour.",
+    asleep: "Tu dors : garde les yeux fermés jusqu'à ce que le Narrateur t'appelle.",
     electPrompt: "Qui doit être Maire ?",
     votePrompt: "Qui faut-il éliminer ?",
     votedCount: (voted: number, living: number) => `${voted} / ${living} ont voté`,
@@ -134,7 +134,7 @@ export const fr = {
     ballot: (voter: string, designated: string | null) =>
       designated ? `${voter} → ${designated}` : `${voter} : abstention`,
     spectating:
-      "Tu es spectateur : tu vois et entends toute la partie, mais les vivants ne te voient pas et tu ne peux plus agir ni voter.",
+      "Tu es spectateur : tu vois toute la partie, chaque rôle et chaque tour de nuit. Reste silencieux à la table, et tu ne peux plus agir ni voter.",
     shootPick: "Tu es mort : choisis le joueur que tu emportes avec toi.",
     shootPass: "Ne tirer sur personne",
     tieBreakPick: "Tu es le Maire : choisis qui est éliminé.",

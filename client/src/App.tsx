@@ -12,6 +12,8 @@ import { RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
 import { SettingsPanel } from "./SettingsPanel";
+import { sleepingScreen } from "./sleepingScreen";
+import { SleepingView } from "./SleepingView";
 import { fr } from "./strings";
 import { useLobby } from "./useLobby";
 import { useNarrator } from "./useNarrator";
@@ -243,6 +245,10 @@ function Lobby(props: {
     props.seatings,
   );
   useWakeLock(view.moment !== null);
+
+  // Asleep at Night, a phone shows only what every sleeping phone shows.
+  const asleep = sleepingScreen(view);
+  if (asleep) return <SleepingView screen={asleep} reconnecting={props.reconnecting} />;
 
   return (
     <div className="lobby">

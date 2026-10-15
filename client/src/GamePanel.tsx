@@ -27,7 +27,11 @@ type Props = {
   onPlayAgain: () => void;
 };
 
-/** The Game as this Player may see it: the Narrator's line, then what they can do. */
+/**
+ * The Game as this Player may see it: the Narrator's line, then what they can
+ * do. At Night, only the acting Role and the Spectators get here; every other
+ * phone shows the sleeping screen instead.
+ */
 export function GamePanel(props: Props) {
   const { view, moment } = props;
   const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? "?";
@@ -78,8 +82,6 @@ export function GamePanel(props: Props) {
             />
             <button onClick={props.onPass}>{fr.game.seerPass}</button>
           </>
-        ) : me?.alive ? (
-          <p className="muted">{fr.game.asleep}</p>
         ) : (
           <p className="muted">{fr.game.seerSawNothing}</p>
         ))}
@@ -102,9 +104,7 @@ export function GamePanel(props: Props) {
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="muted">{fr.game.asleep}</p>
-        ))}
+        ) : null)}
 
       {moment.type === "witchsTurn" &&
         (moment.witch ? (
@@ -137,9 +137,7 @@ export function GamePanel(props: Props) {
               </>
             )}
           </>
-        ) : (
-          <p className="muted">{fr.game.asleep}</p>
-        ))}
+        ) : null)}
 
       {moment.type === "election" && (
         <>
