@@ -478,8 +478,23 @@ fn each_potion_works_once_per_game() {
             poison: false,
         })
     );
-    // A poison refused for having been used is covered with Hidden Roles on,
-    // since with it off her Turn ends once she has no potion left.
+}
+
+#[test]
+fn a_used_poison_is_refused_while_the_healing_potion_keeps_her_turn_open() {
+    let mut table = Table::start();
+    let witch = table.witch();
+    let [victim, poisoned, later] = [table.villager(0), table.villager(1), table.villager(2)];
+    table.werewolves_kill(&victim);
+    let command = table.poison(&poisoned);
+    table.act(&witch, command);
+    table.time_runs_out();
+    table.next_night();
+    table.werewolves_kill(&later);
+
+    let command = table.poison(&later);
+
+    assert_eq!(table.refused(&witch, command), Rejection::PotionUsed);
 }
 
 #[test]

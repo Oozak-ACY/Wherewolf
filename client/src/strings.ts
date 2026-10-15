@@ -67,7 +67,7 @@ export const fr = {
     gracePeriod: "Délai de reconnexion",
     gracePeriodHint: "Un joueur déconnecté plus longtemps perd sa place dans le salon.",
     hiddenRoles: "Rôles cachés",
-    hiddenRolesOn: "Le rôle des morts reste caché aux vivants, et chaque tour de nuit dure tout son temps.",
+    hiddenRolesOn: "Le rôle des morts reste caché aux vivants : le tour de nuit d'un rôle mort dure tout son temps.",
     hiddenRolesOff: "Le rôle de chaque mort est révélé à tous.",
     seconds: "s",
     less: (role: string) => `Un ${role} de moins`,

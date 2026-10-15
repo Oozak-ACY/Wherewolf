@@ -85,7 +85,7 @@ A Setting: how long a Disconnected Player keeps their seat in the Lobby before i
 _Avoid_: Timeout, kick, AFK delay
 
 **Hidden Roles**:
-A Setting in which an eliminated Player's Role is not revealed to the living. To avoid leaking who is dead, every Night Turn then lasts its full time even when its Role is dead. With Hidden Roles off, the Turns of dead Roles are skipped, and a Turn ends as soon as its action is complete.
+A Setting in which an eliminated Player's Role is not revealed to the living. To avoid leaking who is dead, a dead Role's Night Turn then still takes place and lasts its full time; a living Role's Turn ends as soon as its action is confirmed, as with Hidden Roles off. With Hidden Roles off, the Turns of dead Roles are skipped.
 _Avoid_: Secret mode, blind mode
 
 **Turn**:

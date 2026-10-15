@@ -279,77 +279,118 @@ fn off_a_dead_witchs_turn_is_skipped() {
     assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim]));
 }
 
-#[test]
-fn off_the_seers_turn_ends_shortly_after_she_inspects() {
-    let mut table = Table::start(false);
-    let seer = table.one(Role::Seer);
-    let before = table.timer();
-    assert_eq!(before.seconds, 30);
-
-    let player = table.id(&table.villager(0));
-    table.act(&seer, Command::Inspect { player });
-
-    // Just long enough to read what she saw.
-    let after = table.timer();
-    assert_ne!(after.moment, before.moment);
-    assert_eq!(after.seconds, ANNOUNCEMENT_SECONDS);
-    assert!(matches!(
-        table.moment(&seer),
-        Moment::SeersTurn {
-            inspection: Some(_),
-            ..
-        }
-    ));
-    table.time_runs_out();
-    assert!(matches!(table.moment("P1"), Moment::WerewolvesTurn { .. }));
-}
+// In both modes, a living Role's Turn ends once its action is confirmed.
 
 #[test]
-fn off_the_werewolves_turn_ends_once_they_agree() {
-    let mut table = Table::start(false);
-    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
-    let victim = table.id(&table.villager(0));
+fn the_seers_turn_ends_shortly_after_she_inspects_in_both_modes() {
+    for hidden_roles in [false, true] {
+        let mut table = Table::start(hidden_roles);
+        let seer = table.one(Role::Seer);
+        let before = table.timer();
+        assert_eq!(before.seconds, 30);
 
-    for werewolf in table.with_role(Role::Werewolf) {
-        table.act(&werewolf, Command::PickVictim { victim });
+        let player = table.id(&table.villager(0));
+        table.act(&seer, Command::Inspect { player });
+
+        // Just long enough to read what she saw.
+        let after = table.timer();
+        assert_ne!(after.moment, before.moment, "hidden_roles: {hidden_roles}");
+        assert_eq!(after.seconds, ANNOUNCEMENT_SECONDS);
+        assert!(matches!(
+            table.moment(&seer),
+            Moment::SeersTurn {
+                inspection: Some(_),
+                ..
+            }
+        ));
+        table.time_runs_out();
+        assert!(matches!(table.moment("P1"), Moment::WerewolvesTurn { .. }));
     }
-
-    assert!(matches!(table.moment("P1"), Moment::WitchsTurn { .. }));
 }
 
 #[test]
-fn off_the_witchs_turn_ends_once_she_has_no_potion_left_to_use() {
-    let mut table = Table::start(false);
-    let witch = table.one(Role::Witch);
-    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
-    table.werewolves_pick(&table.villager(0));
+fn the_werewolves_turn_ends_once_they_agree_in_both_modes() {
+    for hidden_roles in [false, true] {
+        let mut table = Table::start(hidden_roles);
+        table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+        let victim = table.id(&table.villager(0));
 
-    table.act(&witch, Command::Heal);
-    assert!(matches!(table.moment("P1"), Moment::WitchsTurn { .. }));
-    let poisoned = table.villager(1);
-    let player = table.id(&poisoned);
-    table.act(&witch, Command::Poison { player });
+        for werewolf in table.with_role(Role::Werewolf) {
+            table.act(&werewolf, Command::PickVictim { victim });
+        }
 
-    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[player]));
+        let witch = table.one(Role::Witch);
+        assert!(
+            matches!(
+                table.moment(&witch),
+                Moment::WitchsTurn { witch: Some(sight) } if sight.victim == Some(victim)
+            ),
+            "hidden_roles: {hidden_roles}"
+        );
+    }
 }
 
 #[test]
-fn off_the_witchs_turn_is_skipped_once_her_potions_are_spent() {
-    let mut table = Table::start(false);
-    let witch = table.one(Role::Witch);
-    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
-    table.werewolves_pick(&table.villager(0));
-    table.act(&witch, Command::Heal);
-    let player = table.id(&table.villager(1));
-    table.act(&witch, Command::Poison { player });
-    table.next_night(&table.villager(2));
-    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+fn the_witchs_turn_ends_once_she_has_no_potion_left_to_use_in_both_modes() {
+    for hidden_roles in [false, true] {
+        let mut table = Table::start(hidden_roles);
+        let witch = table.one(Role::Witch);
+        table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+        table.werewolves_pick(&table.villager(0));
 
-    let victim = table.villager(2);
-    table.werewolves_pick(&victim);
+        table.act(&witch, Command::Heal);
+        assert!(matches!(table.moment("P1"), Moment::WitchsTurn { .. }));
+        let player = table.id(&table.villager(1));
+        table.act(&witch, Command::Poison { player });
 
-    let victim = table.id(&victim);
-    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim]));
+        assert!(
+            matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[player]),
+            "hidden_roles: {hidden_roles}"
+        );
+    }
+}
+
+#[test]
+fn a_living_witch_with_her_potions_spent_takes_no_time_in_both_modes() {
+    for hidden_roles in [false, true] {
+        let mut table = Table::start(hidden_roles);
+        let witch = table.one(Role::Witch);
+        table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+        table.werewolves_pick(&table.villager(0));
+        table.act(&witch, Command::Heal);
+        let player = table.id(&table.villager(1));
+        table.act(&witch, Command::Poison { player });
+        table.next_night(&table.villager(2));
+        table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+        let victim = table.villager(2);
+
+        table.werewolves_pick(&victim);
+
+        let victim = table.id(&victim);
+        assert!(
+            matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim]),
+            "hidden_roles: {hidden_roles}"
+        );
+    }
+}
+
+#[test]
+fn the_witch_passing_ends_her_turn_and_the_victim_dies_in_both_modes() {
+    for hidden_roles in [false, true] {
+        let mut table = Table::start(hidden_roles);
+        let witch = table.one(Role::Witch);
+        table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+        let victim = table.villager(0);
+        table.werewolves_pick(&victim);
+
+        table.act(&witch, Command::Pass);
+
+        let victim = table.id(&victim);
+        assert!(
+            matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim]),
+            "hidden_roles: {hidden_roles}"
+        );
+    }
 }
 
 // Hidden Roles on.
@@ -452,7 +493,6 @@ fn on_a_dead_witchs_turn_still_runs_its_full_time() {
     let victim = table.villager(1);
     let victim_id = table.id(&victim);
     table.werewolves_pick(&victim);
-    table.time_runs_out();
 
     assert!(matches!(table.moment("P1"), Moment::WitchsTurn { .. }));
     assert_eq!(table.timer().seconds, 30);
@@ -461,60 +501,7 @@ fn on_a_dead_witchs_turn_still_runs_its_full_time() {
 }
 
 #[test]
-fn on_the_seers_turn_runs_its_full_time_after_she_inspects() {
-    let mut table = Table::start(true);
-    let seer = table.one(Role::Seer);
-    let before = table.timer();
-
-    let player = table.id(&table.villager(0));
-    table.act(&seer, Command::Inspect { player });
-
-    assert_eq!(table.timer(), before);
-}
-
-#[test]
-fn on_the_werewolves_turn_runs_its_full_time_after_they_agree() {
-    let mut table = Table::start(true);
-    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
-    let before = table.timer();
-    let victim = table.id(&table.villager(0));
-
-    for werewolf in table.with_role(Role::Werewolf) {
-        table.act(&werewolf, Command::PickVictim { victim });
-    }
-
-    assert!(matches!(table.moment("P1"), Moment::WerewolvesTurn { .. }));
-    assert_eq!(table.timer(), before);
-    table.time_runs_out();
-    let witch = table.one(Role::Witch);
-    assert!(matches!(
-        table.moment(&witch),
-        Moment::WitchsTurn { witch: Some(sight) } if sight.victim == Some(victim)
-    ));
-}
-
-#[test]
-fn on_the_witchs_turn_runs_its_full_time_after_she_spends_her_potions() {
-    let mut table = Table::start(true);
-    let witch = table.one(Role::Witch);
-    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
-    let victim = table.id(&table.villager(0));
-    for werewolf in table.with_role(Role::Werewolf) {
-        table.act(&werewolf, Command::PickVictim { victim });
-    }
-    table.time_runs_out();
-    let before = table.timer();
-
-    table.act(&witch, Command::Heal);
-    let player = table.id(&table.villager(1));
-    table.act(&witch, Command::Poison { player });
-
-    assert!(matches!(table.moment("P1"), Moment::WitchsTurn { .. }));
-    assert_eq!(table.timer(), before);
-}
-
-#[test]
-fn on_a_witch_with_no_potion_left_still_has_her_turn() {
+fn on_a_dead_witch_with_no_potion_left_still_runs_her_full_time() {
     let mut table = Table::start(true);
     let witch = table.one(Role::Witch);
     table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
@@ -523,63 +510,22 @@ fn on_a_witch_with_no_potion_left_still_has_her_turn() {
     table.act(&witch, Command::Heal);
     let player = table.id(&table.villager(1));
     table.act(&witch, Command::Poison { player });
-    table.next_night(&table.villager(2));
-
+    table.next_night(&table.villager(0));
+    table.kill_overnight(&witch);
+    // A Day where nobody is voted out, to the next Night.
     table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
-    table.werewolves_pick(&table.villager(2));
-    table.time_runs_out();
+    let victim = table.villager(2);
+    let victim_id = table.id(&victim);
+
+    table.werewolves_pick(&victim);
 
     assert!(matches!(table.moment("P1"), Moment::WitchsTurn { .. }));
     assert_eq!(table.timer().seconds, 30);
-    let player = table.id(&table.villager(0));
-    for command in [Command::Heal, Command::Poison { player }] {
-        assert_eq!(
-            table.engine.handle(&seat(&witch), command),
-            Err(Rejection::PotionUsed)
-        );
-    }
+    table.time_runs_out();
+    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim_id]));
 }
 
 // The Witch passing.
-
-#[test]
-fn off_the_witch_passing_ends_her_turn_and_the_victim_dies() {
-    let mut table = Table::start(false);
-    let witch = table.one(Role::Witch);
-    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
-    let victim = table.villager(0);
-    table.werewolves_pick(&victim);
-
-    table.act(&witch, Command::Pass);
-
-    let victim = table.id(&victim);
-    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim]));
-}
-
-#[test]
-fn on_the_witch_passing_ends_nothing_but_her_choices() {
-    let mut table = Table::start(true);
-    let witch = table.one(Role::Witch);
-    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
-    table.werewolves_pick(&table.villager(0));
-    table.time_runs_out();
-    let before = table.timer();
-
-    table.act(&witch, Command::Pass);
-
-    assert_eq!(table.timer(), before);
-    assert!(matches!(
-        table.moment(&witch),
-        Moment::WitchsTurn { witch: Some(sight) } if sight.passed
-    ));
-    let player = table.id(&table.villager(1));
-    for command in [Command::Heal, Command::Poison { player }, Command::Pass] {
-        assert_eq!(
-            table.engine.handle(&seat(&witch), command),
-            Err(Rejection::NotNow)
-        );
-    }
-}
 
 #[test]
 fn during_the_witchs_turn_only_the_witch_passes() {

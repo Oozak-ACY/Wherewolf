@@ -165,51 +165,18 @@ impl Table {
 // The Seer.
 
 #[test]
-fn off_the_seer_passing_ends_her_turn_at_once() {
-    let mut table = Table::start(false);
-    let seer = table.one(Role::Seer);
+fn the_seer_passing_ends_her_turn_at_once_in_both_modes() {
+    for hidden_roles in [false, true] {
+        let mut table = Table::start(hidden_roles);
+        let seer = table.one(Role::Seer);
 
-    table.act(&seer, Command::Pass);
+        table.act(&seer, Command::Pass);
 
-    assert!(matches!(table.moment("P1"), Moment::WerewolvesTurn { .. }));
-}
-
-#[test]
-fn on_the_seer_passing_keeps_her_turn_running_but_ends_her_choices() {
-    let mut table = Table::start(true);
-    let seer = table.one(Role::Seer);
-    let before = table.timer();
-
-    table.act(&seer, Command::Pass);
-
-    assert_eq!(table.timer(), before);
-    assert!(matches!(
-        table.moment(&seer),
-        Moment::SeersTurn {
-            inspection: None,
-            passed: true
-        }
-    ));
-    let player = table.id(&table.villager(0));
-    for command in [Command::Inspect { player }, Command::Pass] {
-        assert_eq!(table.refused(&seer, command), Rejection::NotNow);
+        assert!(
+            matches!(table.moment("P1"), Moment::WerewolvesTurn { .. }),
+            "hidden_roles: {hidden_roles}"
+        );
     }
-    table.time_runs_out();
-    assert!(matches!(table.moment("P1"), Moment::WerewolvesTurn { .. }));
-}
-
-#[test]
-fn only_the_seer_sees_that_she_passed() {
-    let mut table = Table::start(true);
-    let seer = table.one(Role::Seer);
-
-    table.act(&seer, Command::Pass);
-
-    let villager = table.villager(0);
-    assert!(matches!(
-        table.moment(&villager),
-        Moment::SeersTurn { passed: false, .. }
-    ));
 }
 
 // The Werewolves.
@@ -230,15 +197,17 @@ impl Table {
 }
 
 #[test]
-fn off_every_werewolf_passing_ends_their_turn_with_no_victim() {
-    let mut table = Table::start(false);
-    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
-    let (first, second) = table.werewolves();
+fn every_werewolf_passing_ends_their_turn_with_no_victim_in_both_modes() {
+    for hidden_roles in [false, true] {
+        let mut table = Table::start(hidden_roles);
+        table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+        let (first, second) = table.werewolves();
 
-    table.act(&first, Command::Pass);
-    table.act(&second, Command::Pass);
+        table.act(&first, Command::Pass);
+        table.act(&second, Command::Pass);
 
-    assert_eq!(table.witch_told(), None);
+        assert_eq!(table.witch_told(), None, "hidden_roles: {hidden_roles}");
+    }
 }
 
 #[test]
@@ -290,21 +259,6 @@ fn when_time_runs_out_a_pass_counts_as_a_pick_for_nobody_in_both_modes() {
         // One for nobody, one for the villager: a tie, so no Victim.
         assert_eq!(table.witch_told(), None, "hidden_roles: {hidden_roles}");
     }
-}
-
-#[test]
-fn on_every_werewolf_passing_keeps_their_turn_running_to_no_victim() {
-    let mut table = Table::start(true);
-    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
-    let (first, second) = table.werewolves();
-    let before = table.timer();
-
-    table.act(&first, Command::Pass);
-    table.act(&second, Command::Pass);
-
-    assert_eq!(table.timer(), before);
-    table.time_runs_out();
-    assert_eq!(table.witch_told(), None);
 }
 
 #[test]
