@@ -142,6 +142,8 @@ pub enum Rejection {
     Yourself,
     /// The Mayor must choose among the Players tied by the Vote.
     NotTied,
+    /// The Game is Paused until the Host reclaims their seat.
+    Paused,
 }
 
 /// Where the engine draws its chance from (dealing the Roles, and drawing
@@ -392,6 +394,10 @@ pub struct PlayerView {
     /// Whether this Player may end the Day's debate now: the Mayor, or the
     /// Host (even dead) while no Mayor is elected, during the debate.
     pub may_end_debate: bool,
+    /// Whether the Game is Paused: the Host is Disconnected during a Game
+    /// not yet won. No timer runs and every Game action is refused until
+    /// they reclaim their seat.
+    pub paused: bool,
 }
 
 impl PlayerView {
@@ -586,6 +592,7 @@ pub struct Outputs {
     views: Vec<(SeatToken, PlayerView)>,
     timer: Option<Timer>,
     grace_periods: Vec<GracePeriod>,
+    paused: bool,
 }
 
 impl Outputs {
@@ -594,9 +601,16 @@ impl Outputs {
         &self.grace_periods
     }
 
-    /// The current moment's timer, if it has one. Unchanged until the moment ends.
+    /// The current moment's timer, if it has one. Unchanged until the moment
+    /// ends. `None` while the Game is Paused; on resume, the same timer again.
     pub fn timer(&self) -> Option<Timer> {
         self.timer
+    }
+
+    /// Whether the Game is Paused: the server keeps the time left on the
+    /// current moment's timer until it is reported again.
+    pub fn paused(&self) -> bool {
+        self.paused
     }
 
     /// The fresh view for the Player holding this seat, if they are seated.
@@ -950,6 +964,15 @@ impl Engine {
     }
 
     pub fn handle(&mut self, seat: &SeatToken, command: Command) -> Result<Outputs, Rejection> {
+        let comes_and_goes = matches!(
+            command,
+            Command::Join { .. } | Command::Leave | Command::Disconnect
+        );
+        if self.paused() && !comes_and_goes {
+            // Someone without a seat is told so first.
+            self.seat_of(seat)?;
+            return Err(Rejection::Paused);
+        }
         match command {
             Command::Join { name } => {
                 let name = name.trim().to_string();
@@ -1220,8 +1243,11 @@ impl Engine {
     }
 
     /// Called by the server when the timer armed for `moment` fires. Refused
-    /// if that moment has already ended.
+    /// if that moment has already ended, or while the Game is Paused.
     pub fn deadline_passed(&mut self, moment: MomentId) -> Result<Outputs, Rejection> {
+        if self.paused() {
+            return Err(Rejection::Paused);
+        }
         let game = self.game.as_ref().ok_or(Rejection::NotNow)?;
         if game.moment_id != moment {
             return Err(Rejection::NotNow);
@@ -1824,6 +1850,16 @@ impl Engine {
         !seat.alive && !acting && !waiting
     }
 
+    /// The Host is Disconnected during a Game not yet won: the table has no
+    /// Narrator voice.
+    fn paused(&self) -> bool {
+        let host_away = self
+            .seats
+            .first()
+            .is_some_and(|h| h.disconnection.is_some());
+        host_away && self.game.as_ref().is_some_and(|g| !g.is_over())
+    }
+
     fn game_mut(&mut self) -> &mut Game {
         self.game.as_mut().expect("the Game is running")
     }
@@ -1961,9 +1997,11 @@ impl Engine {
                 views: Vec::new(),
                 timer: None,
                 grace_periods: Vec::new(),
+                paused: false,
             };
         };
         let living = self.living().count();
+        let paused = self.paused();
         let views = self
             .seats
             .iter()
@@ -1984,14 +2022,20 @@ impl Engine {
                     audience: self.audience_of(s),
                     sees_countdown: self.sees_countdown(s),
                     may_end_debate: self.require_debate_leader(&s.token).is_ok(),
+                    paused,
                 };
                 (s.token.clone(), view)
             })
             .collect();
         Outputs {
             views,
-            timer: self.game.as_ref().and_then(|g| g.timer(&self.timers)),
+            timer: self
+                .game
+                .as_ref()
+                .filter(|_| !paused)
+                .and_then(|g| g.timer(&self.timers)),
             grace_periods: self.grace_periods(),
+            paused,
         }
     }
 

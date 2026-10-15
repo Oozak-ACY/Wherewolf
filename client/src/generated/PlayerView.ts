@@ -62,4 +62,10 @@ seesCountdown: boolean,
  * Whether this Player may end the Day's debate now: the Mayor, or the
  * Host (even dead) while no Mayor is elected, during the debate.
  */
-mayEndDebate: boolean, };
+mayEndDebate: boolean, 
+/**
+ * Whether the Game is Paused: the Host is Disconnected during a Game
+ * not yet won. No timer runs and every Game action is refused until
+ * they reclaim their seat.
+ */
+paused: boolean, };

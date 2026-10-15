@@ -4,9 +4,10 @@ import { chooseFrenchVoice, createNarrator } from "./narrator";
 /**
  * Reads `line` aloud each time it changes, when `aloud`: only on the Table
  * device. The line stays on screen either way: other phones, and a phone on
- * silent mode, only show it.
+ * silent mode, only show it. A new count of `seatings` reads the same line
+ * again: the Table device taking its seat back resumes a Paused Game.
  */
-export function useNarrator(line: string | null, aloud: boolean) {
+export function useNarrator(line: string | null, aloud: boolean, seatings: number) {
   const narrator = useRef<ReturnType<typeof createNarrator> | null>(null);
 
   useEffect(() => {
@@ -33,5 +34,5 @@ export function useNarrator(line: string | null, aloud: boolean) {
 
   useEffect(() => {
     if (line) narrator.current?.say(line);
-  }, [line]);
+  }, [line, seatings]);
 }

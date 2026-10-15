@@ -27,6 +27,9 @@ export function useLobby(code: string) {
   const [endsAt, setEndsAt] = useState<number | null>(null);
   const [rejection, setRejection] = useState<Rejection | null>(null);
   const [ticket, setTicket] = useState<CallTicket | null>(null);
+  // How many times this browser has taken its seat (again): each new socket's
+  // first view. Mid-Game, the Host taking their seat back resumes a Paused Game.
+  const [seatings, setSeatings] = useState(0);
 
   const socket = useRef<WebSocket | null>(null);
   const name = useRef("");
@@ -44,6 +47,7 @@ export function useLobby(code: string) {
   const connect = useCallback(() => {
     const ws = openLobbySocket(code);
     socket.current = ws;
+    let seatedHere = false;
     ws.onopen = () => sendJoin(ws);
     ws.onmessage = (event) => {
       const message = parse(event.data);
@@ -53,6 +57,10 @@ export function useLobby(code: string) {
           rememberSeatedLobby(code);
           attempt.current = 0;
           setView(message.view);
+          if (!seatedHere) {
+            seatedHere = true;
+            setSeatings((n) => n + 1);
+          }
           setEndsAt(message.endsInMs === null ? null : Date.now() + message.endsInMs);
           setRejection(null);
           setStatus("joined");
@@ -199,6 +207,7 @@ export function useLobby(code: string) {
     status,
     view,
     endsAt,
+    seatings,
     rejection,
     ticket,
     refreshTicket,

@@ -39,7 +39,8 @@ export function GamePanel(props: Props) {
       <p className="narrator" aria-live="polite">
         {narratorLine(moment, view.players, view.settings)}
       </p>
-      {props.endsAt !== null && <Countdown endsAt={props.endsAt} />}
+      {view.paused && <p className="banner">{fr.game.paused(name(view.host))}</p>}
+      {props.endsAt !== null && <Countdown endsAt={props.endsAt} paused={view.paused} />}
       {view.spectating && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}
 
       {moment.type === "roleReveal" && (
@@ -338,13 +339,15 @@ function ChoiceList(props: {
   );
 }
 
-/** Time left until `endsAt`, as m:ss. */
-function Countdown({ endsAt }: { endsAt: number }) {
+/** Time left until `endsAt`, as m:ss. Still while the Game is Paused. */
+function Countdown({ endsAt, paused }: { endsAt: number; paused: boolean }) {
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
+    setNow(Date.now());
+    if (paused) return;
     const tick = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(tick);
-  }, []);
+  }, [endsAt, paused]);
   const seconds = Math.max(0, Math.ceil((endsAt - now) / 1000));
   const text = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   return (

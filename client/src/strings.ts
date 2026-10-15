@@ -146,6 +146,8 @@ export const fr = {
     everyRole: "Les rôles de chacun",
     playAgain: "Rejouer",
     waitingForHostToPlayAgain: "L'hôte peut relancer une partie.",
+    paused: (host: string) =>
+      `Partie en pause : le téléphone de ${host}, qui porte la voix du Narrateur, s'est déconnecté. Elle reprendra où elle s'est arrêtée.`,
   },
 
   // What the Narrator announces at each moment, shown in the banner and read aloud
@@ -259,5 +261,6 @@ export const fr = {
     notInPlay: "Ce joueur n'est plus en jeu.",
     yourself: "Tu ne peux pas te choisir toi-même.",
     notTied: "Choisis parmi les joueurs à égalité.",
+    paused: "La partie est en pause jusqu'au retour de l'hôte.",
   } satisfies Record<Rejection, string>,
 };

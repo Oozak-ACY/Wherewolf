@@ -218,7 +218,12 @@ fn reopening_the_link_mid_game_restores_the_seat_role_and_current_moment() {
 #[test]
 fn a_player_eliminated_while_away_comes_back_as_a_spectator() {
     let mut table = Table::start();
-    let victim = table.one(Role::Villager);
+    // Not the Host: their Disconnection would pause the Game.
+    let victim = table
+        .with_role(Role::Villager)
+        .into_iter()
+        .find(|name| name != "P1")
+        .unwrap();
     table.act(&victim, Command::Disconnect);
     table.kill_on_the_first_night(&victim);
 

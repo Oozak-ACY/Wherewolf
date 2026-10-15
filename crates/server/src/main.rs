@@ -1,8 +1,9 @@
 //! Wherewolf game server. Holds every Lobby in memory and relays: each
 //! Player's messages go to the Narrator engine, and each Player gets back the
 //! view the engine produced for them. No game rule lives here. It also runs
-//! the timer of each moment of a Game and each Disconnected Player's Grace
-//! period, and lets each seated Player into the Lobby's video call.
+//! the timer of each moment of a Game (held while the Game is Paused) and
+//! each Disconnected Player's Grace period, and lets each seated Player into
+//! the Lobby's video call.
 
 mod call;
 mod media;
@@ -55,6 +56,8 @@ struct Lobby {
     connections: HashMap<SeatToken, Connection>,
     /// The timer of the Game's current moment, if it has one.
     timer: Option<ArmedTimer>,
+    /// While the Game is Paused: the timer that was running, held.
+    paused_timer: Option<PausedTimer>,
     /// The Grace period of each Disconnected Player, in the Lobby.
     grace_periods: HashMap<DisconnectionId, ArmedGracePeriod>,
     /// Applies who may see and hear whom to the call. `None` without video.
@@ -76,6 +79,13 @@ impl Drop for ArmedTimer {
     fn drop(&mut self) {
         self.task.abort();
     }
+}
+
+/// The timer of the moment a Game was Paused on, until the Game resumes.
+#[derive(Clone, Copy)]
+struct PausedTimer {
+    moment: MomentId,
+    left: Duration,
 }
 
 /// A Disconnected Player's Grace period, counting down in the Lobby.
@@ -108,7 +118,11 @@ impl Lobby {
     /// Arms the timer of the moment the engine is now in, relays its views,
     /// and applies its visibility plan to the call.
     fn arm_and_relay(&mut self, outputs: &Outputs) {
-        self.arm(outputs.timer());
+        if outputs.paused() {
+            self.pause_timer();
+        } else {
+            self.arm(outputs.timer());
+        }
         self.arm_grace_periods(outputs);
         self.relay(outputs);
         if let Some(media) = &self.media {
@@ -116,9 +130,23 @@ impl Lobby {
         }
     }
 
+    /// The Game is Paused: cancels the running timer, keeping the time left
+    /// on it.
+    fn pause_timer(&mut self) {
+        if let Some(timer) = self.timer.take() {
+            self.paused_timer = Some(PausedTimer {
+                moment: timer.moment,
+                left: timer.ends_at.saturating_duration_since(Instant::now()),
+            });
+        }
+    }
+
     /// Keeps the running timer while the moment is the same; otherwise replaces
     /// it with one that tells the engine when this moment's deadline passes.
+    /// Resuming the moment the Game was Paused on re-arms the time that was
+    /// left.
     fn arm(&mut self, timer: Option<Timer>) {
+        let paused = self.paused_timer.take();
         let Some(timer) = timer else {
             self.timer = None;
             return;
@@ -130,7 +158,10 @@ impl Lobby {
         {
             return;
         }
-        let duration = Duration::from_secs(timer.seconds.into());
+        let duration = match paused {
+            Some(paused) if paused.moment == timer.moment => paused.left,
+            _ => Duration::from_secs(timer.seconds.into()),
+        };
         let lobby = self.me.clone();
         let task = tokio::spawn(async move {
             tokio::time::sleep(duration).await;
@@ -226,10 +257,13 @@ impl Lobby {
     }
 
     fn relay(&self, outputs: &Outputs) {
-        let ends_in_ms = self.timer.as_ref().map(|t| {
-            let left = t.ends_at.saturating_duration_since(Instant::now());
-            u32::try_from(left.as_millis()).unwrap_or(u32::MAX)
-        });
+        // While Paused, the time that was left when the Game was Paused.
+        let left = match (&self.timer, self.paused_timer) {
+            (Some(t), _) => Some(t.ends_at.saturating_duration_since(Instant::now())),
+            (None, Some(paused)) => Some(paused.left),
+            (None, None) => None,
+        };
+        let ends_in_ms = left.map(|left| u32::try_from(left.as_millis()).unwrap_or(u32::MAX));
         for (seat, view) in outputs.views() {
             if let Some(connection) = self.connections.get(seat) {
                 let _ = connection.outbox.send(ServerMessage::View {
@@ -328,6 +362,7 @@ async fn create_lobby(State(state): State<AppState>) -> Json<CreatedLobby> {
             call_room,
             connections: HashMap::new(),
             timer: None,
+            paused_timer: None,
             grace_periods: HashMap::new(),
             media,
             me: me.clone(),

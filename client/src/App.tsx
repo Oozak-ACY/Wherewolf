@@ -115,6 +115,7 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
       <Lobby
         view={lobby.view}
         endsAt={lobby.endsAt}
+        seatings={lobby.seatings}
         reconnecting={lobby.status === "reconnecting"}
         rejection={lobby.rejection}
         onSettingsChange={lobby.updateSettings}
@@ -191,6 +192,7 @@ function JoinForm(props: {
 function Lobby(props: {
   view: PlayerView;
   endsAt: number | null;
+  seatings: number;
   reconnecting: boolean;
   rejection: Rejection | null;
   onSettingsChange: (settings: Settings) => void;
@@ -233,7 +235,13 @@ function Lobby(props: {
 
   const share = () => navigator.share({ title: fr.lobby.shareTitle, url }).catch(() => {});
 
-  useNarrator(view.moment && narratorLine(view.moment, view.players, view.settings), speaksAloud(view));
+  // Silent while this phone has lost the server: for the Table device, the
+  // Game is Paused, and it repeats the current line once it is back.
+  useNarrator(
+    view.moment && narratorLine(view.moment, view.players, view.settings),
+    speaksAloud(view) && !props.reconnecting,
+    props.seatings,
+  );
   useWakeLock(view.moment !== null);
 
   return (
