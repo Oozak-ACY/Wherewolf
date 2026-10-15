@@ -1,14 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Cue } from "./narratorScript";
-import { createNarratorVoice, LINE_GAP_MS, LIVE_LINE_PATIENCE_MS } from "./narratorVoice";
+import { createNarratorVoice, LINE_GAP_MS, LIVE_LINE_PATIENCE_MS, SOUND_LEAD_MS } from "./narratorVoice";
 
 /**
  * Audio that records what it was asked to play, each line lasting until the
  * test ends it (or until it is stopped). Live lines load until the test
  * says whether they arrived.
  */
-function fakeAudio(mp3s: string[]) {
+function fakeAudio(mp3s: string[], sounds = true) {
   const log: string[] = [];
+  // Whether the background dips under the voice, each time it changes.
+  const ducking: boolean[] = [];
   const loading = new Map<string, (arrived: boolean) => void>();
   const arrived = new Set<string>();
   let ending: (() => void) | null = null;
@@ -20,6 +22,7 @@ function fakeAudio(mp3s: string[]) {
   };
   return {
     log,
+    ducking,
     /** Ends the line playing, and lets the voice move on. */
     async end() {
       ending?.();
@@ -50,6 +53,12 @@ function fakeAudio(mp3s: string[]) {
         ending?.();
         ending = null;
       },
+      playSound: (sound: string) => {
+        if (sounds) log.push(`sound:${sound}`);
+        return sounds;
+      },
+      setBackground: (phase: string | null) => log.push(`background:${phase}`),
+      duck: (on: boolean) => ducking.push(on),
     },
   };
 }
@@ -177,16 +186,6 @@ describe("the Narrator's voice on the Table device", () => {
     expect(audio.log).toEqual(["stop", `load:${deaths.text}`, "mp3:dawn", "stop", "mp3:discussion"]);
   });
 
-  test("sounds and backgrounds never hold up the voice", async () => {
-    const audio = fakeAudio(["nightfall"]);
-    const voice = createNarratorVoice(audio.deps);
-
-    voice.play([{ type: "background", phase: "night" }, nightfall, { type: "sound", sound: "howl" }, seersTurn]);
-    await audio.next();
-
-    expect(audio.log).toEqual(["stop", "mp3:nightfall", "speech:La Voyante se réveille."]);
-  });
-
   test("a new Moment's cues cut the previous ones", async () => {
     const audio = fakeAudio(["nightfall", "seersTurn", "dawn"]);
     const voice = createNarratorVoice(audio.deps);
@@ -210,18 +209,6 @@ describe("the Narrator's voice on the Table device", () => {
 
     await vi.advanceTimersByTimeAsync(1);
     expect(audio.log).toEqual(["stop", "mp3:nightfall", "mp3:seersTurn"]);
-  });
-
-  test("sounds and backgrounds add no silence of their own", async () => {
-    const audio = fakeAudio(["nightfall", "seersTurn"]);
-    const voice = createNarratorVoice(audio.deps);
-
-    voice.play([{ type: "background", phase: "night" }, { type: "sound", sound: "howl" }, nightfall]);
-    expect(audio.log).toEqual(["stop", "mp3:nightfall"]);
-
-    voice.play([nightfall, { type: "sound", sound: "howl" }, seersTurn]);
-    await audio.next();
-    expect(audio.log.at(-1)).toBe("mp3:seersTurn");
   });
 
   test("says the Moment is announced as soon as its last line ends", async () => {
@@ -271,5 +258,133 @@ describe("the Narrator's voice on the Table device", () => {
     await audio.end();
 
     expect(audio.log).toEqual(["stop", "mp3:nightfall", "stop"]);
+  });
+});
+
+const night: Cue = { type: "background", phase: "night" };
+const howl: Cue = { type: "sound", sound: "howl" };
+const sword: Cue = { type: "sound", sound: "sword" };
+
+describe("the ambiance under the Narrator", () => {
+  test("a background changes at once, in its place among the cues", async () => {
+    const audio = fakeAudio(["nightfall", "seersTurn"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([nightfall, { type: "background", phase: "day" }, seersTurn]);
+    expect(audio.log).toEqual(["stop", "mp3:nightfall"]);
+
+    await audio.next();
+    expect(audio.log).toEqual(["stop", "mp3:nightfall", "background:day", "mp3:seersTurn"]);
+  });
+
+  test("a background cut before its turn still changes, so the Phase never keeps the wrong one", async () => {
+    const audio = fakeAudio(["witchSleeps", "dawn", "discussion"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([{ type: "fixed", key: "witchSleeps", text: "…" }, { type: "background", phase: "day" }, dawn]);
+    voice.play([{ type: "fixed", key: "discussion", text: "Débattez." }]);
+
+    expect(audio.log).toEqual(["stop", "mp3:witchSleeps", "background:day", "stop", "mp3:discussion"]);
+  });
+
+  test("a sound plays after the silence that follows a line, and its line starts over the sound's tail", async () => {
+    const audio = fakeAudio(["nightfall", "seersTurn"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([night, nightfall, howl, seersTurn]);
+    await audio.next();
+    expect(audio.log).toEqual(["stop", "background:night", "mp3:nightfall", "sound:howl"]);
+
+    await vi.advanceTimersByTimeAsync(SOUND_LEAD_MS.howl - 1);
+    expect(audio.log.at(-1)).toBe("sound:howl");
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(audio.log.at(-1)).toBe("mp3:seersTurn");
+  });
+
+  test("a sound first in its cues plays at once", () => {
+    const audio = fakeAudio(["seersTurn"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([howl, seersTurn]);
+
+    expect(audio.log).toEqual(["stop", "sound:howl"]);
+  });
+
+  test("a sound not loaded yet holds nothing up", () => {
+    const audio = fakeAudio(["seersTurn"], false);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([howl, seersTurn]);
+
+    expect(audio.log).toEqual(["stop", "mp3:seersTurn"]);
+  });
+
+  test("a new Moment's cues interrupt a sound's lead: the line after it is never said", async () => {
+    const audio = fakeAudio(["seersTurn", "dawn"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([howl, seersTurn]);
+    voice.play([dawn]);
+    await vi.advanceTimersByTimeAsync(SOUND_LEAD_MS.howl);
+
+    expect(audio.log).toEqual(["stop", "sound:howl", "stop", "mp3:dawn"]);
+  });
+
+  test("a new Moment's cues drop the previous ones' sounds still to come", async () => {
+    const audio = fakeAudio(["nightfall", "dawn"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([nightfall, sword, deaths]);
+    voice.play([dawn]);
+    await audio.next();
+    await vi.advanceTimersByTimeAsync(LIVE_LINE_PATIENCE_MS);
+
+    expect(audio.log).not.toContain("sound:sword");
+  });
+
+  test("the background dips from the first line to the last, silences between them included", async () => {
+    const audio = fakeAudio(["nightfall", "seersTurn"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([night, nightfall, seersTurn]);
+    expect(audio.ducking).toEqual([true]);
+
+    await audio.next();
+    expect(audio.ducking).toEqual([true, true]);
+
+    await audio.end();
+    expect(audio.ducking).toEqual([true, true, false]);
+  });
+
+  test("the background stays up under a sound until its line starts", async () => {
+    const audio = fakeAudio(["seersTurn"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([howl, seersTurn]);
+    expect(audio.ducking).toEqual([]);
+
+    await vi.advanceTimersByTimeAsync(SOUND_LEAD_MS.howl);
+    expect(audio.ducking).toEqual([true]);
+  });
+
+  test("the background comes back up when the Narrator is stopped", () => {
+    const audio = fakeAudio(["nightfall"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([nightfall]);
+    voice.stop();
+
+    expect(audio.ducking.at(-1)).toBe(false);
+  });
+
+  test("cues with no line leave the background up", async () => {
+    const audio = fakeAudio([]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([night]);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(audio.ducking).toEqual([false]);
   });
 });

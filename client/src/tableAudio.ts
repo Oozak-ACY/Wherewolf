@@ -1,17 +1,29 @@
-// The Table device's audio: Web Audio for the Narrator's MP3s and the live
-// lines the server voices (iOS ignores an `<audio>` element's volume), browser
-// speech for everything else.
+// The Table device's audio: Web Audio for the Narrator's MP3s, the live lines
+// the server voices (iOS ignores an `<audio>` element's volume) and the
+// ambiance, all in one mix; browser speech for everything else.
 
+import { AMBIANCE_FILES, createMixer, type AmbianceFile, type Mixer } from "./mixer";
 import { chooseFrenchVoice, unlockSpeech } from "./narrator";
 import { isRecorded, recordedLines } from "./narratorRecordings";
-import type { FixedLine } from "./narratorScript";
+import type { FixedLine, Phase } from "./narratorScript";
 import type { NarratorVoiceDeps } from "./narratorVoice";
 import { fetchLiveLine } from "./server";
 import { fr } from "./strings";
 
 let context: AudioContext | null = null;
+let mixer: Mixer | null = null;
 const mp3s = new Map<FixedLine, AudioBuffer>();
+const ambiance = new Map<AmbianceFile, AudioBuffer>();
 let mp3Playing: AudioBufferSourceNode | null = null;
+// The Phase whose background should be playing, for layers that load late.
+let background: Phase | null = null;
+
+/** The AudioContext, and the mix built on it. */
+function audioContext(): AudioContext {
+  context ??= new AudioContext();
+  mixer ??= createMixer(context, (file) => ambiance.get(file));
+  return context;
+}
 
 /**
  * Must run synchronously inside a tap, like the Host's on Start: iOS only lets
@@ -23,25 +35,40 @@ export function unlockTableAudio(): void {
   // On iOS, Web Audio otherwise follows the silent switch, while speech does not.
   const session = (navigator as { audioSession?: { type: string } }).audioSession;
   if (session) session.type = "playback";
-  context ??= new AudioContext();
-  void context.resume();
+  const audio = audioContext();
+  void audio.resume();
   // Older iOS only unlocks once something actually played.
-  const silence = context.createBufferSource();
-  silence.buffer = context.createBuffer(1, 1, 22050);
-  silence.connect(context.destination);
+  const silence = audio.createBufferSource();
+  silence.buffer = audio.createBuffer(1, 1, 22050);
+  silence.connect(audio.destination);
   silence.start();
 }
 
-/** Loads every fixed line's MP3 that says its current text. Missing ones are spoken instead. */
-export function preloadNarratorLines(): void {
+/**
+ * Loads every fixed line's MP3 that says its current text, and the ambiance.
+ * Missing lines are spoken instead; missing sounds are skipped.
+ */
+export function preloadTableAudio(): void {
   if (!("AudioContext" in window)) return;
-  const audio = (context ??= new AudioContext());
+  const audio = audioContext();
+  const load = (path: string) =>
+    fetch(`${import.meta.env.BASE_URL}${path}`)
+      .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(response.status)))
+      .then((data) => audio.decodeAudioData(data));
   for (const [key, text] of Object.entries(fr.narrator.fixed) as [FixedLine, string][]) {
     if (mp3s.has(key) || !isRecorded(key, text, recordedLines)) continue;
-    fetch(`${import.meta.env.BASE_URL}narrator/${key}.mp3`)
-      .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(response.status)))
-      .then((data) => audio.decodeAudioData(data))
+    load(`narrator/${key}.mp3`)
       .then((buffer) => mp3s.set(key, buffer))
+      .catch(() => {});
+  }
+  for (const file of AMBIANCE_FILES) {
+    if (ambiance.has(file)) continue;
+    load(`ambiance/${file}.mp3`)
+      .then((buffer) => {
+        ambiance.set(file, buffer);
+        // A layer of the Phase already playing joins it.
+        mixer?.setBackground(background);
+      })
       .catch(() => {});
   }
 }
@@ -51,7 +78,7 @@ function playMp3(key: FixedLine): Promise<void> | null {
 }
 
 function play(buffer: AudioBuffer | undefined): Promise<void> | null {
-  if (!context || !buffer) return null;
+  if (!context || !mixer || !buffer) return null;
   // A suspended context, never unlocked by a tap or interrupted by a call,
   // would never end the line: speech says it instead.
   if (context.state !== "running") {
@@ -60,7 +87,7 @@ function play(buffer: AudioBuffer | undefined): Promise<void> | null {
   }
   const source = context.createBufferSource();
   source.buffer = buffer;
-  source.connect(context.destination);
+  source.connect(mixer.voice);
   mp3Playing = source;
   const ended = new Promise<void>((resolve) => source.addEventListener("ended", () => resolve()));
   source.start();
@@ -99,6 +126,13 @@ export function tableAudio(code: string): NarratorVoiceDeps {
     playMp3,
     speak,
     stop,
+    // On a suspended context, a sound would wait to play late, with the next one.
+    playSound: (sound) => context?.state === "running" && !!mixer?.playSound(sound),
+    setBackground(phase) {
+      background = phase;
+      mixer?.setBackground(phase);
+    },
+    duck: (on) => mixer?.duck(on),
     async loadLive(text) {
       const audio = context;
       if (!audio) return false;

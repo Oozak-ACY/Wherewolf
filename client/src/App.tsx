@@ -16,7 +16,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { sleepingScreen, waitingScreen } from "./sleepingScreen";
 import { SleepingView } from "./SleepingView";
 import { fr } from "./strings";
-import { preloadNarratorLines, unlockTableAudio } from "./tableAudio";
+import { preloadTableAudio, unlockTableAudio } from "./tableAudio";
 import { useLobby } from "./useLobby";
 import { useNarrator } from "./useNarrator";
 import { useWakeLock } from "./useWakeLock";
@@ -127,7 +127,7 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
           // The Host's tap: the only moment iOS lets the Table device's audio
           // unlock for the whole Game.
           unlockTableAudio();
-          preloadNarratorLines();
+          preloadTableAudio();
           lobby.start();
         }}
         onConfirmRole={lobby.confirmRole}

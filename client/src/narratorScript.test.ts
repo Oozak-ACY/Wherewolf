@@ -104,6 +104,21 @@ describe("the Night", () => {
     expect(narratorCues(view(werewolvesTurn), view(picked))).toEqual([]);
   });
 
+  test("no bottle on a potion: the Witch's choice makes no sound, during her Turn or after it", () => {
+    const woken: Moment = { type: "witchsTurn", witch: { victim: 2, healed: false, poisoned: null, passed: false } };
+    const dawn: Moment = { type: "dawn", deaths: [3] };
+    const choices: Moment[] = [
+      { type: "witchsTurn", witch: { victim: 2, healed: true, poisoned: null, passed: false } },
+      { type: "witchsTurn", witch: { victim: 2, healed: false, poisoned: 3, passed: false } },
+      { type: "witchsTurn", witch: { victim: 2, healed: false, poisoned: null, passed: true } },
+    ];
+
+    for (const choice of choices) {
+      expect(narratorCues(view(woken), view(choice))).toEqual([]);
+      expect(heard(narratorCues(view(choice), view(dawn))).filter((cue) => cue.startsWith("sound:"))).toEqual([]);
+    }
+  });
+
   test("with Hidden Roles on, a dead Role's Turn is called and ends with its sleep line", () => {
     const deadSeer = [player(1, false, "seer"), ...[2, 3, 4, 5].map((id) => player(id))];
 
@@ -292,5 +307,13 @@ describe("the victory", () => {
 describe("resuming", () => {
   test("a Moment's one-off sound marks its start, so it is not played again on resume", () => {
     expect(heard(narratorCues(null, view(witchsTurn)))).toEqual(["background:night", "witchsTurn"]);
+  });
+});
+
+describe("the end of the Game", () => {
+  test("going back to the Lobby fades the background out", () => {
+    const victory: Moment = { type: "victory", winner: "village" };
+
+    expect(narratorCues(view(victory), view(null))).toEqual([{ type: "background", phase: null }]);
   });
 });

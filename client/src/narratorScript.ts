@@ -17,8 +17,8 @@ export type Cue =
   | { type: "live"; text: string }
   /** A one-off sound. It follows a Moment, never a Player's choice. */
   | { type: "sound"; sound: Sound }
-  /** The looped background changes to the Phase's. */
-  | { type: "background"; phase: Phase };
+  /** The looped background changes to the Phase's, or fades out (`null`). */
+  | { type: "background"; phase: Phase | null };
 
 export type Sound = "howl" | "bottle" | "sword" | "gunshot";
 export type Phase = "night" | "day";
@@ -54,11 +54,13 @@ function phaseOf(type: MomentType): Phase | null {
  * `next`. `previous` is `null` when there is nothing to follow on, like
  * the Table device taking its seat back. Silent while the Game is Paused;
  * on resume, the current Moment's line is said again, without its one-off
- * sound: that marks the Moment's start.
+ * sound: that marks the Moment's start. Back in the Lobby, the background
+ * fades out.
  */
 export function narratorCues(previous: NarratorView | null, next: NarratorView): Cue[] {
   const moment = next.moment;
-  if (!moment || next.paused) return [];
+  if (!moment) return previous?.moment ? [{ type: "background", phase: null }] : [];
+  if (next.paused) return [];
   const before = (!previous?.paused && previous?.moment?.type) || null;
   // Changes within the same Moment, like the Seer's reading Moment, say nothing new.
   if (before === moment.type) return [];

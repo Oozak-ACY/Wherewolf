@@ -3,7 +3,7 @@ import type { MomentId } from "./generated/MomentId";
 import type { PlayerView } from "./generated/PlayerView";
 import { narratorCues, type NarratorView } from "./narratorScript";
 import { createNarratorVoice } from "./narratorVoice";
-import { preloadNarratorLines, tableAudio } from "./tableAudio";
+import { preloadTableAudio, tableAudio } from "./tableAudio";
 
 /**
  * Plays the Narrator's cues at each change of `view`, when `aloud`: only on
@@ -34,12 +34,14 @@ export function useNarrator(
 
   useEffect(() => {
     if (!aloud) return;
-    preloadNarratorLines();
-    voice.current = createNarratorVoice(tableAudio(code));
+    preloadTableAudio();
+    const audio = tableAudio(code);
+    voice.current = createNarratorVoice(audio);
     previous.current = null;
     return () => {
       voice.current?.stop();
       voice.current = null;
+      audio.setBackground(null);
     };
   }, [aloud, code]);
 
