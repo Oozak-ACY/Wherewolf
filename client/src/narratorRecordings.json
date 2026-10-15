@@ -1,1 +1,21 @@
-{}
+{
+  "roleReveal": "Chacun découvre son rôle en secret sur son téléphone.",
+  "nightfall": "La nuit tombe.",
+  "seersTurn": "La Voyante se réveille.",
+  "seerSleeps": "La Voyante referme les yeux sur ce qu'elle a vu.",
+  "werewolvesTurn": "Les Loups-Garous se réveillent.",
+  "werewolvesSleep": "Les Loups-Garous regagnent l'ombre et se rendorment.",
+  "witchsTurn": "La Sorcière se réveille.",
+  "witchSleeps": "La Sorcière range ses fioles et se rendort.",
+  "dawn": "Le jour se lève.",
+  "dawnNobody": "Personne n'est mort cette nuit.",
+  "discussion": "Le village débat : qui sont les Loups-Garous ?",
+  "election": "Le village élit son Maire.",
+  "tieBreak": "Le Maire choisit qui est éliminé.",
+  "vote": "Le village vote.",
+  "voteNobody": "Personne n'est éliminé.",
+  "huntersShot": "Il choisit sur qui tirer.",
+  "shotLost": "Le Chasseur n'a tiré sur personne.",
+  "villageWins": "Le Village gagne : les Loups-Garous sont morts.",
+  "werewolvesWin": "Les Loups-Garous gagnent : le village est à eux."
+}
