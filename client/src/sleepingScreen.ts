@@ -1,6 +1,6 @@
 import type { PlayerView } from "./generated/PlayerView";
 import type { Role } from "./generated/Role";
-import { narratorLine } from "./narrator";
+import { narratorText } from "./narratorScript";
 
 /**
  * Everything a sleeping phone shows. Nothing in it depends on the Player's
@@ -33,7 +33,7 @@ export function sleepingScreen(view: PlayerView): SleepingScreen | null {
   const alive = view.players.find((p) => p.id === view.you)?.alive ?? false;
   if (alive && view.role?.role === acting) return null;
   return {
-    line: narratorLine(moment, view.players, view.settings),
+    line: narratorText(view) ?? "",
     pausedBy: view.paused ? (view.players.find((p) => p.id === view.host)?.name ?? "?") : null,
   };
 }

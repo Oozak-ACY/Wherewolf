@@ -1,84 +1,10 @@
-// What the Narrator says, and its voice: the browser's speech synthesis.
+// The browser's speech synthesis, the Narrator's fallback voice, and which
+// phone speaks.
 
-import type { Moment } from "./generated/Moment";
-import type { PlayerId } from "./generated/PlayerId";
-import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
-import type { Settings } from "./generated/Settings";
-import { fr } from "./strings";
-
-/** The Settings the Narrator's lines depend on. */
-export type NarratorSettings = Pick<Settings, "roles" | "hiddenRoles">;
-
-/** What the Narrator announces at `moment`: shown in the Game panel and read aloud. */
-export function narratorLine(moment: Moment, players: PlayerSummary[], settings: NarratorSettings): string {
-  const name = (id: PlayerId) => players.find((p) => p.id === id)?.name ?? "?";
-  // `null` while Hidden Roles keeps it from this Player.
-  const roleOf = (id: PlayerId) => {
-    const role = players.find((p) => p.id === id)?.revealedRole;
-    return role ? fr.roles[role].name : null;
-  };
-  switch (moment.type) {
-    // The same line for the whole reveal: the Table device says it once.
-    case "roleReveal":
-      return fr.narrator.roleReveal;
-    case "seersTurn":
-      return `${fr.narrator.nightfall} ${fr.narrator.seersTurn}`;
-    case "werewolvesTurn":
-      return seerWakes(players, settings)
-        ? fr.narrator.werewolvesTurn
-        : `${fr.narrator.nightfall} ${fr.narrator.werewolvesTurn}`;
-    case "witchsTurn":
-      return fr.narrator.witchsTurn;
-    case "dawn":
-      return moment.deaths.length === 0
-        ? fr.narrator.dawnNobody
-        : fr.narrator.dawnDeaths(
-            moment.deaths.map((id) => fr.narrator.withRole(name(id), roleOf(id))).join(", "),
-          );
-    case "discussion":
-      return fr.narrator.discussion;
-    case "election":
-      return fr.narrator.election;
-    case "electionResult":
-      return moment.byLot ? fr.narrator.electedByLot(name(moment.mayor)) : fr.narrator.elected(name(moment.mayor));
-    case "tieBreak":
-      return fr.narrator.tieBreak(moment.tied.map(name).join(", "));
-    case "vote":
-      return fr.narrator.vote;
-    case "voteResult":
-      return moment.eliminated === null
-        ? fr.narrator.voteNobody
-        : fr.narrator.voteEliminated(name(moment.eliminated), roleOf(moment.eliminated));
-    case "huntersShot":
-      return fr.narrator.huntersShot(name(moment.hunter));
-    case "shotResult":
-      return moment.shot === null
-        ? fr.narrator.shotLost
-        : fr.narrator.shot(name(moment.shot), roleOf(moment.shot));
-    case "succession":
-      return fr.narrator.succession(name(moment.mayor));
-    case "successionResult":
-      return moment.byLot
-        ? fr.narrator.successorByLot(name(moment.successor))
-        : fr.narrator.successor(name(moment.successor));
-    case "victory":
-      return fr.narrator.victory[moment.winner];
-  }
-}
 
 /**
- * Whether the Night opens with the Seer's Turn: a Seer is in play and, unless
- * Hidden Roles keeps her Turn going after her death, nobody has seen her die.
- * Otherwise the Werewolves' Turn opens it.
- */
-function seerWakes(players: PlayerSummary[], { roles, hiddenRoles }: NarratorSettings): boolean {
-  const seerDead = players.some((p) => !p.alive && p.revealedRole === "seer");
-  return roles.seer > 0 && (hiddenRoles || !seerDead);
-}
-
-/**
- * Must run synchronously inside the "Rejoindre" tap. iOS only lets a page speak
+ * Must run synchronously inside a tap. iOS only lets a page speak
  * later, without a tap, if it already spoke once during a user gesture
  * (validated on real phones, see issue #1).
  */
@@ -133,28 +59,4 @@ export function chooseFrenchVoice(voices: SpeechSynthesisVoice[]): SpeechSynthes
  */
 export function speaksAloud({ you, host }: Pick<PlayerView, "you" | "host">): boolean {
   return you === host;
-}
-
-export type NarratorDeps = {
-  speech: Pick<SpeechSynthesis, "speak" | "cancel">;
-  utterance: (text: string) => SpeechSynthesisUtterance;
-  /** The voice to speak with, looked up at each line: voices load late. */
-  voice: () => SpeechSynthesisVoice | null;
-};
-
-/** Reads the Narrator's lines aloud, each new line cutting the previous one. */
-export function createNarrator({ speech, utterance, voice }: NarratorDeps) {
-  return {
-    say(text: string) {
-      speech.cancel();
-      const line = utterance(text);
-      line.lang = "fr-FR";
-      line.voice = voice();
-      speech.speak(line);
-    },
-    /** Silences the current line, if any. */
-    stop() {
-      speech.cancel();
-    },
-  };
 }

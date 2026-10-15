@@ -90,7 +90,7 @@ describe("a phone at Night", () => {
   test("the sleeping screen shows the Narrator's line, never a Role", () => {
     const screen = sleepingScreen(view("villager", nightTurns.werewolvesTurn("villager")));
 
-    expect(screen).toEqual({ line: fr.narrator.werewolvesTurn, pausedBy: null });
+    expect(screen).toEqual({ line: fr.narrator.fixed.werewolvesTurn, pausedBy: null });
   });
 
   test("a dead Player, now a Spectator, sees the whole Night", () => {

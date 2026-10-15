@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "generate-types": "cargo test --manifest-path ../Cargo.toml --workspace export_bindings",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate-narrator-lines": "node scripts/generate-narrator-lines.ts"
   },
   "dependencies": {
     "livekit-client": "^2.22.3",

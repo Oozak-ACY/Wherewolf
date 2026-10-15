@@ -5,7 +5,7 @@ import type { Pick } from "./generated/Pick";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
-import { narratorLine } from "./narrator";
+import { narratorText } from "./narratorScript";
 import { fr } from "./strings";
 
 type Props = {
@@ -41,7 +41,7 @@ export function GamePanel(props: Props) {
   return (
     <section className="card stack game">
       <p className="narrator" aria-live="polite">
-        {narratorLine(moment, view.players, view.settings)}
+        {narratorText(view)}
       </p>
       {view.paused && <p className="banner">{fr.game.paused(name(view.host))}</p>}
       {props.endsAt !== null && <Countdown endsAt={props.endsAt} paused={view.paused} />}

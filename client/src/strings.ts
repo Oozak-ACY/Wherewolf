@@ -153,36 +153,45 @@ export const fr = {
   // What the Narrator announces at each moment, shown in the banner and read aloud
   // on the Table device. Keep them short.
   narrator: {
-    roleReveal: "Chacun découvre son rôle en secret sur son téléphone.",
-    nightfall: "La nuit tombe.",
-    seersTurn: "La Voyante se réveille.",
-    werewolvesTurn: "Les Loups-Garous se réveillent.",
-    witchsTurn: "La Sorcière se réveille.",
-    dawnNobody: "Le jour se lève. Personne n'est mort cette nuit.",
-    dawnDeaths: (victims: string) => `Le jour se lève. Cette nuit, le village a perdu ${victims}.`,
+    // Lines without names: each one is spoken from its MP3 (see
+    // scripts/generate-narrator-lines.ts), so changing one means regenerating it.
+    fixed: {
+      roleReveal: "Chacun découvre son rôle en secret sur son téléphone.",
+      nightfall: "La nuit tombe.",
+      seersTurn: "La Voyante se réveille.",
+      // Each Role goes back to sleep with the same line whatever it did.
+      seerSleeps: "La Voyante referme les yeux sur ce qu'elle a vu.",
+      werewolvesTurn: "Les Loups-Garous se réveillent.",
+      werewolvesSleep: "Les Loups-Garous regagnent l'ombre et se rendorment.",
+      witchsTurn: "La Sorcière se réveille.",
+      witchSleeps: "La Sorcière range ses fioles et se rendort.",
+      dawn: "Le jour se lève.",
+      dawnNobody: "Personne n'est mort cette nuit.",
+      discussion: "Le village débat : qui sont les Loups-Garous ?",
+      election: "Le village élit son Maire.",
+      tieBreak: "Le Maire choisit qui est éliminé.",
+      vote: "Le village vote.",
+      voteNobody: "Personne n'est éliminé.",
+      huntersShot: "Il choisit sur qui tirer.",
+      shotLost: "Le Chasseur n'a tiré sur personne.",
+      villageWins: "Le Village gagne : les Loups-Garous sont morts.",
+      werewolvesWin: "Les Loups-Garous gagnent : le village est à eux.",
+    },
+    // Lines with names, spoken live.
+    dawnDeaths: (victims: string) => `Cette nuit, le village a perdu ${victims}.`,
     // A role is `null` while Hidden Roles keeps it secret.
     withRole: (name: string, role: string | null) => (role ? `${name} (${role})` : name),
-    discussion: "Le village débat : qui sont les Loups-Garous ?",
-    election: "Le village élit son Maire.",
     elected: (name: string) => `${name} est élu Maire.`,
     electedByLot: (name: string) => `Le sort désigne ${name} comme Maire.`,
-    tieBreak: (tied: string) => `Égalité entre ${tied} : le Maire choisit qui est éliminé.`,
-    vote: "Le village vote.",
+    tied: (tied: string) => `Égalité entre ${tied}.`,
     voteEliminated: (name: string, role: string | null) =>
       role ? `Le village a éliminé ${name}, qui était ${role}.` : `Le village a éliminé ${name}.`,
-    voteNobody: "Personne n'est éliminé.",
-    huntersShot: (hunter: string) =>
-      `${hunter}, le Chasseur, emporte quelqu'un avec lui : il choisit sur qui tirer.`,
+    hunter: (hunter: string) => `${hunter}, le Chasseur, emporte quelqu'un avec lui.`,
     shot: (name: string, role: string | null) =>
       role ? `Le Chasseur a tiré sur ${name}, qui était ${role}.` : `Le Chasseur a tiré sur ${name}.`,
-    shotLost: "Le Chasseur n'a tiré sur personne.",
     succession: (mayor: string) => `${mayor}, le Maire, désigne son successeur.`,
     successor: (name: string) => `${name} devient Maire.`,
     successorByLot: (name: string) => `Le sort désigne ${name} comme nouveau Maire.`,
-    victory: {
-      village: "Le Village gagne : les Loups-Garous sont morts.",
-      werewolves: "Les Loups-Garous gagnent : le village est à eux.",
-    } satisfies Record<Camp, string>,
   },
 
   roleCard: {

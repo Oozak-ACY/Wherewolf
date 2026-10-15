@@ -5,7 +5,7 @@ import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
 import type { Settings } from "./generated/Settings";
-import { narratorLine, speaksAloud, unlockSpeech } from "./narrator";
+import { speaksAloud, unlockSpeech } from "./narrator";
 import { PlayerGrid } from "./PlayerGrid";
 import { QrCodeView } from "./QrCodeView";
 import { RoleCardView } from "./RoleCardView";
@@ -15,6 +15,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { sleepingScreen } from "./sleepingScreen";
 import { SleepingView } from "./SleepingView";
 import { fr } from "./strings";
+import { preloadNarratorLines, unlockTableAudio } from "./tableAudio";
 import { useLobby } from "./useLobby";
 import { useNarrator } from "./useNarrator";
 import { useWakeLock } from "./useWakeLock";
@@ -121,7 +122,13 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         reconnecting={lobby.status === "reconnecting"}
         rejection={lobby.rejection}
         onSettingsChange={lobby.updateSettings}
-        onStart={lobby.start}
+        onStart={() => {
+          // The Host's tap: the only moment iOS lets the Table device's audio
+          // unlock for the whole Game.
+          unlockTableAudio();
+          preloadNarratorLines();
+          lobby.start();
+        }}
         onConfirmRole={lobby.confirmRole}
         onEndDebate={lobby.endDebate}
         onInspect={lobby.inspect}
@@ -134,7 +141,10 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         onElect={lobby.elect}
         onBreakTie={lobby.breakTie}
         onNameSuccessor={lobby.nameSuccessor}
-        onPlayAgain={lobby.playAgain}
+        onPlayAgain={() => {
+          unlockTableAudio();
+          lobby.playAgain();
+        }}
         onLeave={() => {
           lobby.leave();
           onExit();
@@ -149,7 +159,8 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
       connecting={lobby.status === "connecting"}
       error={lobby.rejection && fr.rejection[lobby.rejection]}
       onJoin={(name) => {
-        // Still inside the "Rejoindre" tap: the only moment iOS lets us unlock speech.
+        // Still inside the "Rejoindre" tap: a Host coming back mid-Game gets
+        // no Start tap, and speech is their fallback voice.
         unlockSpeech();
         lobby.join(name);
       }}
@@ -239,11 +250,7 @@ function Lobby(props: {
 
   // Silent while this phone has lost the server: for the Table device, the
   // Game is Paused, and it repeats the current line once it is back.
-  useNarrator(
-    view.moment && narratorLine(view.moment, view.players, view.settings),
-    speaksAloud(view) && !props.reconnecting,
-    props.seatings,
-  );
+  useNarrator(view, speaksAloud(view) && !props.reconnecting, props.seatings);
   useWakeLock(view.moment !== null);
 
   // Asleep at Night, a phone shows only what every sleeping phone shows.

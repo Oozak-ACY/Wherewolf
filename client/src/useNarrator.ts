@@ -1,38 +1,39 @@
 import { useEffect, useRef } from "react";
-import { chooseFrenchVoice, createNarrator } from "./narrator";
+import { narratorCues, type NarratorView } from "./narratorScript";
+import { createNarratorVoice } from "./narratorVoice";
+import { preloadNarratorLines, tableAudio } from "./tableAudio";
 
 /**
- * Reads `line` aloud each time it changes, when `aloud`: only on the Table
- * device. The line stays on screen either way: other phones, and a phone on
- * silent mode, only show it. A new count of `seatings` reads the same line
- * again: the Table device taking its seat back resumes a Paused Game.
+ * Plays the Narrator's cues at each change of `view`, when `aloud`: only on
+ * the Table device. Lines stay on screen either way. A new count of
+ * `seatings` says the current line again: the Table device taking its seat
+ * back resumes a Paused Game.
  */
-export function useNarrator(line: string | null, aloud: boolean, seatings: number) {
-  const narrator = useRef<ReturnType<typeof createNarrator> | null>(null);
+export function useNarrator(view: NarratorView, aloud: boolean, seatings: number) {
+  const voice = useRef<ReturnType<typeof createNarratorVoice> | null>(null);
+  // The view the last cues followed on, `null` when there is none to follow.
+  const previous = useRef<NarratorView | null>(null);
+  const seated = useRef(seatings);
 
   useEffect(() => {
-    if (!aloud || !("speechSynthesis" in window)) return;
-    const speech = window.speechSynthesis;
-    // Some browsers list their voices at once, others only after `voiceschanged`,
-    // and some iOS versions never fire it: look again while there is none.
-    let voice = chooseFrenchVoice(speech.getVoices());
-    const onVoices = () => {
-      voice = chooseFrenchVoice(speech.getVoices());
-    };
-    speech.addEventListener("voiceschanged", onVoices);
-    narrator.current = createNarrator({
-      speech,
-      utterance: (text) => new SpeechSynthesisUtterance(text),
-      voice: () => (voice ??= chooseFrenchVoice(speech.getVoices())),
-    });
+    if (!aloud) return;
+    preloadNarratorLines();
+    voice.current = createNarratorVoice(tableAudio);
+    previous.current = null;
     return () => {
-      speech.removeEventListener("voiceschanged", onVoices);
-      narrator.current?.stop();
-      narrator.current = null;
+      voice.current?.stop();
+      voice.current = null;
     };
   }, [aloud]);
 
   useEffect(() => {
-    if (line) narrator.current?.say(line);
-  }, [line, seatings]);
+    if (!voice.current) return;
+    if (seated.current !== seatings) {
+      seated.current = seatings;
+      previous.current = null;
+    }
+    const cues = narratorCues(previous.current, view);
+    previous.current = view;
+    if (cues.length > 0) voice.current.play(cues);
+  }, [view, aloud, seatings]);
 }
