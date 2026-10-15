@@ -69,7 +69,8 @@ pub enum ServerMessage {
     /// Everything this Player may know, sent after every change.
     View {
         view: Box<PlayerView>,
-        /// Time left in the Game's current moment when this was sent, if it is timed.
+        /// Time left in the Game's current moment when this was sent, if it is
+        /// timed and this Player may see it.
         ends_in_ms: Option<u32>,
     },
     /// Sent after each accepted Join: how to enter the Lobby's video call.

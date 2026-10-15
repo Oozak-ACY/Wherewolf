@@ -288,10 +288,13 @@ pub struct Timers {
     pub hunter: u32,
     pub mayor_successor: u32,
     pub mayor_tie_break: u32,
+    /// With Hidden Roles on, the shortest a Feigned Turn may last: it lasts
+    /// a random time from this up to the Turn's own timer.
+    pub feigned_turn_minimum: u32,
 }
 
 impl Timers {
-    fn all(&self) -> [u32; 9] {
+    fn all(&self) -> [u32; 10] {
         [
             self.discussion,
             self.election,
@@ -302,6 +305,7 @@ impl Timers {
             self.hunter,
             self.mayor_successor,
             self.mayor_tie_break,
+            self.feigned_turn_minimum,
         ]
     }
 }
@@ -318,6 +322,7 @@ impl Default for Timers {
             hunter: 30,
             mayor_successor: 30,
             mayor_tie_break: 30,
+            feigned_turn_minimum: 10,
         }
     }
 }
@@ -377,6 +382,10 @@ pub struct PlayerView {
     /// Who may see and hear this Player right now: the only ones allowed to
     /// receive their camera and microphone.
     pub audience: Vec<PlayerId>,
+    /// Whether this Player may see how long the current Moment has left.
+    /// With Hidden Roles on, during a Night Turn, only the Players acting in
+    /// it and the Spectators do: its length could give a Feigned Turn away.
+    pub sees_countdown: bool,
 }
 
 impl PlayerView {
@@ -629,6 +638,8 @@ struct Game {
     triggers: VecDeque<Trigger>,
     /// `None` until the Election, on the first Day.
     mayor: Option<PlayerId>,
+    /// How long the current Turn lasts, if it is a Feigned Turn.
+    feigned: Option<u32>,
 }
 
 /// What a Player's Elimination sets off, resolved one at a time before the
@@ -776,6 +787,7 @@ impl Game {
     fn go_to(&mut self, state: MomentState) {
         self.state = state;
         self.moment_id = MomentId(self.moment_id.0 + 1);
+        self.feigned = None;
     }
 
     /// `None` once the Game is over: nothing is timed any more.
@@ -804,6 +816,7 @@ impl Game {
             MomentState::SuccessionResult { .. } => ANNOUNCEMENT_SECONDS,
             MomentState::Victory { .. } => return None,
         };
+        let seconds = self.feigned.unwrap_or(seconds);
         Some(Timer {
             moment: self.moment_id,
             seconds,
@@ -1011,6 +1024,7 @@ impl Engine {
                     },
                     triggers: VecDeque::new(),
                     mayor: None,
+                    feigned: None,
                 });
             }
             Command::ConfirmRole => {
@@ -1025,6 +1039,7 @@ impl Engine {
                 if confirmed.len() == living {
                     let night = self.nightfall();
                     self.game_mut().go_to(night);
+                    self.feign_if_idle();
                 }
             }
             Command::Inspect { player } => {
@@ -1521,6 +1536,7 @@ impl Engine {
                     passed: false,
                 },
             });
+            self.feign_if_idle();
             self.end_witchs_turn_if_done();
         } else {
             self.end_night(victim.into_iter().collect());
@@ -1528,8 +1544,8 @@ impl Engine {
     }
 
     /// The living Witch's Turn ends as soon as she has passed, or has no
-    /// potion left that she could use tonight. A dead Witch's Turn (only
-    /// with Hidden Roles on) runs its full time, so it reveals nothing.
+    /// potion left that she could use tonight. A Feigned Turn lasts its
+    /// whole drawn time instead.
     fn end_witchs_turn_if_done(&mut self) {
         let Some(game) = &self.game else {
             unreachable!("the Game is running")
@@ -1537,11 +1553,48 @@ impl Engine {
         let MomentState::WitchsTurn { sight } = game.state else {
             unreachable!("only during the Witch's Turn")
         };
-        let can_heal = game.potions.healing && sight.victim.is_some() && !sight.healed;
-        let done = sight.passed || (!can_heal && !game.potions.poison);
-        if done && self.has_living_holder(Role::Witch) {
+        let done = sight.passed || !self.witch_has_a_usable_potion();
+        if done && self.has_living_holder(Role::Witch) && game.feigned.is_none() {
             self.end_witchs_turn();
         }
+    }
+
+    /// During the Witch's Turn: whether a potion she still has could be
+    /// used tonight.
+    fn witch_has_a_usable_potion(&self) -> bool {
+        let Some(game) = &self.game else {
+            unreachable!("the Game is running")
+        };
+        let MomentState::WitchsTurn { sight } = game.state else {
+            unreachable!("only during the Witch's Turn")
+        };
+        let can_heal = game.potions.healing && sight.victim.is_some() && !sight.healed;
+        can_heal || game.potions.poison
+    }
+
+    /// With Hidden Roles on, a Turn where nothing can happen is feigned, so
+    /// its length reveals nothing: the Seer's or the Witch's Turn when she
+    /// is dead, or the Witch's when she has no potion she could use tonight.
+    /// It lasts a random time, from the Feigned Turn minimum up to the
+    /// Turn's own timer.
+    fn feign_if_idle(&mut self) {
+        if !self.hidden_roles {
+            return;
+        }
+        let longest = match self.state() {
+            Some(MomentState::SeersTurn { .. }) if !self.has_living_holder(Role::Seer) => {
+                self.timers.seer
+            }
+            Some(MomentState::WitchsTurn { .. })
+                if !self.has_living_holder(Role::Witch) || !self.witch_has_a_usable_potion() =>
+            {
+                self.timers.witch
+            }
+            _ => return,
+        };
+        let shortest = self.timers.feigned_turn_minimum.min(longest);
+        let drawn = self.randomness.below((longest - shortest + 1) as usize) as u32;
+        self.game_mut().feigned = Some(shortest + drawn);
     }
 
     /// The Witch's Turn is over, and with it the Night: the Victim dies
@@ -1641,7 +1694,10 @@ impl Engine {
                 .go_to(MomentState::Succession { mayor, then }),
             None => match then {
                 Resume::Day => self.unless_won(MomentState::Discussion),
-                Resume::Night => self.unless_won(self.nightfall()),
+                Resume::Night => {
+                    self.unless_won(self.nightfall());
+                    self.feign_if_idle();
+                }
             },
         }
     }
@@ -1812,6 +1868,17 @@ impl Engine {
             .collect()
     }
 
+    /// Whether `viewer` may see how long the current Moment has left.
+    fn sees_countdown(&self, viewer: &Seat) -> bool {
+        let acting = match self.state() {
+            Some(MomentState::SeersTurn { .. }) => Role::Seer,
+            Some(MomentState::WerewolvesTurn { .. }) => Role::Werewolf,
+            Some(MomentState::WitchsTurn { .. }) => Role::Witch,
+            _ => return true,
+        };
+        !self.hidden_roles || !viewer.alive || viewer.role == Some(acting)
+    }
+
     /// Everyone who may see and hear `sender` now.
     fn audience_of(&self, sender: &Seat) -> Vec<PlayerId> {
         self.seats
@@ -1872,6 +1939,7 @@ impl Engine {
                     mayor: self.mayor(),
                     receives: self.received_by(s),
                     audience: self.audience_of(s),
+                    sees_countdown: self.sees_countdown(s),
                 };
                 (s.token.clone(), view)
             })

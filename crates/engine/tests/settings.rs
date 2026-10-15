@@ -105,6 +105,7 @@ fn the_timers_start_at_their_defaults() {
             hunter: 30,
             mayor_successor: 30,
             mayor_tie_break: 30,
+            feigned_turn_minimum: 10,
         }
     );
 }

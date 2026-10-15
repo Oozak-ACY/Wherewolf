@@ -51,4 +51,10 @@ receives: Array<PlayerId>,
  * Who may see and hear this Player right now: the only ones allowed to
  * receive their camera and microphone.
  */
-audience: Array<PlayerId>, };
+audience: Array<PlayerId>, 
+/**
+ * Whether this Player may see how long the current Moment has left.
+ * With Hidden Roles on, during a Night Turn, only the Players acting in
+ * it and the Spectators do: its length could give a Feigned Turn away.
+ */
+seesCountdown: boolean, };

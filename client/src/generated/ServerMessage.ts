@@ -8,6 +8,7 @@ import type { Rejection } from "./Rejection";
  */
 export type ServerMessage = { "type": "view", view: PlayerView, 
 /**
- * Time left in the Game's current moment when this was sent, if it is timed.
+ * Time left in the Game's current moment when this was sent, if it is
+ * timed and this Player may see it.
  */
 endsInMs: number | null, } | { "type": "call", ticket: CallTicket, } | { "type": "rejected", reason: Rejection, } | { "type": "lobbyNotFound" };

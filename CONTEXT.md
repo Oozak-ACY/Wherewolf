@@ -84,8 +84,12 @@ _Avoid_: Config, options, rules
 A Setting: how long a Disconnected Player keeps their seat in the Lobby before it is freed as if they had Left (60 seconds by default). Changing it applies at once to Players already Disconnected. It counts from the moment the Player disconnected, or from the return to the Lobby for a Player still Disconnected when a Game ends. A Player whose seat was freed comes back as a newcomer.
 _Avoid_: Timeout, kick, AFK delay
 
+**Feigned Turn**:
+With Hidden Roles on, a Night Turn where nothing can happen: the Seer's or the Witch's when she is dead, or the Witch's when she has no potion she could use tonight. It lasts a random time, from a minimum set in the timers (10 seconds by default) up to the Turn's own timer, so that its length looks like a living Role taking their time.
+_Avoid_: Fake turn, dummy turn
+
 **Hidden Roles**:
-A Setting in which an eliminated Player's Role is not revealed to the living. To avoid leaking who is dead, a dead Role's Night Turn then still takes place and lasts its full time; a living Role's Turn ends as soon as its action is confirmed, as with Hidden Roles off. With Hidden Roles off, the Turns of dead Roles are skipped.
+A Setting in which an eliminated Player's Role is not revealed to the living. To avoid leaking who is dead, a dead Role's Night Turn then still takes place, as a Feigned Turn; a living Role's Turn ends as soon as its action is confirmed, as with Hidden Roles off. With Hidden Roles off, the Turns of dead Roles are skipped.
 _Avoid_: Secret mode, blind mode
 
 **Turn**:

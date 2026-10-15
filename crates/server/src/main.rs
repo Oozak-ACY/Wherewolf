@@ -234,7 +234,7 @@ impl Lobby {
             if let Some(connection) = self.connections.get(seat) {
                 let _ = connection.outbox.send(ServerMessage::View {
                     view: Box::new(view.clone()),
-                    ends_in_ms,
+                    ends_in_ms: ends_in_ms.filter(|_| view.sees_countdown),
                 });
             }
         }
