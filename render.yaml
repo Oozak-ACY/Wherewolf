@@ -1,6 +1,7 @@
 # Render Blueprint for the game server (see docs/deploy.md).
-# The LiveKit keys are `sync: false`: Render asks for them when the Blueprint
-# is applied, and they live only in Render's environment, never in the repo.
+# The LiveKit and ElevenLabs keys are `sync: false`: Render asks for them when
+# the Blueprint is applied, and they live only in Render's environment, never
+# in the repo.
 services:
   - type: web
     name: wherewolf-server
@@ -22,4 +23,6 @@ services:
       - key: LIVEKIT_API_KEY
         sync: false
       - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: ELEVENLABS_API_KEY
         sync: false

@@ -91,6 +91,18 @@ pub struct CreatedLobby {
     pub code: String,
 }
 
+/// Body of `POST /api/lobbies/:code/live-line`, answered with the line's MP3.
+/// Only the Host of a Game in progress, whose phone is the Table device, is
+/// answered.
+#[derive(Debug, Clone, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LiveLineRequest {
+    pub seat_token: String,
+    /// A Narrator line with names in it.
+    pub text: String,
+}
+
 /// What a Player needs to enter the Lobby's video call.
 #[derive(Debug, Clone, Serialize, TS)]
 #[ts(export)]

@@ -1324,6 +1324,16 @@ impl Engine {
         self.seats.is_empty()
     }
 
+    /// Refused unless this seat's phone is the Table device of a Game in
+    /// progress: the only one the server voices the Narrator's live lines for.
+    pub fn require_table_device(&self, token: &SeatToken) -> Result<(), Rejection> {
+        self.require_host(token)?;
+        if self.game.as_ref().is_none_or(Game::is_over) {
+            return Err(Rejection::NotNow);
+        }
+        Ok(())
+    }
+
     fn require_host(&self, token: &SeatToken) -> Result<(), Rejection> {
         match self.seats.first() {
             Some(host) if &host.token == token => Ok(()),

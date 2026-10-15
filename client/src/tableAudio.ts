@@ -1,10 +1,12 @@
-// The Table device's audio: Web Audio for the Narrator's MP3s (iOS ignores an
-// `<audio>` element's volume), browser speech for everything else.
+// The Table device's audio: Web Audio for the Narrator's MP3s and the live
+// lines the server voices (iOS ignores an `<audio>` element's volume), browser
+// speech for everything else.
 
 import { chooseFrenchVoice, unlockSpeech } from "./narrator";
 import { isRecorded, recordedLines } from "./narratorRecordings";
 import type { FixedLine } from "./narratorScript";
 import type { NarratorVoiceDeps } from "./narratorVoice";
+import { fetchLiveLine } from "./server";
 import { fr } from "./strings";
 
 let context: AudioContext | null = null;
@@ -45,7 +47,10 @@ export function preloadNarratorLines(): void {
 }
 
 function playMp3(key: FixedLine): Promise<void> | null {
-  const buffer = mp3s.get(key);
+  return play(mp3s.get(key));
+}
+
+function play(buffer: AudioBuffer | undefined): Promise<void> | null {
   if (!context || !buffer) return null;
   // A suspended context, never unlocked by a tap or interrupted by a call,
   // would never end the line: speech says it instead.
@@ -84,4 +89,29 @@ function stop(): void {
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
-export const tableAudio: NarratorVoiceDeps = { playMp3, speak, stop };
+/** The Table device's audio, with the live lines of the Lobby `code`. */
+export function tableAudio(code: string): NarratorVoiceDeps {
+  // Each live line asked of the server, by its text: asked once, even when
+  // the line is said again (on resume) while it is still on its way.
+  const requested = new Map<string, Promise<AudioBuffer>>();
+  const voiced = new Map<string, AudioBuffer>();
+  return {
+    playMp3,
+    speak,
+    stop,
+    async loadLive(text) {
+      const audio = context;
+      if (!audio) return false;
+      let request = requested.get(text);
+      if (!request) {
+        request = fetchLiveLine(code, text).then((mp3) => audio.decodeAudioData(mp3));
+        requested.set(text, request);
+        // A failed line may be asked again, the next time it is said.
+        request.catch(() => requested.delete(text));
+      }
+      voiced.set(text, await request);
+      return true;
+    },
+    playLive: (text) => play(voiced.get(text)),
+  };
+}

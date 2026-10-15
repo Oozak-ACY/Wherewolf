@@ -250,7 +250,7 @@ function Lobby(props: {
 
   // Silent while this phone has lost the server: for the Table device, the
   // Game is Paused, and it repeats the current line once it is back.
-  useNarrator(view, speaksAloud(view) && !props.reconnecting, props.seatings);
+  useNarrator(view, view.code, speaksAloud(view) && !props.reconnecting, props.seatings);
   useWakeLock(view.moment !== null);
 
   // Asleep at Night, a phone shows only what every sleeping phone shows.

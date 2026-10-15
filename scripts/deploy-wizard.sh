@@ -185,7 +185,7 @@ finish() {
 # ──────────────────────────────────────────────────────────────────────────
 
 # Deploys Wherewolf: game server on Render, client on Vercel, LiveKit Cloud
-# keys on the server only. See docs/deploy.md. Run from anywhere:
+# and ElevenLabs keys on the server only. See docs/deploy.md. Run from anywhere:
 #   bash scripts/deploy-wizard.sh
 
 cd "$(dirname "$0")/.."
@@ -211,13 +211,14 @@ local_env() {
   printf '%s' "${line#*=}"
 }
 
-# offer_value KEY: copies KEY's local value to the clipboard for pasting.
+# offer_value KEY WHERE URL: copies KEY's local value to the clipboard for
+# pasting, or sends the human to WHERE (at URL) to copy it.
 offer_value() {
-  local key="$1" value
+  local key="$1" where="$2" url="$3" value
   value=$(local_env "$key" || true)
   if [[ -z "$value" ]]; then
-    warn "$key is not in $LOCAL_ENV: copy it from LiveKit Cloud → Settings → API keys"
-    open_url "https://cloud.livekit.io"
+    warn "$key is not in $LOCAL_ENV: copy it from $where"
+    open_url "$url"
   elif copy_to_clipboard "$value"; then
     printf '  %s✓ copied%s %s to the clipboard\n' "$GREEN" "$RESET" "$key"
   else
@@ -253,12 +254,15 @@ step "Sign in (or sign up) with GitHub."
 step "Click 'New Blueprint Instance'."
 step "Connect $REPO (grant Render access to the repo if asked)."
 step "Name the Blueprint 'wherewolf'. Render reads render.yaml and lists"
-step "the 'wherewolf-server' web service with three empty variables."
+step "the 'wherewolf-server' web service with four empty variables."
 say ""
 say "Fill them from your local .env, one at a time (never shown on screen):"
-offer_value LIVEKIT_URL
-offer_value LIVEKIT_API_KEY
-offer_value LIVEKIT_API_SECRET
+offer_value LIVEKIT_URL "LiveKit Cloud → Settings → API keys" "https://cloud.livekit.io"
+offer_value LIVEKIT_API_KEY "LiveKit Cloud → Settings → API keys" "https://cloud.livekit.io"
+offer_value LIVEKIT_API_SECRET "LiveKit Cloud → Settings → API keys" "https://cloud.livekit.io"
+note "ELEVENLABS_API_KEY voices the Narrator's lines with names. Without it,"
+note "the Table device says them with the browser's voice."
+offer_value ELEVENLABS_API_KEY "ElevenLabs → Developers → API keys" "https://elevenlabs.io/app/developers/api-keys"
 step "Click 'Deploy Blueprint' (or 'Apply')."
 note "The first Rust build takes several minutes on the free plan."
 step "Open the wherewolf-server service and wait until its status is 'Live'."
@@ -281,6 +285,7 @@ if [[ "$created" == *'"code"'* ]]; then
 else
   warn "the server didn't answer. In Render, check the service's Logs tab:"
   note "'LIVEKIT_URL / … not set' means a variable is empty; a build error means the deploy failed."
+  note "'ELEVENLABS_API_KEY not set' means the Narrator says names with the browser's voice."
   confirm "Continue anyway?" || exit 1
 fi
 pause

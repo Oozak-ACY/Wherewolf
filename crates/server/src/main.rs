@@ -2,11 +2,13 @@
 //! Player's messages go to the Narrator engine, and each Player gets back the
 //! view the engine produced for them. No game rule lives here. It also runs
 //! the timer of each moment of a Game (held while the Game is Paused) and
-//! each Disconnected Player's Grace period, and lets each seated Player into
-//! the Lobby's video call.
+//! each Disconnected Player's Grace period, lets each seated Player into
+//! the Lobby's video call, and voices the Narrator's live lines for the Host's
+//! phone, the Table device.
 
 mod call;
 mod media;
+mod narrator;
 mod protocol;
 
 use std::collections::HashMap;
@@ -15,9 +17,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
+use axum::body::{Body, Bytes};
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, State};
-use axum::response::Response;
+use axum::http::{header, StatusCode};
+use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use futures_util::{SinkExt, StreamExt};
@@ -34,7 +38,8 @@ use wherewolf_engine::{
 
 use call::CallConfig;
 use media::Media;
-use protocol::{CallTicket, ClientMessage, CreatedLobby, ServerMessage};
+use narrator::Voice;
+use protocol::{CallTicket, ClientMessage, CreatedLobby, LiveLineRequest, ServerMessage};
 
 /// No 0/O or 1/I, so the code can be read aloud and typed without mistakes.
 const CODE_ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -62,6 +67,8 @@ struct Lobby {
     grace_periods: HashMap<DisconnectionId, ArmedGracePeriod>,
     /// Applies who may see and hear whom to the call. `None` without video.
     media: Option<Media>,
+    /// Each live line already voiced in this Lobby, by its text.
+    live_lines: HashMap<String, Bytes>,
     /// This Lobby itself, for the timer tasks to come back to.
     me: Weak<Mutex<Lobby>>,
     code: String,
@@ -290,6 +297,9 @@ struct AppState {
     next_connection_id: Arc<AtomicU64>,
     /// `None` when the LiveKit keys are not configured: Lobbies work, without video.
     call: Option<Arc<CallConfig>>,
+    /// `None` without the ElevenLabs key: the Table device speaks live lines
+    /// with browser speech.
+    voice: Option<Arc<Voice>>,
 }
 
 impl AppState {
@@ -319,14 +329,20 @@ async fn main() {
     if call.is_none() {
         tracing::warn!("LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET not set: no video call");
     }
+    let voice = Voice::from_env().map(Arc::new);
+    if voice.is_none() {
+        tracing::warn!("ELEVENLABS_API_KEY not set: live Narrator lines use browser speech");
+    }
     let state = AppState {
         call,
+        voice,
         ..AppState::default()
     };
 
     let app = Router::new()
         .route("/api/lobbies", post(create_lobby))
         .route("/api/lobbies/:code/ws", get(connect))
+        .route("/api/lobbies/:code/live-line", post(live_line))
         .layer(CorsLayer::permissive())
         .with_state(state);
 
@@ -365,6 +381,7 @@ async fn create_lobby(State(state): State<AppState>) -> Json<CreatedLobby> {
             paused_timer: None,
             grace_periods: HashMap::new(),
             media,
+            live_lines: HashMap::new(),
             me: me.clone(),
             code: code.clone(),
             lobbies: Arc::downgrade(&state.lobbies),
@@ -373,6 +390,59 @@ async fn create_lobby(State(state): State<AppState>) -> Json<CreatedLobby> {
     lobbies.insert(code.clone(), lobby);
     tracing::info!(code, "lobby created");
     Json(CreatedLobby { code })
+}
+
+/// Voices one of the Narrator's live lines for the Table device, streaming
+/// its MP3 as ElevenLabs sends it. A line already voiced in this Lobby is sent
+/// again from memory.
+async fn live_line(
+    Path(code): Path<String>,
+    State(state): State<AppState>,
+    Json(request): Json<LiveLineRequest>,
+) -> Response {
+    let Some(voice) = state.voice.clone() else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            "live lines are unavailable",
+        )
+            .into_response();
+    };
+    let Some(lobby) = state.lobby(&code.to_uppercase()) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let LiveLineRequest { seat_token, text } = request;
+    let kept = {
+        let lobby = lobby.lock().unwrap();
+        if lobby
+            .engine
+            .require_table_device(&SeatToken::new(seat_token))
+            .is_err()
+        {
+            return StatusCode::FORBIDDEN.into_response();
+        }
+        if narrator::check_line(&text).is_err() {
+            return StatusCode::UNPROCESSABLE_ENTITY.into_response();
+        }
+        lobby.live_lines.get(&text).cloned()
+    };
+    let mp3 = [(header::CONTENT_TYPE, "audio/mpeg")];
+    if let Some(audio) = kept {
+        return (mp3, audio).into_response();
+    }
+    let audio = match voice.speak(&text).await {
+        Ok(audio) => audio,
+        Err(e) => {
+            tracing::warn!(code, "live line not voiced: {e}");
+            return StatusCode::BAD_GATEWAY.into_response();
+        }
+    };
+    let lobby = Arc::downgrade(&lobby);
+    let audio = narrator::recording(Box::pin(audio), move |heard| {
+        if let Some(lobby) = lobby.upgrade() {
+            lobby.lock().unwrap().live_lines.insert(text, heard);
+        }
+    });
+    (mp3, Body::from_stream(audio)).into_response()
 }
 
 fn random_code() -> String {
