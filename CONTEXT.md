@@ -9,7 +9,7 @@ A person taking part in a Game. Every participant is a Player; nobody sits out t
 _Avoid_: User, participant
 
 **Host**:
-The Player who created the Lobby. Only they can configure the Roles and start the Game. Their phone is the Table device. Once the Game starts they play as an ordinary Player, except that until a Mayor is elected they may end the Day's debate early.
+The Player who created the Lobby. Only they can configure the Roles and start the Game. Their phone is the Table device. Once the Game starts they play as an ordinary Player, except that until a Mayor is elected they may end the Day's debate early (while alive: a Spectator Host cannot).
 _Avoid_: Admin, owner, game master
 
 **Narrator**:

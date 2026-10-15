@@ -442,6 +442,9 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
             ClientMessage::Start => {
                 lobby.command(&seat, Command::Start, &outbox);
             }
+            ClientMessage::EndDebate => {
+                lobby.command(&seat, Command::EndDebate, &outbox);
+            }
             ClientMessage::ConfirmRole => {
                 lobby.command(&seat, Command::ConfirmRole, &outbox);
             }

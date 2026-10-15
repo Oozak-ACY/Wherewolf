@@ -88,6 +88,9 @@ pub enum Command {
     /// The Vote: designate a Player to eliminate, or abstain with `None`.
     /// Can be changed until the Vote ends.
     Vote { designated: Option<PlayerId> },
+    /// The Day's debate: end it now, as its timer would. Only the Mayor, or
+    /// the Host while no Mayor is elected.
+    EndDebate,
     /// The Mayor, on a tied Vote: choose which of the tied Players is
     /// eliminated.
     BreakTie { player: PlayerId },
@@ -386,6 +389,9 @@ pub struct PlayerView {
     /// With Hidden Roles on, during a Night Turn, only the Players acting in
     /// it and the Spectators do: its length could give a Feigned Turn away.
     pub sees_countdown: bool,
+    /// Whether this Player may end the Day's debate now: the Mayor, or the
+    /// Host while no Mayor is elected, during the debate.
+    pub may_end_debate: bool,
 }
 
 impl PlayerView {
@@ -1160,6 +1166,10 @@ impl Engine {
                     self.end_vote();
                 }
             }
+            Command::EndDebate => {
+                self.require_debate_leader(seat)?;
+                self.end_debate();
+            }
             Command::BreakTie { player } => {
                 let (ballots, tied) = self.require_tie_break(seat)?;
                 if !tied.contains(&player) {
@@ -1226,13 +1236,8 @@ impl Engine {
             }
             MomentState::WitchsTurn { .. } => self.end_witchs_turn(),
             MomentState::Dawn { .. } => self.resolve_triggers(Resume::Day),
-            // The Mayor is elected on the first Day only.
-            MomentState::Discussion if game.mayor.is_none() => {
-                self.game_mut().go_to(MomentState::Election {
-                    ballots: Vec::new(),
-                })
-            }
-            MomentState::Discussion | MomentState::ElectionResult { .. } => {
+            MomentState::Discussion => self.end_debate(),
+            MomentState::ElectionResult { .. } => {
                 self.game_mut().go_to(MomentState::Vote {
                     ballots: Vec::new(),
                 })
@@ -1387,6 +1392,19 @@ impl Engine {
             return Err(Rejection::NotYourTurn);
         }
         Ok((ballots.clone(), tied.clone()))
+    }
+
+    /// The Player on this seat is alive, it is the Day's debate, and they
+    /// may end it: the Mayor, or the Host while no Mayor is elected.
+    fn require_debate_leader(&self, token: &SeatToken) -> Result<(), Rejection> {
+        let player = self.require_living(token)?;
+        if !matches!(self.state(), Some(MomentState::Discussion)) {
+            Err(Rejection::NotNow)
+        } else if self.debate_leader() != Some(player) {
+            Err(Rejection::NotYourTurn)
+        } else {
+            Ok(())
+        }
     }
 
     /// The chosen Player, if any, is a living Player of this Game.
@@ -1645,6 +1663,27 @@ impl Engine {
             mayor,
             by_lot,
         });
+    }
+
+    /// The Day's debate is over: the Election follows on the first Day (the
+    /// Mayor is elected then only), the Vote afterwards.
+    fn end_debate(&mut self) {
+        let next = if self.mayor().is_none() {
+            MomentState::Election {
+                ballots: Vec::new(),
+            }
+        } else {
+            MomentState::Vote {
+                ballots: Vec::new(),
+            }
+        };
+        self.game_mut().go_to(next);
+    }
+
+    /// Who may end the Day's debate early: the Mayor, or the Host while no
+    /// Mayor is elected.
+    fn debate_leader(&self) -> Option<PlayerId> {
+        self.mayor().or_else(|| self.seats.first().map(|s| s.id))
     }
 
     /// The Vote is over: it is revealed, and the most-designated Player dies.
@@ -1940,6 +1979,7 @@ impl Engine {
                     receives: self.received_by(s),
                     audience: self.audience_of(s),
                     sees_countdown: self.sees_countdown(s),
+                    may_end_debate: self.require_debate_leader(&s.token).is_ok(),
                 };
                 (s.token.clone(), view)
             })

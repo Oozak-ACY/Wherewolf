@@ -120,6 +120,7 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         onSettingsChange={lobby.updateSettings}
         onStart={lobby.start}
         onConfirmRole={lobby.confirmRole}
+        onEndDebate={lobby.endDebate}
         onInspect={lobby.inspect}
         onPickVictim={lobby.pickVictim}
         onHeal={lobby.heal}
@@ -195,6 +196,7 @@ function Lobby(props: {
   onSettingsChange: (settings: Settings) => void;
   onStart: () => void;
   onConfirmRole: () => void;
+  onEndDebate: () => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onHeal: () => void;
@@ -259,6 +261,7 @@ function Lobby(props: {
               moment={view.moment}
               endsAt={props.endsAt}
               onConfirmRole={props.onConfirmRole}
+              onEndDebate={props.onEndDebate}
               onInspect={props.onInspect}
               onPickVictim={props.onPickVictim}
               onHeal={props.onHeal}

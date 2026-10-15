@@ -57,4 +57,9 @@ audience: Array<PlayerId>,
  * With Hidden Roles on, during a Night Turn, only the Players acting in
  * it and the Spectators do: its length could give a Feigned Turn away.
  */
-seesCountdown: boolean, };
+seesCountdown: boolean, 
+/**
+ * Whether this Player may end the Day's debate now: the Mayor, or the
+ * Host while no Mayor is elected, during the debate.
+ */
+mayEndDebate: boolean, };

@@ -13,6 +13,7 @@ type Props = {
   moment: Moment;
   endsAt: number | null;
   onConfirmRole: () => void;
+  onEndDebate: () => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onHeal: () => void;
@@ -53,6 +54,12 @@ export function GamePanel(props: Props) {
               </button>
             ))}
         </>
+      )}
+
+      {moment.type === "discussion" && view.mayEndDebate && (
+        <button className="primary" onClick={props.onEndDebate}>
+          {view.mayor === null ? fr.game.endDebateToElection : fr.game.endDebateToVote}
+        </button>
       )}
 
       {moment.type === "seersTurn" &&
