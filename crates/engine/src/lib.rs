@@ -89,7 +89,7 @@ pub enum Command {
     /// Can be changed until the Vote ends.
     Vote { designated: Option<PlayerId> },
     /// The Day's debate: end it now, as its timer would. Only the Mayor, or
-    /// the Host while no Mayor is elected.
+    /// the Host (even dead) while no Mayor is elected.
     EndDebate,
     /// The Mayor, on a tied Vote: choose which of the tied Players is
     /// eliminated.
@@ -390,7 +390,7 @@ pub struct PlayerView {
     /// it and the Spectators do: its length could give a Feigned Turn away.
     pub sees_countdown: bool,
     /// Whether this Player may end the Day's debate now: the Mayor, or the
-    /// Host while no Mayor is elected, during the debate.
+    /// Host (even dead) while no Mayor is elected, during the debate.
     pub may_end_debate: bool,
 }
 
@@ -1394,16 +1394,20 @@ impl Engine {
         Ok((ballots.clone(), tied.clone()))
     }
 
-    /// The Player on this seat is alive, it is the Day's debate, and they
-    /// may end it: the Mayor, or the Host while no Mayor is elected.
+    /// It is the Day's debate, and the Player on this seat may end it: the
+    /// Mayor, or the Host while no Mayor is elected, even a Host killed on
+    /// the first Night.
     fn require_debate_leader(&self, token: &SeatToken) -> Result<(), Rejection> {
-        let player = self.require_living(token)?;
-        if !matches!(self.state(), Some(MomentState::Discussion)) {
+        let player = self.seat_of(token)?.id;
+        let debate = matches!(self.state(), Some(MomentState::Discussion));
+        if debate && self.debate_leader() == Some(player) {
+            return Ok(());
+        }
+        self.require_living(token)?;
+        if !debate {
             Err(Rejection::NotNow)
-        } else if self.debate_leader() != Some(player) {
-            Err(Rejection::NotYourTurn)
         } else {
-            Ok(())
+            Err(Rejection::NotYourTurn)
         }
     }
 
@@ -1680,8 +1684,8 @@ impl Engine {
         self.game_mut().go_to(next);
     }
 
-    /// Who may end the Day's debate early: the Mayor, or the Host while no
-    /// Mayor is elected.
+    /// Who may end the Day's debate early: the Mayor, or the Host (living or
+    /// not) while no Mayor is elected.
     fn debate_leader(&self) -> Option<PlayerId> {
         self.mayor().or_else(|| self.seats.first().map(|s| s.id))
     }

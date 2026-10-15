@@ -268,6 +268,19 @@ fn a_spectator_cannot_end_the_debate() {
 }
 
 #[test]
+fn a_host_killed_on_the_first_night_still_ends_the_debate() {
+    let mut table = Table::start();
+    assert_eq!(table.players[0].1, Role::Villager, "the Host can be killed");
+    table.first_debate(HOST);
+    assert!(!table.alive(HOST));
+    assert_eq!(table.may_end_debate(), vec![HOST.to_string()]);
+
+    table.act(HOST, Command::EndDebate);
+
+    assert!(matches!(table.moment(), Moment::Election { .. }));
+}
+
+#[test]
 fn only_the_player_who_may_end_the_debate_sees_the_button() {
     let mut table = Table::start();
     assert!(table.may_end_debate().is_empty(), "nobody, at Night");

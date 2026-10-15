@@ -47,7 +47,7 @@ pub enum ClientMessage {
     /// until the Vote ends.
     Vote { designated: Option<PlayerId> },
     /// The Day's debate: end it now, as its timer would. Only the Mayor, or
-    /// the Host while no Mayor is elected.
+    /// the Host (even dead) while no Mayor is elected.
     EndDebate,
     /// The Mayor, on a tied Vote: choose which of the tied Players is
     /// eliminated.
