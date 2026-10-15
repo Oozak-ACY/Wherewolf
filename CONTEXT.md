@@ -102,6 +102,7 @@ _Avoid_: Permissions, rooms
 
 **Moment**:
 One stretch of a Game that the Narrator announces and times on its own: the Role reveal (untimed: it ends once every living Player has confirmed seeing their Role), a Night Turn, the dawn announcement, the Day discussion, the Election and its result, the Vote, the Mayor's tie-break, the Vote's result, the Hunter's shot, the Mayor's succession, the result of each, or the victory screen. The current Moment decides what each Player sees and may do.
+Each Moment opens only once the Narrator has announced it: while the Table device says its lines, the Moment is held (no timer, nobody acts in it), every phone that isn't asleep shows the same neutral waiting screen, and the acting Role sleeps on until their Turn opens. It opens when the Table device has said its last line, or after 30 seconds if it never says so. A change the Narrator says nothing new about, like the Seer reading what she saw, is not announced.
 _Avoid_: Step, stage
 
 ## Roles

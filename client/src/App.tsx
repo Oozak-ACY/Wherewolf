@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { GamePanel } from "./GamePanel";
 import { joinLink, lobbyCodeFromPath } from "./joinLink";
+import type { MomentId } from "./generated/MomentId";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
@@ -12,7 +13,7 @@ import { RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
 import { SettingsPanel } from "./SettingsPanel";
-import { sleepingScreen } from "./sleepingScreen";
+import { sleepingScreen, waitingScreen } from "./sleepingScreen";
 import { SleepingView } from "./SleepingView";
 import { fr } from "./strings";
 import { preloadNarratorLines, unlockTableAudio } from "./tableAudio";
@@ -145,6 +146,7 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
           unlockTableAudio();
           lobby.playAgain();
         }}
+        onAnnounced={lobby.announced}
         onLeave={() => {
           lobby.leave();
           onExit();
@@ -223,6 +225,8 @@ function Lobby(props: {
   onBreakTie: (player: PlayerId) => void;
   onNameSuccessor: (player: PlayerId) => void;
   onPlayAgain: () => void;
+  /** The Table device has said every line announcing this Moment. */
+  onAnnounced: (moment: MomentId) => void;
   onLeave: () => void;
 }) {
   const { view } = props;
@@ -250,12 +254,15 @@ function Lobby(props: {
 
   // Silent while this phone has lost the server: for the Table device, the
   // Game is Paused, and it repeats the current line once it is back.
-  useNarrator(view, view.code, speaksAloud(view) && !props.reconnecting, props.seatings);
+  useNarrator(view, view.code, speaksAloud(view) && !props.reconnecting, props.seatings, props.onAnnounced);
   useWakeLock(view.moment !== null);
 
   // Asleep at Night, a phone shows only what every sleeping phone shows.
   const asleep = sleepingScreen(view);
-  if (asleep) return <SleepingView screen={asleep} reconnecting={props.reconnecting} />;
+  if (asleep) return <SleepingView screen={asleep} night reconnecting={props.reconnecting} />;
+  // While the Narrator announces the coming Moment, every phone waits for the Narrator.
+  const waiting = waitingScreen(view);
+  if (waiting) return <SleepingView screen={waiting} night={false} reconnecting={props.reconnecting} />;
 
   return (
     <div className="lobby">

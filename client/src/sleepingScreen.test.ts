@@ -4,7 +4,7 @@ import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Role } from "./generated/Role";
 import type { Settings } from "./generated/Settings";
-import { sleepingScreen } from "./sleepingScreen";
+import { sleepingScreen, waitingScreen } from "./sleepingScreen";
 import { fr } from "./strings";
 
 const [ALICE, BOB, CHLOE] = [1, 2, 3];
@@ -62,6 +62,7 @@ function view(role: Role | null, moment: Moment, changes: Partial<PlayerView> = 
     seesCountdown: true,
     mayEndDebate: false,
     paused: false,
+    announcing: null,
     ...changes,
   };
 }
@@ -86,6 +87,14 @@ describe("a phone at Night", () => {
       expect(sleepingScreen(view(role, moment(role)))).toBeNull();
     });
   }
+
+  test("while a Turn is announced, its acting Role still sleeps like everyone else", () => {
+    const announced = { announcing: 4 };
+    const screens = roles.map((role) => sleepingScreen(view(role, nightTurns.seersTurn(role), announced)));
+
+    expect(screens[0]).not.toBeNull();
+    for (const screen of screens) expect(screen).toEqual(screens[0]);
+  });
 
   test("the sleeping screen shows the Narrator's line, never a Role", () => {
     const screen = sleepingScreen(view("villager", nightTurns.werewolvesTurn("villager")));
@@ -129,4 +138,35 @@ describe("a phone outside the Night", () => {
       expect(sleepingScreen(view("villager", moment))).toBeNull();
     });
   }
+});
+
+describe("a phone while the Narrator announces a Moment", () => {
+  const discussion: Moment = { type: "discussion" };
+
+  test("shows the same neutral waiting screen, whatever the Role", () => {
+    const screens = [...roles, null].map((role) => waitingScreen(view(role, discussion, { announcing: 4 })));
+
+    expect(screens[0]).toEqual({ line: fr.game.narratorSpeaking, pausedBy: null });
+    for (const screen of screens) expect(screen).toEqual(screens[0]);
+  });
+
+  test("never says what is coming", () => {
+    const vote: Moment = { type: "vote", voted: [], yourBallot: null };
+
+    expect(waitingScreen(view("villager", vote, { announcing: 4 }))).toEqual(
+      waitingScreen(view("villager", discussion, { announcing: 4 })),
+    );
+  });
+
+  test("shows a Spectator the waiting screen at Night too", () => {
+    expect(waitingScreen(view(null, nightTurns.seersTurn("seer"), { announcing: 4 }))).not.toBeNull();
+  });
+
+  test("says when the Game is Paused", () => {
+    expect(waitingScreen(view("villager", discussion, { announcing: 4, paused: true }))?.pausedBy).toBe("Alice");
+  });
+
+  test("is gone once the Moment opens", () => {
+    expect(waitingScreen(view("villager", discussion))).toBeNull();
+  });
 });

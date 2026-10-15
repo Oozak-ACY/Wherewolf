@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CallTicket } from "./generated/CallTicket";
 import type { ClientMessage } from "./generated/ClientMessage";
+import type { MomentId } from "./generated/MomentId";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
@@ -193,6 +194,10 @@ export function useLobby(code: string) {
     [command],
   );
   const playAgain = useCallback(() => command({ type: "playAgain" }), [command]);
+  const announced = useCallback(
+    (moment: MomentId) => command({ type: "announced", moment }),
+    [command],
+  );
 
   useEffect(
     () => () => {
@@ -228,5 +233,6 @@ export function useLobby(code: string) {
     breakTie,
     nameSuccessor,
     playAgain,
+    announced,
   };
 }

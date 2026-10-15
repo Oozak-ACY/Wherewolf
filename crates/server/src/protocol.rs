@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
-use wherewolf_engine::{PlayerId, PlayerView, Rejection, Settings};
+use wherewolf_engine::{MomentId, PlayerId, PlayerView, Rejection, Settings};
 
 /// Client → server.
 #[derive(Debug, Clone, Deserialize, TS)]
@@ -58,6 +58,9 @@ pub enum ClientMessage {
     NameSuccessor { player: PlayerId },
     /// Host only, once the Game is over: everyone goes back to the Lobby.
     PlayAgain,
+    /// The Table device (the Host's phone) has said every line announcing
+    /// `moment`, which now opens.
+    Announced { moment: MomentId },
 }
 
 /// Server → client.

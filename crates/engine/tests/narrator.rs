@@ -2,6 +2,8 @@
 //! only it has the live lines voiced, and only while a Game is in progress. Scripted
 //! only through the engine's public commands and outputs.
 
+mod common;
+
 use wherewolf_engine::{
     Command, Engine, LobbyCode, Moment, Outputs, PlayerView, Randomness, Rejection, Role,
     RoleCounts, SeatToken,
@@ -85,11 +87,13 @@ impl Table {
             .engine
             .handle(&seat(name), command)
             .unwrap_or_else(|reason| panic!("{name} was refused: {reason:?}"));
+        common::announce(&mut self.engine, &mut self.outputs);
     }
 
     fn time_runs_out(&mut self) {
         let timer = self.outputs.timer().expect("the current Moment is timed");
         self.outputs = self.engine.deadline_passed(timer.moment).unwrap();
+        common::announce(&mut self.engine, &mut self.outputs);
     }
 
     /// The Village wins: the Werewolf is voted out on the first Day.

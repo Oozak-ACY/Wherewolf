@@ -100,6 +100,10 @@ pub enum Command {
     NameSuccessor { player: PlayerId },
     /// Host only, once the Game is over: everyone goes back to the Lobby.
     PlayAgain,
+    /// Host only (their phone is the Table device): the Narrator has said
+    /// every line announcing `moment`, which now opens. Refused unless
+    /// `moment` is the one being announced.
+    Announced { moment: MomentId },
 }
 
 /// Why a command was refused. The engine's state is unchanged.
@@ -398,6 +402,10 @@ pub struct PlayerView {
     /// not yet won. No timer runs and every Game action is refused until
     /// they reclaim their seat.
     pub paused: bool,
+    /// The current Moment, while the Narrator announces it: it opens once
+    /// the Table device has said its lines. Until then nothing runs in it,
+    /// nobody acts in it, and the phones wait for the Narrator.
+    pub announcing: Option<MomentId>,
 }
 
 impl PlayerView {
@@ -550,8 +558,10 @@ pub struct Ballot {
 }
 
 /// Identifies one moment of a Game, so a timer armed for a moment that has
-/// since ended can be told apart from the current one.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// since ended can be told apart from the current one. A Moment being
+/// announced and the same Moment once open have different ids.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct MomentId(u32);
 
 /// The deadline of the current moment: once `seconds` have passed since the
@@ -660,6 +670,8 @@ struct Game {
     mayor: Option<PlayerId>,
     /// How long the current Turn lasts, if it is a Feigned Turn.
     feigned: Option<u32>,
+    /// False while the Narrator announces the current Moment.
+    open: bool,
 }
 
 /// What a Player's Elimination sets off, resolved one at a time before the
@@ -768,6 +780,10 @@ enum MomentState {
 /// How long the Narrator's announcements stay on screen, in seconds.
 pub const ANNOUNCEMENT_SECONDS: u32 = 10;
 
+/// How long a Moment waits for the Table device to say it has been
+/// announced, before it opens anyway. Longer than any Moment's lines.
+pub const ANNOUNCEMENT_BACKSTOP_SECONDS: u32 = 30;
+
 /// The choices made most often, tied, in the order they were first made.
 /// Empty if none was.
 fn top_choices<T: Copy + PartialEq>(designated: impl Iterator<Item = T>) -> Vec<T> {
@@ -804,14 +820,39 @@ fn cast(ballots: &mut Vec<Ballot>, voter: PlayerId, designated: Option<PlayerId>
 }
 
 impl Game {
+    /// Moves on to a new Moment, which the Narrator announces before it opens.
     fn go_to(&mut self, state: MomentState) {
+        self.go_to_unannounced(state);
+        self.open = false;
+    }
+
+    /// Moves on to a Moment the Narrator says nothing new about, open at once.
+    fn go_to_unannounced(&mut self, state: MomentState) {
         self.state = state;
         self.moment_id = MomentId(self.moment_id.0 + 1);
         self.feigned = None;
     }
 
+    /// The Narrator has announced the current Moment: it opens, with its
+    /// timer from the start.
+    fn open(&mut self) {
+        self.open = true;
+        self.moment_id = MomentId(self.moment_id.0 + 1);
+    }
+
+    /// The current Moment, while the Narrator announces it.
+    fn announcing(&self) -> Option<MomentId> {
+        (!self.open).then_some(self.moment_id)
+    }
+
     /// `None` once the Game is over: nothing is timed any more.
     fn timer(&self, timers: &Timers) -> Option<Timer> {
+        if !self.open {
+            return Some(Timer {
+                moment: self.moment_id,
+                seconds: ANNOUNCEMENT_BACKSTOP_SECONDS,
+            });
+        }
         let seconds = match self.state {
             // Everyone takes the time they need to read their Role.
             MomentState::RoleReveal { .. } => return None,
@@ -973,6 +1014,15 @@ impl Engine {
             self.seat_of(seat)?;
             return Err(Rejection::Paused);
         }
+        let acts_in_the_moment = !comes_and_goes
+            && !matches!(
+                command,
+                Command::UpdateSettings { .. } | Command::Start | Command::Announced { .. }
+            );
+        if acts_in_the_moment && self.announcing().is_some() {
+            self.seat_of(seat)?;
+            return Err(Rejection::NotNow);
+        }
         match command {
             Command::Join { name } => {
                 let name = name.trim().to_string();
@@ -1054,6 +1104,7 @@ impl Engine {
                     triggers: VecDeque::new(),
                     mayor: None,
                     feigned: None,
+                    open: false,
                 });
             }
             Command::ConfirmRole => {
@@ -1083,8 +1134,8 @@ impl Engine {
                     .and_then(|s| s.role)
                     .expect("a living Player of this Game has a Role");
                 // Her action is complete: a new Moment, timed only for her
-                // to read what she saw.
-                self.game_mut().go_to(MomentState::SeersTurn {
+                // to read what she saw. The Narrator has nothing new to say.
+                self.game_mut().go_to_unannounced(MomentState::SeersTurn {
                     inspection: Some(Inspection { player, role }),
                     passed: false,
                 });
@@ -1221,6 +1272,13 @@ impl Engine {
                 self.require_in_play(Some(player))?;
                 self.hand_over_mayor(player, false, then);
             }
+            Command::Announced { moment } => {
+                self.require_host(seat)?;
+                if self.announcing() != Some(moment) {
+                    return Err(Rejection::NotNow);
+                }
+                self.game_mut().open();
+            }
             Command::PlayAgain => {
                 self.require_host(seat)?;
                 if !self.game.as_ref().is_some_and(Game::is_over) {
@@ -1251,6 +1309,11 @@ impl Engine {
         let game = self.game.as_ref().ok_or(Rejection::NotNow)?;
         if game.moment_id != moment {
             return Err(Rejection::NotNow);
+        }
+        // The Table device never said it was announced: it opens anyway.
+        if !game.open {
+            self.game_mut().open();
+            return Ok(self.outputs());
         }
         match &game.state {
             // Untimed: no deadline ever passes.
@@ -1332,6 +1395,11 @@ impl Engine {
             return Err(Rejection::NotNow);
         }
         Ok(())
+    }
+
+    /// The current Moment, while the Narrator announces it.
+    fn announcing(&self) -> Option<MomentId> {
+        self.game.as_ref().and_then(Game::announcing)
     }
 
     fn require_host(&self, token: &SeatToken) -> Result<(), Rejection> {
@@ -1959,6 +2027,10 @@ impl Engine {
 
     /// Whether `viewer` may see how long the current Moment has left.
     fn sees_countdown(&self, viewer: &Seat) -> bool {
+        // The backstop of an announcement is no countdown.
+        if self.announcing().is_some() {
+            return false;
+        }
         let acting = match self.state() {
             Some(MomentState::SeersTurn { .. }) => Role::Seer,
             Some(MomentState::WerewolvesTurn { .. }) => Role::Werewolf,
@@ -2031,8 +2103,10 @@ impl Engine {
                     receives: self.received_by(s),
                     audience: self.audience_of(s),
                     sees_countdown: self.sees_countdown(s),
-                    may_end_debate: self.require_debate_leader(&s.token).is_ok(),
+                    may_end_debate: self.announcing().is_none()
+                        && self.require_debate_leader(&s.token).is_ok(),
                     paused,
+                    announcing: self.announcing(),
                 };
                 (s.token.clone(), view)
             })

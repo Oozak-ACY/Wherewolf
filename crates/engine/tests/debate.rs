@@ -1,6 +1,8 @@
 //! Ending the Day's debate early: the Host on the first Day, the Mayor once
 //! elected, scripted only through the engine's public commands and outputs.
 
+mod common;
+
 use wherewolf_engine::{
     Command, Engine, LobbyCode, Moment, Outputs, PlayerId, PlayerView, Randomness, Rejection,
     Role, RoleCounts, SeatToken,
@@ -61,12 +63,14 @@ impl Table {
         engine
             .handle(&seat(HOST), Command::UpdateSettings { settings })
             .unwrap();
-        engine.handle(&seat(HOST), Command::Start).unwrap();
+        let mut started = engine.handle(&seat(HOST), Command::Start).unwrap();
+        common::announce(&mut engine, &mut started);
         let mut outputs = None;
         for name in &names {
             outputs = Some(engine.handle(&seat(name), Command::ConfirmRole).unwrap());
         }
-        let outputs = outputs.unwrap();
+        let mut outputs = outputs.unwrap();
+        common::announce(&mut engine, &mut outputs);
         let players = names
             .into_iter()
             .map(|name| {
@@ -128,6 +132,7 @@ impl Table {
     fn time_runs_out(&mut self) {
         let timer = self.outputs.timer().expect("the current Moment is timed");
         self.outputs = self.engine.deadline_passed(timer.moment).unwrap();
+        common::announce(&mut self.engine, &mut self.outputs);
     }
 
     fn act(&mut self, name: &str, command: Command) {
@@ -135,6 +140,7 @@ impl Table {
             .engine
             .handle(&seat(name), command)
             .unwrap_or_else(|reason| panic!("{name} was refused: {reason:?}"));
+        common::announce(&mut self.engine, &mut self.outputs);
     }
 
     /// Asserts `command` is refused and changes nothing, and says why.

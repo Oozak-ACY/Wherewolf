@@ -1,5 +1,7 @@
 //! The Witch's Turn, scripted only through the engine's public commands and outputs.
 
+mod common;
+
 use std::collections::BTreeSet;
 
 use wherewolf_engine::{
@@ -76,13 +78,15 @@ impl Table {
         engine
             .handle(&seat("P1"), Command::UpdateSettings { settings })
             .unwrap();
-        engine.handle(&seat("P1"), Command::Start).unwrap();
+        let mut started = engine.handle(&seat("P1"), Command::Start).unwrap();
+        common::announce(&mut engine, &mut started);
         // Everyone confirms their Role: the first Night falls.
         let mut outputs = None;
         for name in &names {
             outputs = Some(engine.handle(&seat(name), Command::ConfirmRole).unwrap());
         }
-        let outputs = outputs.unwrap();
+        let mut outputs = outputs.unwrap();
+        common::announce(&mut engine, &mut outputs);
         let players = names
             .into_iter()
             .map(|name| {
@@ -157,6 +161,7 @@ impl Table {
             .engine
             .deadline_passed(timer.moment)
             .expect("the deadline is for the current Moment");
+        common::announce(&mut self.engine, &mut self.outputs);
     }
 
     fn act(&mut self, name: &str, command: Command) {
@@ -164,6 +169,7 @@ impl Table {
             .engine
             .handle(&seat(name), command)
             .unwrap_or_else(|reason| panic!("{name} was refused: {reason:?}"));
+        common::announce(&mut self.engine, &mut self.outputs);
     }
 
     /// Asserts `command` is refused and changes nothing, and says why.

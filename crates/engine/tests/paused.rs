@@ -3,6 +3,8 @@
 //! seat and the Game resumes on the same Moment. Scripted only through the
 //! engine's public commands and outputs.
 
+mod common;
+
 use wherewolf_engine::{
     Command, Engine, LobbyCode, Moment, Outputs, PlayerView, Randomness, Rejection, Role,
     RoleCounts, SeatToken, Timer,
@@ -124,6 +126,7 @@ impl Table {
             .engine
             .deadline_passed(timer.moment)
             .expect("the deadline is for the current Moment");
+        common::announce(&mut self.engine, &mut self.outputs);
     }
 
     fn act(&mut self, name: &str, command: Command) {
@@ -131,6 +134,7 @@ impl Table {
             .engine
             .handle(&seat(name), command)
             .unwrap_or_else(|reason| panic!("{name} was refused: {reason:?}"));
+        common::announce(&mut self.engine, &mut self.outputs);
     }
 
     fn refused(&mut self, name: &str, command: Command) -> Rejection {

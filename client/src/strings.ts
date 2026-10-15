@@ -125,6 +125,7 @@ export const fr = {
             ? "Il te reste la potion de poison."
             : "Tu as utilisé tes deux potions.",
     asleep: "Tu dors : garde les yeux fermés jusqu'à ce que le Narrateur t'appelle.",
+    narratorSpeaking: "Le Narrateur parle…",
     electPrompt: "Qui doit être Maire ?",
     votePrompt: "Qui faut-il éliminer ?",
     votedCount: (voted: number, living: number) => `${voted} / ${living} ont voté`,

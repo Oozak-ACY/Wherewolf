@@ -3,6 +3,8 @@
 //! server reports how long a Disconnection has lasted. Scripted only through
 //! the engine's public commands and outputs.
 
+mod common;
+
 use wherewolf_engine::{
     Command, Engine, GracePeriod, LobbyCode, Moment, Outputs, PlayerView, Randomness, Rejection,
     Role, SeatToken, Settings,
@@ -56,6 +58,7 @@ impl Lobby {
 
     fn try_act(&mut self, name: &str, command: Command) -> Result<(), Rejection> {
         self.outputs = self.engine.handle(&seat(name), command)?;
+        common::announce(&mut self.engine, &mut self.outputs);
         Ok(())
     }
 
@@ -112,6 +115,7 @@ impl Lobby {
         self.outputs = self
             .engine
             .grace_period_passed(grace.disconnection, elapsed)?;
+        common::announce(&mut self.engine, &mut self.outputs);
         Ok(())
     }
 
@@ -119,6 +123,7 @@ impl Lobby {
     fn time_runs_out(&mut self) {
         let timer = self.outputs.timer().expect("the current Moment is timed");
         self.outputs = self.engine.deadline_passed(timer.moment).unwrap();
+        common::announce(&mut self.engine, &mut self.outputs);
     }
 
     fn moment(&self) -> &Moment {

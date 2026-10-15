@@ -2,6 +2,8 @@
 //! the first Night falls only once every living Player has confirmed it.
 //! Scripted only through the engine's public commands and outputs.
 
+mod common;
+
 use wherewolf_engine::{
     Command, Engine, LobbyCode, Moment, Outputs, PlayerView, Randomness, Rejection, Role,
     RoleCounts, SeatToken,
@@ -63,12 +65,14 @@ impl Table {
         engine
             .handle(&seat("P1"), Command::UpdateSettings { settings })
             .unwrap();
-        let outputs = engine.handle(&seat("P1"), Command::Start).unwrap();
+        let mut outputs = engine.handle(&seat("P1"), Command::Start).unwrap();
+        common::announce(&mut engine, &mut outputs);
         Self { engine, outputs }
     }
 
     fn try_act(&mut self, name: &str, command: Command) -> Result<(), Rejection> {
         self.outputs = self.engine.handle(&seat(name), command)?;
+        common::announce(&mut self.engine, &mut self.outputs);
         Ok(())
     }
 

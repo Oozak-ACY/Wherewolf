@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Cue } from "./narratorScript";
-import { createNarratorVoice, LIVE_LINE_PATIENCE_MS } from "./narratorVoice";
+import { createNarratorVoice, LINE_GAP_MS, LIVE_LINE_PATIENCE_MS } from "./narratorVoice";
 
 /**
  * Audio that records what it was asked to play, each line lasting until the
@@ -25,6 +25,11 @@ function fakeAudio(mp3s: string[]) {
       ending?.();
       ending = null;
       await vi.advanceTimersByTimeAsync(0);
+    },
+    /** Ends the line playing, and lets the silence before the next one pass. */
+    async next() {
+      await this.end();
+      await vi.advanceTimersByTimeAsync(LINE_GAP_MS);
     },
     /** A live line's audio arrives from the server, or fails to. */
     async arrive(text: string, ok = true) {
@@ -68,7 +73,7 @@ describe("the Narrator's voice on the Table device", () => {
     const voice = createNarratorVoice(audio.deps);
 
     voice.play([nightfall, seersTurn]);
-    await audio.end();
+    await audio.next();
 
     expect(audio.log).toEqual(["stop", "mp3:nightfall", "mp3:seersTurn"]);
   });
@@ -88,7 +93,7 @@ describe("the Narrator's voice on the Table device", () => {
     const voice = createNarratorVoice(audio.deps);
 
     voice.play([nightfall, seersTurn]);
-    await audio.end();
+    await audio.next();
 
     expect(audio.log).toEqual(["stop", "speech:La nuit tombe.", "mp3:seersTurn"]);
   });
@@ -108,7 +113,7 @@ describe("the Narrator's voice on the Table device", () => {
 
     voice.play([dawn, deaths]);
     await audio.arrive(deaths.text);
-    await audio.end();
+    await audio.next();
 
     expect(audio.log).toEqual(["stop", `load:${deaths.text}`, "mp3:dawn", `live:${deaths.text}`]);
   });
@@ -118,7 +123,7 @@ describe("the Narrator's voice on the Table device", () => {
     const voice = createNarratorVoice(audio.deps);
 
     voice.play([dawn, deaths]);
-    await audio.end();
+    await audio.next();
     await vi.advanceTimersByTimeAsync(LIVE_LINE_PATIENCE_MS - 1);
     await audio.arrive(deaths.text);
 
@@ -131,7 +136,7 @@ describe("the Narrator's voice on the Table device", () => {
 
     voice.play([dawn, deaths]);
     await audio.arrive(deaths.text, false);
-    await audio.end();
+    await audio.next();
 
     expect(audio.log.at(-1)).toBe(`speech:${deaths.text}`);
   });
@@ -141,7 +146,7 @@ describe("the Narrator's voice on the Table device", () => {
     const voice = createNarratorVoice(audio.deps);
 
     voice.play([dawn, deaths]);
-    await audio.end();
+    await audio.next();
     await vi.advanceTimersByTimeAsync(LIVE_LINE_PATIENCE_MS);
     await audio.arrive(deaths.text);
 
@@ -154,7 +159,7 @@ describe("the Narrator's voice on the Table device", () => {
 
     voice.play([dawn, deaths]);
     await audio.arrive(deaths.text);
-    await audio.end();
+    await audio.next();
 
     expect(audio.log.at(-1)).toBe(`speech:${deaths.text}`);
   });
@@ -177,7 +182,7 @@ describe("the Narrator's voice on the Table device", () => {
     const voice = createNarratorVoice(audio.deps);
 
     voice.play([{ type: "background", phase: "night" }, nightfall, { type: "sound", sound: "howl" }, seersTurn]);
-    await audio.end();
+    await audio.next();
 
     expect(audio.log).toEqual(["stop", "mp3:nightfall", "speech:La Voyante se réveille."]);
   });
@@ -192,6 +197,69 @@ describe("the Narrator's voice on the Table device", () => {
     await audio.end();
 
     expect(audio.log).toEqual(["stop", "mp3:nightfall", "stop", "mp3:dawn"]);
+  });
+
+  test("leaves a silence between two lines", async () => {
+    const audio = fakeAudio(["nightfall", "seersTurn"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([nightfall, seersTurn]);
+    await audio.end();
+    await vi.advanceTimersByTimeAsync(LINE_GAP_MS - 1);
+    expect(audio.log).toEqual(["stop", "mp3:nightfall"]);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(audio.log).toEqual(["stop", "mp3:nightfall", "mp3:seersTurn"]);
+  });
+
+  test("sounds and backgrounds add no silence of their own", async () => {
+    const audio = fakeAudio(["nightfall", "seersTurn"]);
+    const voice = createNarratorVoice(audio.deps);
+
+    voice.play([{ type: "background", phase: "night" }, { type: "sound", sound: "howl" }, nightfall]);
+    expect(audio.log).toEqual(["stop", "mp3:nightfall"]);
+
+    voice.play([nightfall, { type: "sound", sound: "howl" }, seersTurn]);
+    await audio.next();
+    expect(audio.log.at(-1)).toBe("mp3:seersTurn");
+  });
+
+  test("says the Moment is announced as soon as its last line ends", async () => {
+    const audio = fakeAudio(["nightfall", "seersTurn"]);
+    const voice = createNarratorVoice(audio.deps);
+    const announced = vi.fn();
+
+    voice.play([nightfall, seersTurn], announced);
+    await audio.next();
+    expect(announced).not.toHaveBeenCalled();
+
+    await audio.end();
+    expect(announced).toHaveBeenCalledOnce();
+  });
+
+  test("with no line to say, the Moment is announced at once", async () => {
+    const audio = fakeAudio([]);
+    const voice = createNarratorVoice(audio.deps);
+    const announced = vi.fn();
+
+    voice.play([{ type: "background", phase: "day" }], announced);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(announced).toHaveBeenCalledOnce();
+  });
+
+  test("cues cut by a new Moment never say their Moment was announced", async () => {
+    const audio = fakeAudio(["nightfall", "dawn"]);
+    const voice = createNarratorVoice(audio.deps);
+    const announced = vi.fn();
+
+    voice.play([nightfall], announced);
+    voice.play([dawn]);
+    await audio.end();
+    voice.stop();
+    await audio.end();
+
+    expect(announced).not.toHaveBeenCalled();
   });
 
   test("stopping silences the line playing and drops the rest", async () => {

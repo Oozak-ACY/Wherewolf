@@ -586,6 +586,9 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
             ClientMessage::PlayAgain => {
                 lobby.command(&seat, Command::PlayAgain, &outbox);
             }
+            ClientMessage::Announced { moment } => {
+                lobby.command(&seat, Command::Announced { moment }, &outbox);
+            }
         }
     }
 

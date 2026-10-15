@@ -8,6 +8,9 @@ import type { Cue, FixedLine } from "./narratorScript";
  */
 export const LIVE_LINE_PATIENCE_MS = 3000;
 
+/** The silence between two of the Narrator's lines, so each one lands. */
+export const LINE_GAP_MS = 2000;
+
 export type NarratorVoiceDeps = {
   /**
    * Plays the MP3 of a fixed line, resolving once it ends or is stopped.
@@ -43,8 +46,12 @@ export function createNarratorVoice({ playMp3, speak, loadLive, playLive, stop }
   };
 
   return {
-    /** Plays `cues` in order, cutting whatever the previous ones were saying. */
-    play(cues: Cue[]) {
+    /**
+     * Plays `cues` in order, cutting whatever the previous ones were saying,
+     * then calls `announced` once their last line has ended (at once if they
+     * have none). Never called for cues cut before their end.
+     */
+    play(cues: Cue[], announced?: () => void) {
       silence();
       const current = latestCues;
       // Requested right away, so they are voiced while the lines before them play.
@@ -52,15 +59,23 @@ export function createNarratorVoice({ playMp3, speak, loadLive, playLive, stop }
         cues.flatMap((cue) => (cue.type === "live" ? [[cue.text, loadLive(cue.text).catch(() => false)]] : [])),
       );
       void (async () => {
+        let spoken = false;
         for (const cue of cues) {
+          if (cue.type !== "fixed" && cue.type !== "live") continue;
+          if (spoken) {
+            await wait(LINE_GAP_MS);
+            if (latestCues !== current) return;
+          }
+          spoken = true;
           if (cue.type === "fixed") await (playMp3(cue.key) ?? speak(cue.text));
-          else if (cue.type === "live") {
+          else {
             const arrived = await withinPatience(loading.get(cue.text)!);
             if (latestCues !== current) return;
             await ((arrived && playLive(cue.text)) || speak(cue.text));
           }
           if (latestCues !== current) return;
         }
+        announced?.();
       })();
     },
     /** Silences the line playing, and drops the ones after it. */
@@ -75,4 +90,8 @@ function withinPatience(arrival: Promise<boolean>): Promise<boolean> {
     timer = setTimeout(() => resolve(false), LIVE_LINE_PATIENCE_MS);
   });
   return Promise.race([arrival, late]).finally(() => clearTimeout(timer));
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
