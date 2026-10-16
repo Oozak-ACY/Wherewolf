@@ -52,15 +52,15 @@ function phaseOf(type: MomentType): Phase | null {
 /**
  * The cues the Table device plays when its view goes from `previous` to
  * `next`. `previous` is `null` when there is nothing to follow on, like
- * the Table device taking its seat back. Silent while the Game is Paused;
- * on resume, the current Moment's line is said again, without its one-off
- * sound: that marks the Moment's start. Back in the Lobby, the background
- * fades out.
+ * the Table device taking its seat back. Silent while the Game is Paused,
+ * the background faded out; on resume, the current Moment's line is said
+ * again over its background, without its one-off sound: that marks the
+ * Moment's start. Back in the Lobby, the background fades out.
  */
 export function narratorCues(previous: NarratorView | null, next: NarratorView): Cue[] {
   const moment = next.moment;
   if (!moment) return previous?.moment ? [{ type: "background", phase: null }] : [];
-  if (next.paused) return [];
+  if (next.paused) return previous?.moment && !previous.paused ? [{ type: "background", phase: null }] : [];
   const before = (!previous?.paused && previous?.moment?.type) || null;
   // Changes within the same Moment, like the Seer's reading Moment, say nothing new.
   if (before === moment.type) return [];

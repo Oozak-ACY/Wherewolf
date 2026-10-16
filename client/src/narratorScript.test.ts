@@ -278,8 +278,23 @@ describe("the Day", () => {
 });
 
 describe("Paused", () => {
-  test("the Narrator is silent while the Game is Paused", () => {
-    expect(narratorCues(view(seersTurn), view(werewolvesTurn, everyone, false, true))).toEqual([]);
+  test("pausing silences the Narrator and fades the background out", () => {
+    expect(narratorCues(view(seersTurn), view(seersTurn, everyone, false, true))).toEqual([
+      { type: "background", phase: null },
+    ]);
+    expect(narratorCues(view(seersTurn), view(werewolvesTurn, everyone, false, true))).toEqual([
+      { type: "background", phase: null },
+    ]);
+  });
+
+  test("the Narrator stays silent while the Game is Paused", () => {
+    const paused = view(seersTurn, everyone, false, true);
+
+    expect(narratorCues(paused, view(werewolvesTurn, everyone, false, true))).toEqual([]);
+  });
+
+  test("the Table device taking its seat back in a Paused Game plays no background", () => {
+    expect(narratorCues(null, view(vote, everyone, false, true))).toEqual([]);
   });
 
   test("on resume, the current Moment's line is said again, with its background", () => {
