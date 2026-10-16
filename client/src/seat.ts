@@ -1,13 +1,15 @@
 // The seat token lives in this browser only: reopening a Lobby link here
-// reclaims the same seat. No account needed. The display name and the mic
-// mode are remembered here too.
+// reclaims the same seat. No account needed. The display name, the mic mode
+// and the Host's mixer levels are remembered here too.
 
 import type { MicMode } from "./micControl";
+import { clampLevels, DEFAULT_LEVELS, type MixerLevels } from "./mixer";
 
 const TOKEN_KEY = "wherewolf.seatToken";
 const NAME_KEY = "wherewolf.name";
 const LOBBY_KEY = "wherewolf.seatedIn";
 const MIC_MODE_KEY = "wherewolf.micMode";
+const LEVELS_KEY = "wherewolf.mixerLevels";
 
 export function seatToken(): string {
   const stored = read(TOKEN_KEY);
@@ -46,6 +48,22 @@ export function rememberedMicMode(): MicMode {
 
 export function rememberMicMode(mode: MicMode): void {
   write(MIC_MODE_KEY, mode);
+}
+
+/** The levels the Host left the Table device's faders at, on this phone. */
+export function rememberedLevels(): MixerLevels {
+  const stored = read(LEVELS_KEY);
+  if (!stored) return DEFAULT_LEVELS;
+  try {
+    const levels: unknown = JSON.parse(stored);
+    return typeof levels === "object" && levels !== null ? clampLevels(levels) : DEFAULT_LEVELS;
+  } catch {
+    return DEFAULT_LEVELS;
+  }
+}
+
+export function rememberLevels(levels: MixerLevels): void {
+  write(LEVELS_KEY, JSON.stringify(levels));
 }
 
 function read(key: string): string | null {

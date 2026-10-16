@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { GamePanel } from "./GamePanel";
 import { joinLink, lobbyCodeFromPath } from "./joinLink";
+import { MixerControl } from "./MixerControl";
 import type { MomentId } from "./generated/MomentId";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
@@ -258,13 +259,14 @@ function Lobby(props: {
   useWakeLock(view.moment !== null);
 
   // Asleep at Night, a phone shows only what every sleeping phone shows.
-  const asleep = sleepingScreen(view);
-  if (asleep) return <SleepingView screen={asleep} night reconnecting={props.reconnecting} />;
   // While the Narrator announces the coming Moment, every phone waits for the Narrator.
+  const asleep = sleepingScreen(view);
   const waiting = waitingScreen(view);
-  if (waiting) return <SleepingView screen={waiting} night={false} reconnecting={props.reconnecting} />;
-
-  return (
+  const content = asleep ? (
+    <SleepingView screen={asleep} night reconnecting={props.reconnecting} />
+  ) : waiting ? (
+    <SleepingView screen={waiting} night={false} reconnecting={props.reconnecting} />
+  ) : (
     <div className="lobby">
       <section className="stack">
         {props.reconnecting && <p className="banner">{fr.join.connectionLost}</p>}
@@ -326,5 +328,15 @@ function Lobby(props: {
         </button>
       </aside>
     </div>
+  );
+
+  return (
+    <>
+      {/* The Table device's faders, on the Host's phone during the Game only:
+          the one thing that sets their screen apart at Night. First, so the
+          panel stays open from one screen to the next. */}
+      {speaksAloud(view) && view.moment !== null && <MixerControl />}
+      {content}
+    </>
   );
 }

@@ -1,6 +1,7 @@
 // The Table device's sound mix, with Web Audio. Three buses, Narrator, Music
-// & ambiance and Sound effects, end in one limiter, so a boosted level never
-// clips. The ambiance bus dips while the Narrator speaks.
+// & ambiance and Sound effects, each at the Host's level, end in one limiter,
+// so a boosted level never clips. The ambiance bus dips while the Narrator
+// speaks.
 
 import type { Phase, Sound } from "./narratorScript";
 
@@ -29,8 +30,27 @@ const SOUND_FILES: Record<Sound, AmbianceFile> = {
 
 export const AMBIANCE_FILES: AmbianceFile[] = [...Object.values(BACKGROUNDS).flat(), ...Object.values(SOUND_FILES)];
 
-/** Each bus's level until the Host sets their own: 1 is the file as it is. */
-export const DEFAULT_LEVELS = { narrator: 1, ambiance: 0.6, effects: 0.9 };
+/** Each bus's level, as the Host's faders set it: 1 is the file as it is. */
+export type MixerLevels = { narrator: number; ambiance: number; effects: number };
+
+/** Each bus's level until the Host sets their own. */
+export const DEFAULT_LEVELS: MixerLevels = { narrator: 1, ambiance: 0.6, effects: 0.9 };
+
+/** The buses, in the order of the faders and of the test sound's notes. */
+export const BUSES: (keyof MixerLevels)[] = ["narrator", "ambiance", "effects"];
+
+/** The faders' boost: 150%. */
+export const MAX_LEVEL = 1.5;
+
+/** `levels` made safe: each between silence and the boost, its default if it isn't a number. */
+export function clampLevels(levels: Partial<Record<keyof MixerLevels, unknown>>): MixerLevels {
+  const clamp = (bus: keyof MixerLevels) => {
+    const level = levels[bus];
+    if (typeof level !== "number" || Number.isNaN(level)) return DEFAULT_LEVELS[bus];
+    return Math.min(MAX_LEVEL, Math.max(0, level));
+  };
+  return Object.fromEntries(BUSES.map((bus) => [bus, clamp(bus)])) as MixerLevels;
+}
 
 /** The mix's tuning, as it sounded right at the table with the prototype. */
 export const MIX = {
@@ -41,26 +61,38 @@ export const MIX = {
   duckOutSeconds: 0.8,
   /** The crossfade at nightfall and dawn. */
   fadeSeconds: 2.5,
+  /** A fader's glide to its new level, short enough to feel instant, without a click. */
+  levelSeconds: 0.05,
+  /** The test sound: one note per bus, in the order of `BUSES`. */
+  testNotes: [523.25, 659.25, 783.99],
+  testNoteSeconds: 0.35,
+  testNoteLevel: 0.4,
 };
 
 /** What the mix needs of an AudioContext. */
 export type MixContext = Pick<
   BaseAudioContext,
-  "currentTime" | "destination" | "createGain" | "createBufferSource" | "createDynamicsCompressor"
+  "currentTime" | "destination" | "createGain" | "createBufferSource" | "createDynamicsCompressor" | "createOscillator"
 >;
 
 /**
- * Builds the mix on `context`, playing each file `buffer` has loaded; one not
- * loaded yet is skipped. `random` picks where a loop starts.
+ * Builds the mix on `context` at the Host's `levels`, playing each file
+ * `buffer` has loaded; one not loaded yet is skipped. `random` picks where a
+ * loop starts.
  */
 export function createMixer(
   context: MixContext,
   buffer: (file: AmbianceFile) => AudioBuffer | undefined,
   random: () => number = Math.random,
+  levels: MixerLevels = DEFAULT_LEVELS,
 ) {
+  const start = clampLevels(levels);
   const limiter = context.createDynamicsCompressor();
+  // As hard as a compressor gets: three buses boosted to 150% still never clip.
   limiter.threshold.value = -6;
-  limiter.ratio.value = 12;
+  limiter.knee.value = 0;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.001;
   limiter.connect(context.destination);
   const bus = (level: number, into: AudioNode) => {
     const gain = context.createGain();
@@ -68,10 +100,12 @@ export function createMixer(
     gain.connect(into);
     return gain;
   };
-  const voice = bus(DEFAULT_LEVELS.narrator, limiter);
   const ducked = bus(1, limiter);
-  const ambiance = bus(DEFAULT_LEVELS.ambiance, ducked);
-  const effects = bus(DEFAULT_LEVELS.effects, limiter);
+  const buses: Record<keyof MixerLevels, GainNode> = {
+    narrator: bus(start.narrator, limiter),
+    ambiance: bus(start.ambiance, ducked),
+    effects: bus(start.effects, limiter),
+  };
 
   const ramp = (param: AudioParam, to: number, seconds: number) => {
     const now = context.currentTime;
@@ -85,7 +119,7 @@ export function createMixer(
 
   return {
     /** Where the Narrator's lines play into. */
-    voice: voice as AudioNode,
+    voice: buses.narrator as AudioNode,
     /**
      * Crossfades to `phase`'s background, or out to silence. The same Phase
      * again only starts the layers that loaded since.
@@ -106,7 +140,7 @@ export function createMixer(
         source.loop = true;
         const gain = context.createGain();
         gain.gain.value = 0;
-        source.connect(gain).connect(ambiance);
+        source.connect(gain).connect(buses.ambiance);
         // Somewhere inside the loop, so a long Game doesn't always hear the same opening.
         source.start(0, random() * loaded.duration);
         ramp(gain.gain, MIX.layers[file] ?? 1, MIX.fadeSeconds);
@@ -119,9 +153,30 @@ export function createMixer(
       if (!loaded) return false;
       const source = context.createBufferSource();
       source.buffer = loaded;
-      source.connect(effects);
+      source.connect(buses.effects);
       source.start();
       return true;
+    },
+    /** The Host moves a fader: each bus glides to its level. */
+    setLevels(levels: MixerLevels) {
+      const safe = clampLevels(levels);
+      for (const name of BUSES) ramp(buses[name].gain, safe[name], MIX.levelSeconds);
+    },
+    /** A short chime, one note through each bus in turn, so the Host hears each fader. */
+    playTest() {
+      BUSES.forEach((name, index) => {
+        const at = context.currentTime + index * MIX.testNoteSeconds;
+        const note = context.createOscillator();
+        note.frequency.value = MIX.testNotes[index]!;
+        const envelope = context.createGain();
+        envelope.gain.value = 0;
+        envelope.gain.setValueAtTime(0, at);
+        envelope.gain.linearRampToValueAtTime(MIX.testNoteLevel, at + 0.02);
+        envelope.gain.linearRampToValueAtTime(0, at + MIX.testNoteSeconds);
+        note.connect(envelope).connect(buses[name]);
+        note.start(at);
+        note.stop(at + MIX.testNoteSeconds + 0.05);
+      });
     },
     /** The Narrator starts or stops speaking: the background dips under the voice. */
     duck(on: boolean) {

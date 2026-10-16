@@ -1,5 +1,14 @@
 import { describe, expect, test } from "vitest";
-import { AMBIANCE_FILES, createMixer, DEFAULT_LEVELS, MIX, type AmbianceFile, type MixContext } from "./mixer";
+import {
+  AMBIANCE_FILES,
+  createMixer,
+  DEFAULT_LEVELS,
+  MAX_LEVEL,
+  MIX,
+  type AmbianceFile,
+  type MixContext,
+  type MixerLevels,
+} from "./mixer";
 
 /** A gain or other level: remembers where its last ramp is heading. */
 class FakeParam {
@@ -27,6 +36,7 @@ type FakeNode = {
   loop?: boolean;
   started?: { when: number; offset: number };
   stoppedAt?: number;
+  frequency?: FakeParam;
 };
 
 /** An AudioContext that records the graph it builds, at time `now`. */
@@ -52,7 +62,24 @@ function fakeContext() {
     destination,
     createGain: () => node("gain"),
     createDynamicsCompressor: () =>
-      node("limiter", { threshold: new FakeParam(0), ratio: new FakeParam(1) } as Partial<FakeNode>),
+      node("limiter", {
+        threshold: new FakeParam(0),
+        knee: new FakeParam(30),
+        ratio: new FakeParam(1),
+        attack: new FakeParam(0.003),
+      } as Partial<FakeNode>),
+    createOscillator: () => {
+      const oscillator: FakeNode = node("oscillator", {
+        frequency: new FakeParam(440),
+        start: (when = 0) => {
+          oscillator.started = { when, offset: 0 };
+        },
+        stop: (when = 0) => {
+          oscillator.stoppedAt = when;
+        },
+      } as Partial<FakeNode>);
+      return oscillator;
+    },
     createBufferSource: () => {
       const source: FakeNode = node("source", {
         loop: false,
@@ -81,11 +108,11 @@ function fakeContext() {
 }
 
 
-function mixerWith(loaded: AmbianceFile[] = AMBIANCE_FILES) {
+function mixerWith(loaded: AmbianceFile[] = AMBIANCE_FILES, levels?: MixerLevels) {
   const fake = fakeContext();
   const buffer = (name: AmbianceFile) =>
     loaded.includes(name) ? ({ name, duration: 100 } as unknown as AudioBuffer) : undefined;
-  const mixer = createMixer(fake.context, buffer, () => 0.5);
+  const mixer = createMixer(fake.context, buffer, () => 0.5, levels);
   return { ...fake, mixer };
 }
 
@@ -114,6 +141,74 @@ describe("the Table device's mix", () => {
     // A background goes through its layer's gain, then the ambiance bus.
     expect(sources("day-tavern")[0]!.outputs[0]!.outputs[0]!.gain.value).toBe(DEFAULT_LEVELS.ambiance);
     expect(sources("sword-slice")[0]!.outputs[0]!.gain.value).toBe(DEFAULT_LEVELS.effects);
+  });
+});
+
+describe("the Host's levels", () => {
+  /** Each bus's gain: the voice's, the ambiance's and the sounds'. */
+  function busGains(fake: ReturnType<typeof mixerWith>) {
+    fake.mixer.setBackground("day");
+    fake.mixer.playSound("sword");
+    return {
+      narrator: (fake.mixer.voice as unknown as FakeNode).gain,
+      ambiance: fake.sources("day-tavern")[0]!.outputs[0]!.outputs[0]!.gain,
+      effects: fake.sources("sword-slice")[0]!.outputs[0]!.gain,
+    };
+  }
+
+  test("the mix starts at the levels the Host left it at", () => {
+    const fake = mixerWith(AMBIANCE_FILES, { narrator: 1.5, ambiance: 0.2, effects: 0 });
+    const gains = busGains(fake);
+
+    expect(gains.narrator.value).toBe(1.5);
+    expect(gains.ambiance.value).toBe(0.2);
+    expect(gains.effects.value).toBe(0);
+  });
+
+  test("each fader moves its own bus, at once", () => {
+    const fake = mixerWith();
+    const gains = busGains(fake);
+
+    fake.mixer.setLevels({ narrator: 1.4, ambiance: 0.3, effects: 1.1 });
+
+    expect(gains.narrator.target).toBe(1.4);
+    expect(gains.ambiance.target).toBe(0.3);
+    expect(gains.effects.target).toBe(1.1);
+    // A short glide, so a fader never clicks.
+    for (const gain of Object.values(gains)) expect(gain.ramps.at(-1)!.at).toBeLessThanOrEqual(10.1);
+  });
+
+  test("a level stays between silence and the boost", () => {
+    const fake = mixerWith();
+    const gains = busGains(fake);
+
+    fake.mixer.setLevels({ narrator: 3, ambiance: -1, effects: Number.NaN });
+
+    expect(gains.narrator.target).toBe(MAX_LEVEL);
+    expect(gains.ambiance.target).toBe(0);
+    expect(gains.effects.target).toBe(DEFAULT_LEVELS.effects);
+  });
+
+  test("the test sound rings once through each bus, so each fader is heard", () => {
+    const fake = mixerWith();
+    const gains = busGains(fake);
+
+    fake.mixer.playTest();
+
+    const notes = fake.nodes.filter((n) => n.kind === "oscillator");
+    expect(notes).toHaveLength(3);
+    // Each note through its own envelope, then its bus.
+    expect(notes.map((note) => note.outputs[0]!.outputs[0]!.gain)).toEqual([
+      gains.narrator,
+      gains.ambiance,
+      gains.effects,
+    ]);
+    // One after the other, each short.
+    const starts = notes.map((note) => note.started!.when);
+    expect(starts).toEqual([...starts].sort((a, b) => a - b));
+    expect(new Set(starts).size).toBe(3);
+    for (const note of notes) expect(note.stoppedAt! - note.started!.when).toBeLessThan(1);
+    expect(fake.path(notes[2]!).slice(-2)).toEqual(["limiter", "destination"]);
   });
 });
 

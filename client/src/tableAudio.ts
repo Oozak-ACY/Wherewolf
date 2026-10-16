@@ -2,11 +2,12 @@
 // the server voices (iOS ignores an `<audio>` element's volume) and the
 // ambiance, all in one mix; browser speech for everything else.
 
-import { AMBIANCE_FILES, createMixer, type AmbianceFile, type Mixer } from "./mixer";
+import { AMBIANCE_FILES, clampLevels, createMixer, type AmbianceFile, type Mixer, type MixerLevels } from "./mixer";
 import { chooseFrenchVoice, unlockSpeech } from "./narrator";
 import { isRecorded, recordedLines } from "./narratorRecordings";
 import type { FixedLine, Phase } from "./narratorScript";
 import type { NarratorVoiceDeps } from "./narratorVoice";
+import { rememberedLevels, rememberLevels } from "./seat";
 import { fetchLiveLine } from "./server";
 import { fr } from "./strings";
 
@@ -17,12 +18,37 @@ const ambiance = new Map<AmbianceFile, AudioBuffer>();
 let mp3Playing: AudioBufferSourceNode | null = null;
 // The Phase whose background should be playing, for layers that load late.
 let background: Phase | null = null;
+// The Host's faders, as they left them on this phone.
+let levels: MixerLevels | null = null;
 
 /** The AudioContext, and the mix built on it. */
 function audioContext(): AudioContext {
   context ??= new AudioContext();
-  mixer ??= createMixer(context, (file) => ambiance.get(file));
+  mixer ??= createMixer(context, (file) => ambiance.get(file), Math.random, tableLevels());
   return context;
+}
+
+/** The Host's fader levels on this phone. */
+export function tableLevels(): MixerLevels {
+  levels ??= rememberedLevels();
+  return levels;
+}
+
+/** The Host moves a fader: the mix follows at once, and this phone remembers it for the next Games. */
+export function setTableLevels(next: MixerLevels): MixerLevels {
+  levels = clampLevels(next);
+  mixer?.setLevels(levels);
+  rememberLevels(levels);
+  return levels;
+}
+
+/**
+ * Plays the faders' test sound. Must run inside a tap, which also unlocks the
+ * audio of a Host who took their seat back mid-Game, without a Start tap.
+ */
+export function playTableTest(): void {
+  unlockTableAudio();
+  mixer?.playTest();
 }
 
 /**
@@ -99,6 +125,8 @@ function speak(text: string): Promise<void> {
   const speech = window.speechSynthesis;
   const line = new SpeechSynthesisUtterance(text);
   line.lang = "fr-FR";
+  // Speech can't be boosted, only lowered: the Narrator's fader, up to 100%.
+  line.volume = Math.min(1, tableLevels().narrator);
   // Looked up at each line: some browsers list their voices late.
   line.voice = chooseFrenchVoice(speech.getVoices());
   return new Promise((resolve) => {

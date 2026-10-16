@@ -57,6 +57,16 @@ export const fr = {
     leave: "Quitter le salon",
   },
 
+  mixer: {
+    open: "Volumes",
+    title: "Volumes de la table",
+    narrator: "Narrateur",
+    ambiance: "Musique et ambiance",
+    effects: "Effets sonores",
+    test: "Son de test",
+    close: "Fermer",
+  },
+
   settings: {
     title: "Paramètres",
     roles: "Rôles",
