@@ -54,7 +54,8 @@ export function clampLevels(levels: Partial<Record<keyof MixerLevels, unknown>>)
 
 /** The mix's tuning, as it sounded right at the table with the prototype. */
 export const MIX = {
-  layers: { "night-music": 0.7, "night-wind": 0.8, "day-tavern": 0.8 } as Partial<Record<AmbianceFile, number>>,
+  /** The tavern sits 30% under the prototype's tuning, so the Players can argue over its chatter. */
+  layers: { "night-music": 0.7, "night-wind": 0.8, "day-tavern": 0.56 } as Partial<Record<AmbianceFile, number>>,
   /** The background's level, relative to its own, while the Narrator speaks. */
   duckLevel: 0.35,
   duckInSeconds: 0.3,

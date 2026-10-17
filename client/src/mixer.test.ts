@@ -245,6 +245,18 @@ describe("the backgrounds", () => {
     expect(layerGain(tavern!).target).toBe(MIX.layers["day-tavern"]);
   });
 
+  test("the tavern plays 30% under the prototype's level, the Night as it was", () => {
+    const { mixer, sources } = mixerWith();
+    mixer.setBackground("night");
+
+    mixer.setBackground("day");
+
+    const [tavern] = sources("day-tavern");
+    expect(layerGain(tavern!).target).toBe(0.56);
+    expect(layerGain(sources("night-music")[0]!).ramps[0]!.to).toBe(0.7);
+    expect(layerGain(sources("night-wind")[0]!).ramps[0]!.to).toBe(0.8);
+  });
+
   test("nightfall crossfades the tavern back into the Night, with fresh loops", () => {
     const { mixer, sources } = mixerWith();
     mixer.setBackground("night");
