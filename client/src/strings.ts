@@ -189,9 +189,17 @@ export const fr = {
       werewolvesWin: "Les Loups-Garous gagnent : le village est à eux.",
     },
     // Lines with names, spoken live.
-    dawnDeaths: (victims: string) => `Cette nuit, le village a perdu ${victims}.`,
     // A role is `null` while Hidden Roles keeps it secret.
-    withRole: (name: string, role: string | null) => (role ? `${name} (${role})` : name),
+    dawnDeaths: (dead: { name: string; role: string | null }[]) => {
+      const withRoles = dead.every(({ role }) => role);
+      const named = dead.map(({ name, role }) => (withRoles ? `${name}, qui était ${role}` : name));
+      // "qui était" clauses need "et" to show where the last one starts.
+      const list =
+        withRoles && named.length > 1
+          ? `${named.slice(0, -1).join(", ")}, et ${named[named.length - 1]}`
+          : named.join(", ");
+      return `Cette nuit, le village a perdu ${list}.`;
+    },
     elected: (name: string) => `${name} est élu Maire.`,
     electedByLot: (name: string) => `Le sort désigne ${name} comme Maire.`,
     tied: (tied: string) => `Égalité entre ${tied}.`,

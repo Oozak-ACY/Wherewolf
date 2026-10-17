@@ -163,8 +163,24 @@ describe("the dawn", () => {
       { type: "fixed", key: "witchSleeps", text: "La Sorcière range ses fioles et se rendort." },
       { type: "background", phase: "day" },
       { type: "fixed", key: "dawn", text: "Le jour se lève." },
-      { type: "live", text: "Cette nuit, le village a perdu P1 (Villageois), P2 (Voyante)." },
+      { type: "live", text: "Cette nuit, le village a perdu P1, qui était Villageois, et P2, qui était Voyante." },
     ]);
+  });
+
+  test("a death is announced with the Role the dead Player was", () => {
+    const players = [player(1, false, "villager"), player(2)];
+
+    expect(narratorText(view({ type: "dawn", deaths: [1] }, players))).toBe(
+      "Le jour se lève. Cette nuit, le village a perdu P1, qui était Villageois.",
+    );
+  });
+
+  test("three or more deaths are listed with `et` before the last one", () => {
+    const players = [player(1, false, "villager"), player(2, false, "seer"), player(3, false, "witch"), player(4)];
+
+    expect(narratorText(view({ type: "dawn", deaths: [1, 2, 3] }, players))).toBe(
+      "Le jour se lève. Cette nuit, le village a perdu P1, qui était Villageois, P2, qui était Voyante, et P3, qui était Sorcière.",
+    );
   });
 
   test("a death is announced without its cause", () => {

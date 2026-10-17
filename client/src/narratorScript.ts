@@ -109,7 +109,7 @@ function momentCues(moment: Moment, { players, settings }: NarratorView): Cue[] 
         fixed("dawn"),
         moment.deaths.length === 0
           ? fixed("dawnNobody")
-          : live(n.dawnDeaths(moment.deaths.map((id) => n.withRole(name(id), roleOf(id))).join(", "))),
+          : live(n.dawnDeaths(moment.deaths.map((id) => ({ name: name(id), role: roleOf(id) })))),
       ];
     case "discussion":
       return [fixed("discussion")];
