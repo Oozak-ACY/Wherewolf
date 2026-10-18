@@ -43,11 +43,11 @@ The state of a Game while the Host is Disconnected: every timer stops and the Na
 _Avoid_: Frozen, on hold
 
 **Game**:
-One complete session of Werewolf, from the moment the Host starts it until one Camp wins. Takes 5 to 12 Players. It opens with each Player seeing their Role on their phone; the first Night falls only once every living Player has confirmed they have seen it (the Role reveal).
+One complete session of Werewolf, from the moment the Host starts it until one Camp wins, or until nobody is left alive (a draw). Takes 5 to 12 Players. It opens with each Player seeing their Role on their phone; the first Night falls only once every living Player has confirmed they have seen it (the Role reveal).
 _Avoid_: Match, party
 
 **Phase**:
-Either the Night or the Day. A Game alternates Night and Day until a Camp wins.
+Either the Night or the Day. A Game alternates Night and Day until it ends.
 _Avoid_: Round, stage
 
 **Night**:
@@ -65,11 +65,11 @@ The Player the Werewolves choose to kill during their Turn — any living Player
 _Avoid_: Target, prey
 
 **Elimination**:
-Any Player's death, whether by the Werewolves, the Witch's poison, the Vote or the Hunter's shot. The Player becomes a Spectator, and their Role is revealed to everyone unless Hidden Roles is on.
+Any Player's death, whether by the Werewolves, the Witch's poison, the Vote, the Hunter's shot or grief. The Player becomes a Spectator, and their Role is revealed to everyone unless Hidden Roles is on.
 _Avoid_: Kill (for the generic case), removal
 
 **Death trigger**:
-What an Elimination sets off: the Hunter's shot, or the Mayor naming a successor (a Hunter who is also Mayor shoots first). Triggers are resolved one at a time, in the order the deaths happened, right after the announcement of those deaths (the dawn, the Vote's result, or a previous shot); a death they cause can set off another. Victory is checked only once every trigger is resolved. Until their trigger is resolved, the eliminated Player stays at the table rather than becoming a Spectator: the living see and hear them, and they know only what the living know.
+What an Elimination sets off: the Hunter's shot, the Mayor naming a successor (a Hunter who is also Mayor shoots first), or a Lover dying of grief, which the Narrator announces as such. Triggers are resolved one at a time, in the order the deaths happened, right after the announcement of those deaths (the dawn, the Vote's result, or a previous shot); a death they cause can set off another. Victory is checked only once every trigger is resolved. Until their trigger is resolved, the eliminated Player stays at the table rather than becoming a Spectator: the living see and hear them, and they know only what the living know.
 _Avoid_: On-death effect, last will
 
 **Election**:
@@ -112,8 +112,22 @@ The secret card dealt to a Player at the start of a Game, which decides their Ca
 _Avoid_: Character, class, card
 
 **Camp**:
-The side a Player wins or loses with: the Village or the Werewolves.
+The side a Player wins or loses with: the Village, the Werewolves, or the Lovers.
 _Avoid_: Team, faction
 
-**Werewolf**, **Villager**, **Seer**, **Witch**, **Hunter**:
-The Roles available in v1. All but the Werewolf belong to the Village.
+**Werewolf**, **Villager**, **Seer**, **Witch**, **Hunter**, **Cupid**, **Thief**:
+The Roles available. All but the Werewolf belong to the Village.
+
+**Thief**:
+A Village Role that acts only on the second Night, in the first Turn: the Thief may choose a living Player to rob, or nobody. The Theft takes effect at dawn: the Thief takes the robbed Player's Role as it stands (a spent potion stays spent), and the robbed Player holds a Villager card and plays with the Village from then on. The Mayor title and the Lovers bond stay with the robbed Player. A Thief who robs nobody plays as a Villager.
+
+**Theft**:
+The Thief's swap of Roles, taking effect at the dawn after the second Night, once that dawn's deaths and their Death triggers are resolved and before victory is checked. Until then the robbed Player keeps acting with their Role. It is cancelled if the Thief or the robbed Player died that Night. Whenever a Thief is in the Settings, the Narrator says at that dawn that a house was robbed and everyone should check their card, whether or not a Theft took place.
+_Avoid_: Steal, swap
+
+**Cupid**:
+A Village Role that acts only on the first Night: Cupid names two different Players (themself allowed) as the Lovers. If their timer runs out, the Narrator draws the two at random.
+
+**Lovers**:
+The two Players Cupid named. Right after Cupid's Turn they wake together in their own Turn: each sees who their partner is (not their Role) and confirms. The bond is between the two Players, not their Roles. When one Lover is eliminated, the other dies of grief, as a Death trigger. Their Camp follows their current Roles (so a Theft can change it): two Lovers from the same Camp keep it; a Werewolf and a non-Werewolf form the Lovers Camp, which wins only if they are the last two alive. Each keeps their Role's abilities.
+_Avoid_: Couple, lovebirds
