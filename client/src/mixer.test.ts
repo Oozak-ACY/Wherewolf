@@ -348,12 +348,26 @@ describe("one-off sounds", () => {
     expect(mixer.playSound("bottle")).toBe(true);
     expect(mixer.playSound("sword")).toBe(true);
     expect(mixer.playSound("gunshot")).toBe(true);
+    expect(mixer.playSound("rooster")).toBe(true);
 
-    for (const file of ["wolf-howl", "bottle-smash", "sword-slice", "gunshot"] as const) {
+    for (const file of ["wolf-howl", "bottle-smash", "sword-slice", "gunshot", "rooster"] as const) {
       expect(sources(file)).toHaveLength(1);
       expect(sources(file)[0]!.loop).toBe(false);
       expect(sources(file)[0]!.started).toBeDefined();
     }
+  });
+
+  test("the rooster plays through the Sound effects bus", () => {
+    const { mixer, sources } = mixerWith();
+    mixer.playSound("howl");
+    mixer.playSound("rooster");
+
+    expect(sources("rooster")[0]!.outputs[0]).toBe(sources("wolf-howl")[0]!.outputs[0]);
+    expect(sources("rooster")[0]!.outputs[0]!.gain.value).toBe(DEFAULT_LEVELS.effects);
+  });
+
+  test("the rooster is preloaded with the rest of the ambiance", () => {
+    expect(AMBIANCE_FILES).toContain("rooster");
   });
 
   test("a sound not loaded yet is skipped", () => {

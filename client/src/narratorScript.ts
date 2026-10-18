@@ -20,7 +20,7 @@ export type Cue =
   /** The looped background changes to the Phase's, or fades out (`null`). */
   | { type: "background"; phase: Phase | null };
 
-export type Sound = "howl" | "bottle" | "sword" | "gunshot";
+export type Sound = "howl" | "bottle" | "sword" | "gunshot" | "rooster";
 export type Phase = "night" | "day";
 
 /** What the Narrator's script reads from a view. */
@@ -106,6 +106,7 @@ function momentCues(moment: Moment, { players, settings }: NarratorView): Cue[] 
       return [sound("bottle"), fixed("witchsTurn")];
     case "dawn":
       return [
+        sound("rooster"),
         fixed("dawn"),
         moment.deaths.length === 0
           ? fixed("dawnNobody")

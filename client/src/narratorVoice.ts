@@ -12,7 +12,13 @@ export const LIVE_LINE_PATIENCE_MS = 3000;
 export const LINE_GAP_MS = 2000;
 
 /** How long each sound plays before the line after it starts, over its tail. */
-export const SOUND_LEAD_MS: Record<Sound, number> = { howl: 1800, bottle: 900, sword: 700, gunshot: 900 };
+export const SOUND_LEAD_MS: Record<Sound, number> = {
+  howl: 1800,
+  bottle: 900,
+  sword: 700,
+  gunshot: 900,
+  rooster: 1800,
+};
 
 export type NarratorVoiceDeps = {
   /**

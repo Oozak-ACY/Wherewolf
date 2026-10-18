@@ -9,3 +9,4 @@
 | sword-slice.mp3 | dragon-studio-violent-sword-slice-393839.mp3 |
 | gunshot.mp3 | dragon-studio-gunshot-511311.mp3 |
 | bottle-smash.mp3 | universfield-glass-bottle-smash-191998.mp3 |
+| rooster.mp3 | stefan_grace-rooster-233738.mp3 |

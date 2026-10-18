@@ -13,7 +13,8 @@ export type AmbianceFile =
   | "wolf-howl"
   | "bottle-smash"
   | "sword-slice"
-  | "gunshot";
+  | "gunshot"
+  | "rooster";
 
 /** The looped layers of each Phase's background. */
 const BACKGROUNDS: Record<Phase, AmbianceFile[]> = {
@@ -26,6 +27,7 @@ const SOUND_FILES: Record<Sound, AmbianceFile> = {
   bottle: "bottle-smash",
   sword: "sword-slice",
   gunshot: "gunshot",
+  rooster: "rooster",
 };
 
 export const AMBIANCE_FILES: AmbianceFile[] = [...Object.values(BACKGROUNDS).flat(), ...Object.values(SOUND_FILES)];

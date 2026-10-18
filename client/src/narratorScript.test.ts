@@ -115,7 +115,7 @@ describe("the Night", () => {
 
     for (const choice of choices) {
       expect(narratorCues(view(woken), view(choice))).toEqual([]);
-      expect(heard(narratorCues(view(choice), view(dawn))).filter((cue) => cue.startsWith("sound:"))).toEqual([]);
+      expect(heard(narratorCues(view(choice), view(dawn))).filter((cue) => cue.startsWith("sound:") && cue !== "sound:rooster")).toEqual([]);
     }
   });
 
@@ -154,7 +154,7 @@ function cuesAt(moment: Moment, players = everyone, hiddenRoles = false, before:
 }
 
 describe("the dawn", () => {
-  test("the last Role goes back to sleep, day breaks with the Day background, and every death is announced live", () => {
+  test("the last Role goes back to sleep, day breaks with the Day background and a rooster, and every death is announced live", () => {
     const players = [player(1, false, "villager"), player(2, false, "seer"), player(3)];
 
     const cues = narratorCues(view(witchsTurn, players), view({ type: "dawn", deaths: [1, 2] }, players));
@@ -162,6 +162,7 @@ describe("the dawn", () => {
     expect(cues).toEqual([
       { type: "fixed", key: "witchSleeps", text: "La Sorcière range ses fioles et se rendort." },
       { type: "background", phase: "day" },
+      { type: "sound", sound: "rooster" },
       { type: "fixed", key: "dawn", text: "Le jour se lève." },
       { type: "live", text: "Cette nuit, le village a perdu P1, qui était Villageois, et P2, qui était Voyante." },
     ]);
@@ -193,6 +194,7 @@ describe("the dawn", () => {
     expect(heard(cuesAt({ type: "dawn", deaths: [] }, everyone, false, witchsTurn))).toEqual([
       "witchSleeps",
       "background:day",
+      "sound:rooster",
       "dawn",
       "dawnNobody",
     ]);
@@ -317,6 +319,16 @@ describe("Paused", () => {
     const paused = view(werewolvesTurn, everyone, false, true);
 
     expect(heard(narratorCues(paused, view(werewolvesTurn)))).toEqual(["background:night", "werewolvesTurn"]);
+  });
+
+  test("a dawn said again on resume has no rooster", () => {
+    const dawn: Moment = { type: "dawn", deaths: [] };
+
+    expect(heard(narratorCues(view(dawn, everyone, false, true), view(dawn)))).toEqual([
+      "background:day",
+      "dawn",
+      "dawnNobody",
+    ]);
   });
 
   test("the Table device taking its seat back says the current Moment's line again", () => {
