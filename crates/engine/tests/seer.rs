@@ -56,6 +56,7 @@ impl Table {
             seer: 1,
             witch: 0,
             hunter: 0,
+            cupid: 0,
             villager: 4,
         };
         engine

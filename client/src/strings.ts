@@ -7,11 +7,12 @@ import type { Role } from "./generated/Role";
 import type { Timers } from "./generated/Timers";
 import type { MicProblem } from "./useCall";
 
-// Mirror MIN_PLAYERS, MAX_PLAYERS, MAX_WITCHES, TIMER_BOUNDS and GRACE_PERIOD_BOUNDS (the
-// same as TIMER_BOUNDS) in crates/engine/src/lib.rs.
+// Mirror MIN_PLAYERS, MAX_PLAYERS, MAX_WITCHES, MAX_CUPIDS, TIMER_BOUNDS and
+// GRACE_PERIOD_BOUNDS (the same as TIMER_BOUNDS) in crates/engine/src/lib.rs.
 export const MIN_PLAYERS = 5;
 export const MAX_PLAYERS = 12;
 export const MAX_WITCHES = 1;
+export const MAX_CUPIDS = 1;
 export const TIMER_MIN_SECONDS = 10;
 export const TIMER_MAX_SECONDS = 1800;
 
@@ -86,6 +87,8 @@ export const fr = {
       discussion: "Débat du jour",
       election: "Élection du Maire",
       vote: "Vote du village",
+      cupid: "Tour de Cupidon",
+      lovers: "Tour des Amoureux",
       seer: "Tour de la Voyante",
       werewolves: "Tour des Loups-Garous",
       witch: "Tour de la Sorcière",
@@ -107,6 +110,13 @@ export const fr = {
     endDebateToElection: "Passer à l'élection du maire",
     endDebateToVote: "Passer au vote",
     spectator: "spectateur",
+    cupidPick: "Choisis les deux Amoureux. Tu peux te choisir.",
+    cupidConfirm: "Unir ces deux Amoureux",
+    cupidChoosing: "Cupidon choisit les Amoureux…",
+    partner: (name: string) => `Tu es amoureux de ${name}.`,
+    partnerConfirm: "J'ai vu mon Amoureux",
+    partnerConfirmed: "Ton Amoureux le découvre à son tour.",
+    lovers: (first: string, second: string) => `${first} et ${second} sont les Amoureux.`,
     seerPick: "Choisis le joueur dont tu veux découvrir le rôle.",
     seerSaw: (name: string, role: string) => `${name} est ${role}.`,
     seerSawNothing: "La Voyante n'a encore rien vu.",
@@ -169,6 +179,10 @@ export const fr = {
     fixed: {
       roleReveal: "Chacun découvre son rôle en secret sur son téléphone.",
       nightfall: "La nuit tombe.",
+      cupidsTurn: "Cupidon se réveille.",
+      cupidSleeps: "Cupidon a décoché ses flèches et se rendort.",
+      loversTurn: "Les Amoureux se réveillent.",
+      loversSleep: "Les Amoureux se rendorment, le cœur battant.",
       seersTurn: "La Voyante se réveille.",
       // Each Role goes back to sleep with the same line whatever it did.
       seerSleeps: "La Voyante referme les yeux sur ce qu'elle a vu.",
@@ -240,6 +254,10 @@ export const fr = {
       name: "Chasseur",
       power: "Quand tu meurs, tu abats aussitôt un joueur de ton choix.",
     },
+    cupid: {
+      name: "Cupidon",
+      power: "La première nuit, tu désignes deux Amoureux, toi compris si tu veux.",
+    },
     villager: {
       name: "Villageois",
       power: "Aucun pouvoir : seulement ton flair et ta voix pour démasquer les Loups.",
@@ -276,7 +294,7 @@ export const fr = {
     notSeated: "Tu n'as pas de place dans ce salon.",
     invalidName: "Choisis un prénom de 1 à 20 caractères.",
     notHost: "Seul l'hôte peut faire ça.",
-    invalidSettings: `Paramètres refusés : ${MAX_PLAYERS} rôles au plus, une seule Sorcière, et chaque minuterie (comme le délai de reconnexion) entre ${TIMER_MIN_SECONDS} s et ${TIMER_MAX_SECONDS / 60} min.`,
+    invalidSettings: `Paramètres refusés : ${MAX_PLAYERS} rôles au plus, une seule Sorcière, un seul Cupidon, et chaque minuterie (comme le délai de reconnexion) entre ${TIMER_MIN_SECONDS} s et ${TIMER_MAX_SECONDS / 60} min.`,
     notEnoughPlayers: `Il faut au moins ${MIN_PLAYERS} joueurs.`,
     roleCountMismatch: "Il faut autant de rôles que de joueurs.",
     playersDisconnected: "Attends que tous les joueurs soient reconnectés.",
@@ -288,6 +306,7 @@ export const fr = {
     spectating: "Tu es mort : tu ne peux plus agir.",
     notInPlay: "Ce joueur n'est plus en jeu.",
     yourself: "Tu ne peux pas te choisir toi-même.",
+    notTwoPlayers: "Choisis deux joueurs différents.",
     notTied: "Choisis parmi les joueurs à égalité.",
     paused: "La partie est en pause jusqu'au retour de l'hôte.",
   } satisfies Record<Rejection, string>,

@@ -36,6 +36,8 @@ const sound = (sound: Sound): Cue => ({ type: "sound", sound });
 
 /** The line each Night Turn's Role goes back to sleep with. */
 const SLEEP_LINES: Partial<Record<MomentType, FixedLine>> = {
+  cupidsTurn: "cupidSleeps",
+  loversTurn: "loversSleep",
   seersTurn: "seerSleeps",
   werewolvesTurn: "werewolvesSleep",
   witchsTurn: "witchSleeps",
@@ -98,6 +100,10 @@ function momentCues(moment: Moment, { players, settings }: NarratorView): Cue[] 
     // The same line for the whole reveal.
     case "roleReveal":
       return [fixed("roleReveal")];
+    case "cupidsTurn":
+      return [fixed("cupidsTurn")];
+    case "loversTurn":
+      return [fixed("loversTurn")];
     case "seersTurn":
       return [fixed("seersTurn")];
     case "werewolvesTurn":

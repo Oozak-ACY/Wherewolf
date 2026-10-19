@@ -65,6 +65,12 @@ pub enum Command {
     /// The Role reveal: "I've seen my Role". Confirming again changes
     /// nothing.
     ConfirmRole,
+    /// Cupid's Turn: name the two Lovers, two different living Players,
+    /// Cupid included if they like. Ends the Turn.
+    ChooseLovers { lovers: Vec<PlayerId> },
+    /// The Lovers' Turn: "I've seen who my partner is". Confirming again
+    /// changes nothing.
+    ConfirmPartner,
     /// Seer's Turn: see the Role of another living Player, once.
     Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.
@@ -131,9 +137,12 @@ pub enum Rejection {
     NotNow,
     /// The Game cannot start while a seated Player is Disconnected.
     PlayersDisconnected,
-    /// Someone else's Turn: only the Seer inspects, only the Werewolves pick
-    /// a Victim, only the Witch uses potions.
+    /// Someone else's Turn: only Cupid names the Lovers, only the Lovers
+    /// confirm their bond, only the Seer inspects, only the Werewolves pick a
+    /// Victim, only the Witch uses potions.
     NotYourTurn,
+    /// Cupid must name exactly two different Players.
+    NotTwoPlayers,
     /// The Witch has already used this potion in this Game.
     PotionUsed,
     /// There is no Victim to heal tonight.
@@ -166,6 +175,7 @@ pub enum Role {
     Seer,
     Witch,
     Hunter,
+    Cupid,
     Villager,
 }
 
@@ -173,7 +183,7 @@ impl Role {
     pub fn camp(self) -> Camp {
         match self {
             Role::Werewolf => Camp::Werewolves,
-            Role::Seer | Role::Witch | Role::Hunter | Role::Villager => Camp::Village,
+            Role::Seer | Role::Witch | Role::Hunter | Role::Cupid | Role::Villager => Camp::Village,
         }
     }
 }
@@ -231,6 +241,7 @@ pub struct RoleCounts {
     pub seer: u8,
     pub witch: u8,
     pub hunter: u8,
+    pub cupid: u8,
     pub villager: u8,
 }
 
@@ -249,6 +260,7 @@ impl RoleCounts {
             seer: 1,
             witch: 1,
             hunter,
+            cupid: 0,
             villager: (players.max(5) as u8).saturating_sub(special),
         }
     }
@@ -262,6 +274,7 @@ impl RoleCounts {
             (Role::Seer, self.seer),
             (Role::Witch, self.witch),
             (Role::Hunter, self.hunter),
+            (Role::Cupid, self.cupid),
             (Role::Villager, self.villager),
         ]
         .into_iter()
@@ -275,6 +288,7 @@ impl RoleCounts {
             self.seer,
             self.witch,
             self.hunter,
+            self.cupid,
             self.villager,
         ]
         .iter()
@@ -291,6 +305,8 @@ pub struct Timers {
     pub discussion: u32,
     pub election: u32,
     pub vote: u32,
+    pub cupid: u32,
+    pub lovers: u32,
     pub seer: u32,
     pub werewolves: u32,
     pub witch: u32,
@@ -303,11 +319,13 @@ pub struct Timers {
 }
 
 impl Timers {
-    fn all(&self) -> [u32; 10] {
+    fn all(&self) -> [u32; 12] {
         [
             self.discussion,
             self.election,
             self.vote,
+            self.cupid,
+            self.lovers,
             self.seer,
             self.werewolves,
             self.witch,
@@ -325,6 +343,8 @@ impl Default for Timers {
             discussion: 300,
             election: 60,
             vote: 60,
+            cupid: 30,
+            lovers: 30,
             seer: 30,
             werewolves: 60,
             witch: 30,
@@ -385,6 +405,9 @@ pub struct PlayerView {
     pub moment: Option<Moment>,
     /// The Mayor, once elected.
     pub mayor: Option<PlayerId>,
+    /// The two Lovers, in seat order, once Cupid has named them: only to the
+    /// Lovers themselves and to the Spectators. Empty for everyone else.
+    pub lovers: Vec<PlayerId>,
     /// The visibility plan, from this Player's side: who they may see and
     /// hear right now.
     pub receives: Vec<PlayerId>,
@@ -431,6 +454,16 @@ pub enum Moment {
         /// How many living Players have not confirmed yet, never who.
         still_reading: u32,
         /// Whether this Player has confirmed.
+        confirmed: bool,
+    },
+    /// The first Night: Cupid names the two Lovers.
+    CupidsTurn,
+    /// The first Night, right after Cupid's Turn: the Lovers wake together,
+    /// each sees who their partner is (see [`PlayerView::lovers`]), and
+    /// confirms.
+    LoversTurn {
+        /// Whether this Player has confirmed. Always false for anyone but
+        /// the Lovers.
         confirmed: bool,
     },
     /// Night: the Seer inspects another living Player's Role.
@@ -641,6 +674,9 @@ pub const MAX_PLAYERS: usize = 12;
 /// A Game has at most one Witch: her potions are the Game's, not hers.
 pub const MAX_WITCHES: u8 = 1;
 
+/// A Game has at most one Cupid: there is one pair of Lovers.
+pub const MAX_CUPIDS: u8 = 1;
+
 /// Long enough for a first name, short enough to fit under a video tile.
 pub const MAX_NAME_CHARS: usize = 20;
 
@@ -668,6 +704,9 @@ struct Game {
     triggers: VecDeque<Trigger>,
     /// `None` until the Election, on the first Day.
     mayor: Option<PlayerId>,
+    /// In seat order. `None` until Cupid names them, and in a Game without
+    /// Cupid.
+    lovers: Option<[PlayerId; 2]>,
     /// How long the current Turn lasts, if it is a Feigned Turn.
     feigned: Option<u32>,
     /// False while the Narrator announces the current Moment.
@@ -714,6 +753,11 @@ enum Resume {
 enum MomentState {
     /// Who has confirmed seeing their Role.
     RoleReveal {
+        confirmed: Vec<PlayerId>,
+    },
+    CupidsTurn,
+    /// Which Lovers have confirmed they saw their partner.
+    LoversTurn {
         confirmed: Vec<PlayerId>,
     },
     SeersTurn {
@@ -856,6 +900,8 @@ impl Game {
         let seconds = match self.state {
             // Everyone takes the time they need to read their Role.
             MomentState::RoleReveal { .. } => return None,
+            MomentState::CupidsTurn => timers.cupid,
+            MomentState::LoversTurn { .. } => timers.lovers,
             // Her Turn ends once she has read what she saw.
             MomentState::SeersTurn {
                 inspection: Some(_),
@@ -894,6 +940,10 @@ impl Game {
         match &self.state {
             MomentState::RoleReveal { confirmed } => Moment::RoleReveal {
                 still_reading: (living - confirmed.len()) as u32,
+                confirmed: confirmed.contains(&viewer.id),
+            },
+            MomentState::CupidsTurn => Moment::CupidsTurn,
+            MomentState::LoversTurn { confirmed } => Moment::LoversTurn {
                 confirmed: confirmed.contains(&viewer.id),
             },
             MomentState::SeersTurn { inspection, passed } => {
@@ -1076,6 +1126,7 @@ impl Engine {
                     .all(|t| TIMER_BOUNDS.contains(t));
                 if settings.roles.total() > MAX_PLAYERS
                     || settings.roles.witch > MAX_WITCHES
+                    || settings.roles.cupid > MAX_CUPIDS
                     || !timers_valid
                     || !GRACE_PERIOD_BOUNDS.contains(&settings.grace_period)
                 {
@@ -1103,6 +1154,7 @@ impl Engine {
                     },
                     triggers: VecDeque::new(),
                     mayor: None,
+                    lovers: None,
                     feigned: None,
                     open: false,
                 });
@@ -1117,9 +1169,37 @@ impl Engine {
                     confirmed.push(player);
                 }
                 if confirmed.len() == living {
-                    let night = self.nightfall();
+                    let night = self.nightfall(true);
                     self.game_mut().go_to(night);
                     self.feign_if_idle();
+                }
+            }
+            Command::ChooseLovers { lovers } => {
+                self.require_cupids_turn(seat)?;
+                let &[first, second] = &lovers[..] else {
+                    return Err(Rejection::NotTwoPlayers);
+                };
+                if first == second {
+                    return Err(Rejection::NotTwoPlayers);
+                }
+                self.require_in_play(Some(first))?;
+                self.require_in_play(Some(second))?;
+                self.bind_lovers(first, second);
+            }
+            Command::ConfirmPartner => {
+                let lover = self.require_living(seat)?;
+                let is_lover = self.is_lover(self.seat_of(seat)?);
+                let MomentState::LoversTurn { confirmed } = &mut self.game_mut().state else {
+                    return Err(Rejection::NotNow);
+                };
+                if !is_lover {
+                    return Err(Rejection::NotYourTurn);
+                }
+                if !confirmed.contains(&lover) {
+                    confirmed.push(lover);
+                }
+                if confirmed.len() == 2 {
+                    self.end_lovers_turn();
                 }
             }
             Command::Inspect { player } => {
@@ -1318,6 +1398,15 @@ impl Engine {
         match &game.state {
             // Untimed: no deadline ever passes.
             MomentState::RoleReveal { .. } => return Err(Rejection::NotNow),
+            // Cupid named nobody in time: the Lovers are drawn.
+            MomentState::CupidsTurn => {
+                let mut living: Vec<PlayerId> = self.living().map(|s| s.id).collect();
+                let first = self.draw(&living);
+                living.retain(|&id| id != first);
+                let second = self.draw(&living);
+                self.bind_lovers(first, second);
+            }
+            MomentState::LoversTurn { .. } => self.end_lovers_turn(),
             MomentState::SeersTurn { .. } => self.game_mut().go_to(Self::werewolves_turn()),
             MomentState::WerewolvesTurn { .. } => {
                 let victim = self.most_picked();
@@ -1419,6 +1508,19 @@ impl Engine {
             Err(Rejection::Spectating)
         } else {
             Ok(seat.id)
+        }
+    }
+
+    /// The Player on this seat is the living Cupid, and it is their Turn.
+    fn require_cupids_turn(&self, token: &SeatToken) -> Result<(), Rejection> {
+        self.require_living(token)?;
+        let is_cupid = self.seat_of(token)?.role == Some(Role::Cupid);
+        if !matches!(self.state(), Some(MomentState::CupidsTurn)) {
+            Err(Rejection::NotNow)
+        } else if !is_cupid {
+            Err(Rejection::NotYourTurn)
+        } else {
+            Ok(())
         }
     }
 
@@ -1632,9 +1734,20 @@ impl Engine {
         self.living().any(|s| s.role == Some(role))
     }
 
-    /// The first Turn of the Night. The Night order is the Seer, then the
-    /// Werewolves.
-    fn nightfall(&self) -> MomentState {
+    /// The first Turn of the Night. The Night order is Cupid and then the
+    /// Lovers, on the `first` Night only, then the Seer, then the Werewolves.
+    /// Nobody can be dead on the first Night, so neither Cupid's nor the
+    /// Lovers' Turn is ever Feigned.
+    fn nightfall(&self, first: bool) -> MomentState {
+        if first && self.wakes(Role::Cupid) {
+            MomentState::CupidsTurn
+        } else {
+            self.seers_turn_or_after()
+        }
+    }
+
+    /// The Seer's Turn, unless it is skipped: then the Werewolves'.
+    fn seers_turn_or_after(&self) -> MomentState {
         if self.wakes(Role::Seer) {
             MomentState::SeersTurn {
                 inspection: None,
@@ -1643,6 +1756,40 @@ impl Engine {
         } else {
             Self::werewolves_turn()
         }
+    }
+
+    /// Cupid has named `first` and `second`: they are the Lovers for the
+    /// rest of the Game, and wake together right away.
+    fn bind_lovers(&mut self, first: PlayerId, second: PlayerId) {
+        let game = self.game_mut();
+        game.lovers = Some([first.min(second), first.max(second)]);
+        game.go_to(MomentState::LoversTurn {
+            confirmed: Vec::new(),
+        });
+    }
+
+    /// The Lovers go back to sleep, and the Night goes on.
+    fn end_lovers_turn(&mut self) {
+        let next = self.seers_turn_or_after();
+        self.game_mut().go_to(next);
+        self.feign_if_idle();
+    }
+
+    /// The two Lovers, if `viewer` may know who they are: a Lover, or a
+    /// Spectator.
+    fn lovers_seen_by(&self, viewer: &Seat) -> Vec<PlayerId> {
+        match self.game.as_ref().and_then(|g| g.lovers) {
+            Some(lovers) if self.is_lover(viewer) || self.spectating(viewer) => lovers.to_vec(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// Whether `seat` is one of the Lovers.
+    fn is_lover(&self, seat: &Seat) -> bool {
+        self.game
+            .as_ref()
+            .and_then(|g| g.lovers)
+            .is_some_and(|l| l.contains(&seat.id))
     }
 
     /// The Werewolves' Turn, before anyone has picked.
@@ -1842,7 +1989,7 @@ impl Engine {
             None => match then {
                 Resume::Day => self.unless_won(MomentState::Discussion),
                 Resume::Night => {
-                    self.unless_won(self.nightfall());
+                    self.unless_won(self.nightfall(false));
                     self.feign_if_idle();
                 }
             },
@@ -1996,8 +2143,16 @@ impl Engine {
             // Spectators see everyone; the living never see the Spectators.
             Some(_) if self.spectating(receiver) => true,
             Some(_) if self.spectating(sender) => false,
-            // The Seer and the Witch act alone, seeing and heard by no one.
-            Some(MomentState::SeersTurn { .. } | MomentState::WitchsTurn { .. }) => false,
+            // Cupid, the Seer and the Witch act alone, seeing and heard by no one.
+            Some(
+                MomentState::CupidsTurn
+                | MomentState::SeersTurn { .. }
+                | MomentState::WitchsTurn { .. },
+            ) => false,
+            // The Lovers wake together.
+            Some(MomentState::LoversTurn { .. }) => {
+                self.is_lover(receiver) && self.is_lover(sender)
+            }
             Some(MomentState::WerewolvesTurn { .. }) => werewolf(receiver) && werewolf(sender),
             Some(
                 MomentState::RoleReveal { .. }
@@ -2031,13 +2186,16 @@ impl Engine {
         if self.announcing().is_some() {
             return false;
         }
+        let has = |role: Role| viewer.role == Some(role);
         let acting = match self.state() {
-            Some(MomentState::SeersTurn { .. }) => Role::Seer,
-            Some(MomentState::WerewolvesTurn { .. }) => Role::Werewolf,
-            Some(MomentState::WitchsTurn { .. }) => Role::Witch,
+            Some(MomentState::CupidsTurn) => has(Role::Cupid),
+            Some(MomentState::LoversTurn { .. }) => self.is_lover(viewer),
+            Some(MomentState::SeersTurn { .. }) => has(Role::Seer),
+            Some(MomentState::WerewolvesTurn { .. }) => has(Role::Werewolf),
+            Some(MomentState::WitchsTurn { .. }) => has(Role::Witch),
             _ => return true,
         };
-        !self.hidden_roles || !viewer.alive || viewer.role == Some(acting)
+        !self.hidden_roles || !viewer.alive || acting
     }
 
     /// Everyone who may see and hear `sender` now.
@@ -2100,6 +2258,7 @@ impl Engine {
                     spectating: self.spectating(s),
                     moment: self.game.as_ref().map(|g| g.moment(s, living)),
                     mayor: self.mayor(),
+                    lovers: self.lovers_seen_by(s),
                     receives: self.received_by(s),
                     audience: self.audience_of(s),
                     sees_countdown: self.sees_countdown(s),

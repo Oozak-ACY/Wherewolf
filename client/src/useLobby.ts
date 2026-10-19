@@ -159,6 +159,11 @@ export function useLobby(code: string) {
   const start = useCallback(() => command({ type: "start" }), [command]);
   const confirmRole = useCallback(() => command({ type: "confirmRole" }), [command]);
   const endDebate = useCallback(() => command({ type: "endDebate" }), [command]);
+  const chooseLovers = useCallback(
+    (lovers: PlayerId[]) => command({ type: "chooseLovers", lovers }),
+    [command],
+  );
+  const confirmPartner = useCallback(() => command({ type: "confirmPartner" }), [command]);
   const inspect = useCallback(
     (player: PlayerId) => command({ type: "inspect", player }),
     [command],
@@ -222,6 +227,8 @@ export function useLobby(code: string) {
     start,
     confirmRole,
     endDebate,
+    chooseLovers,
+    confirmPartner,
     inspect,
     pickVictim,
     heal,

@@ -14,18 +14,27 @@ export type SleepingScreen = {
   pausedBy: string | null;
 };
 
-/** The Role that wakes up during each Night Turn. */
-const ACTING: Partial<Record<NonNullable<PlayerView["moment"]>["type"], Role>> = {
-  seersTurn: "seer",
-  werewolvesTurn: "werewolf",
-  witchsTurn: "witch",
+/**
+ * Who wakes up during each Night Turn: the Players holding its Role, or for
+ * the Lovers' Turn, the two Lovers whatever their Roles.
+ */
+const ACTING: Partial<Record<NonNullable<PlayerView["moment"]>["type"], (view: PlayerView) => boolean>> = {
+  cupidsTurn: holds("cupid"),
+  loversTurn: (view) => view.lovers.includes(view.you),
+  seersTurn: holds("seer"),
+  werewolvesTurn: holds("werewolf"),
+  witchsTurn: holds("witch"),
 };
+
+function holds(role: Role): (view: PlayerView) => boolean {
+  return (view) => view.role?.role === role;
+}
 
 /**
  * What this phone shows at Night if its Player is asleep: every living
- * Player but the acting Role's, and the acting Role's too while the Narrator
- * announces their Turn. `null` when the phone is awake: outside the Night,
- * during its Player's own Turn, or for a Spectator, who sees it all.
+ * Player but those acting, and those too while the Narrator announces their
+ * Turn. `null` when the phone is awake: outside the Night, during its
+ * Player's own Turn, or for a Spectator, who sees it all.
  */
 export function sleepingScreen(view: PlayerView): SleepingScreen | null {
   const { moment } = view;
@@ -33,7 +42,7 @@ export function sleepingScreen(view: PlayerView): SleepingScreen | null {
   const acting = ACTING[moment.type];
   if (!acting) return null;
   const alive = view.players.find((p) => p.id === view.you)?.alive ?? false;
-  if (alive && view.role?.role === acting && view.announcing === null) return null;
+  if (alive && acting(view) && view.announcing === null) return null;
   return { line: narratorText(view) ?? "", pausedBy: pausedBy(view) };
 }
 

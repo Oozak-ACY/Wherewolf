@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Role } from "./generated/Role";
 import type { RoleCard } from "./generated/RoleCard";
@@ -10,6 +11,14 @@ import { fr } from "./strings";
  */
 export function roleImageUrl(role: Role): string {
   return `/roles/${role}.png`;
+}
+
+/**
+ * This Player's partner, if they are one of the Lovers. The bond is between
+ * the two Players, whatever their Roles.
+ */
+export function partnerOf(view: PlayerView): PlayerId | undefined {
+  return view.lovers.includes(view.you) ? view.lovers.find((id) => id !== view.you) : undefined;
 }
 
 /**
@@ -27,9 +36,9 @@ export function RoleCardView(props: {
     view.moment?.type === "roleReveal" && !view.moment.confirmed && !view.spectating;
   const role = fr.roles[card.role];
   const camp = fr.camps[card.camp];
-  const fellows = card.fellowWerewolves.map(
-    (id) => view.players.find((p) => p.id === id)?.name ?? "?",
-  );
+  const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? "?";
+  const fellows = card.fellowWerewolves.map(name);
+  const partner = partnerOf(view);
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="role-name">
@@ -51,6 +60,7 @@ export function RoleCardView(props: {
               : fr.roleCard.loneWerewolf}
           </p>
         )}
+        {partner !== undefined && <p className="fellows">{fr.game.partner(name(partner))}</p>}
         <button
           className="primary"
           onClick={() => {

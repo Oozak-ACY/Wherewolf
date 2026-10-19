@@ -55,6 +55,36 @@ function heard(cues: ReturnType<typeof narratorCues>) {
   });
 }
 
+const cupidsTurn: Moment = { type: "cupidsTurn" };
+const loversTurn: Moment = { type: "loversTurn", confirmed: false };
+
+describe("Cupid and the Lovers, on the first Night", () => {
+  test("night falls, then Cupid wakes", () => {
+    expect(heard(narratorCues(view(roleReveal), view(cupidsTurn)))).toEqual([
+      "background:night",
+      "nightfall",
+      "cupidsTurn",
+    ]);
+  });
+
+  test("Cupid goes back to sleep, then the Lovers wake", () => {
+    expect(heard(narratorCues(view(cupidsTurn), view(loversTurn)))).toEqual(["cupidSleeps", "loversTurn"]);
+  });
+
+  test("the Lovers go back to sleep, then the Seer wakes", () => {
+    expect(heard(narratorCues(view(loversTurn), view(seersTurn)))).toEqual(["loversSleep", "seersTurn"]);
+  });
+
+  test("a Lover confirming says nothing new", () => {
+    expect(narratorCues(view(loversTurn), view({ type: "loversTurn", confirmed: true }))).toEqual([]);
+  });
+
+  test("every phone shows the same line, never naming a Lover", () => {
+    expect(narratorText(view(cupidsTurn))).toBe("Cupidon se réveille.");
+    expect(narratorText(view(loversTurn))).toBe("Les Amoureux se réveillent.");
+  });
+});
+
 describe("the Night", () => {
   test("night falls once every Role is seen, with the Night background, then the Seer wakes", () => {
     expect(heard(narratorCues(view(roleReveal), view(seersTurn)))).toEqual([

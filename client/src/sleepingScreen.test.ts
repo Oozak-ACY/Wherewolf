@@ -57,6 +57,7 @@ function view(role: Role | null, moment: Moment, changes: Partial<PlayerView> = 
     spectating: role === null,
     moment,
     mayor: null,
+    lovers: [],
     receives: [],
     audience: [],
     seesCountdown: true,
@@ -87,6 +88,33 @@ describe("a phone at Night", () => {
       expect(sleepingScreen(view(role, moment(role)))).toBeNull();
     });
   }
+
+  test("during Cupid's Turn, Cupid is awake and everyone else sees the same sleeping screen", () => {
+    const cupidsTurn: Moment = { type: "cupidsTurn" };
+    const screens = roles.map((role) => sleepingScreen(view(role, cupidsTurn)));
+
+    expect(sleepingScreen(view("cupid", cupidsTurn))).toBeNull();
+    expect(screens[0]).not.toBeNull();
+    for (const screen of screens) expect(screen).toEqual(screens[0]);
+  });
+
+  test("during the Lovers' Turn, both Lovers are awake whatever their Role, and Cupid sleeps", () => {
+    const loversTurn: Moment = { type: "loversTurn", confirmed: false };
+    const lover = { lovers: [CHLOE, BOB] };
+    const sleepers = [...roles, "cupid" as Role].map((role) => sleepingScreen(view(role, loversTurn)));
+
+    for (const role of roles) expect(sleepingScreen(view(role, loversTurn, lover))).toBeNull();
+    expect(sleepers[0]).not.toBeNull();
+    for (const screen of sleepers) expect(screen).toEqual(sleepers[0]);
+  });
+
+  test("while the Lovers' Turn is announced, the Lovers still sleep like everyone else", () => {
+    const loversTurn: Moment = { type: "loversTurn", confirmed: false };
+
+    expect(sleepingScreen(view("villager", loversTurn, { lovers: [CHLOE, BOB], announcing: 4 }))).toEqual(
+      sleepingScreen(view("villager", loversTurn)),
+    );
+  });
 
   test("while a Turn is announced, its acting Role still sleeps like everyone else", () => {
     const announced = { announcing: 4 };

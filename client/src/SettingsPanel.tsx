@@ -4,10 +4,13 @@ import type { Role } from "./generated/Role";
 import type { RoleCounts } from "./generated/RoleCounts";
 import type { Settings } from "./generated/Settings";
 import type { Timers } from "./generated/Timers";
-import { fr, MAX_PLAYERS, MAX_WITCHES, TIMER_MAX_SECONDS, TIMER_MIN_SECONDS } from "./strings";
+import { fr, MAX_CUPIDS, MAX_PLAYERS, MAX_WITCHES, TIMER_MAX_SECONDS, TIMER_MIN_SECONDS } from "./strings";
 
 // The order the Night calls them in, then the Villagers.
-const ROLES: Role[] = ["werewolf", "seer", "witch", "hunter", "villager"];
+const ROLES: Role[] = ["werewolf", "cupid", "seer", "witch", "hunter", "villager"];
+
+/** The most of each Role a Game may hold, when there is a limit. */
+const MAX_COUNTS: Partial<Record<Role, number>> = { witch: MAX_WITCHES, cupid: MAX_CUPIDS };
 const TIMERS = Object.keys(fr.settings.timer) as (keyof Timers)[];
 
 type Props = {
@@ -51,7 +54,7 @@ export function SettingsPanel({ view, onChange, onStart }: Props) {
                   <strong>{count}</strong>
                   <button
                     aria-label={fr.settings.more(name)}
-                    disabled={roleTotal >= MAX_PLAYERS || (role === "witch" && count >= MAX_WITCHES)}
+                    disabled={roleTotal >= MAX_PLAYERS || count >= (MAX_COUNTS[role] ?? Infinity)}
                     onClick={() => setRoles({ ...settings.roles, [role]: count + 1 })}
                   >
                     +

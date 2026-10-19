@@ -6,6 +6,7 @@ import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
 import { narratorText } from "./narratorScript";
+import { partnerOf } from "./RoleCardView";
 import { fr } from "./strings";
 
 type Props = {
@@ -14,6 +15,8 @@ type Props = {
   endsAt: number | null;
   onConfirmRole: () => void;
   onEndDebate: () => void;
+  onChooseLovers: (lovers: PlayerId[]) => void;
+  onConfirmPartner: () => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onHeal: () => void;
@@ -37,6 +40,7 @@ export function GamePanel(props: Props) {
   const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? "?";
   const me = view.players.find((p) => p.id === view.you);
   const living = view.players.filter((p) => p.alive);
+  const partner = partnerOf(view);
 
   return (
     <section className="card stack game">
@@ -46,6 +50,10 @@ export function GamePanel(props: Props) {
       {view.paused && <p className="banner">{fr.game.paused(name(view.host))}</p>}
       {props.endsAt !== null && <Countdown endsAt={props.endsAt} paused={view.paused} />}
       {view.spectating && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}
+      {/* A Spectator knows the Lovers from the moment Cupid names them. */}
+      {partner === undefined && view.lovers.length === 2 && (
+        <p>{fr.game.lovers(name(view.lovers[0]!), name(view.lovers[1]!))}</p>
+      )}
 
       {moment.type === "roleReveal" && (
         <>
@@ -66,6 +74,27 @@ export function GamePanel(props: Props) {
           {view.mayor === null ? fr.game.endDebateToElection : fr.game.endDebateToVote}
         </button>
       )}
+
+      {moment.type === "cupidsTurn" &&
+        (view.role?.role === "cupid" && me?.alive ? (
+          <CupidsPick living={living} onChooseLovers={props.onChooseLovers} />
+        ) : (
+          <p className="muted">{fr.game.cupidChoosing}</p>
+        ))}
+
+      {moment.type === "loversTurn" &&
+        (partner !== undefined && me?.alive ? (
+          <>
+            <p>{fr.game.partner(name(partner))}</p>
+            {moment.confirmed ? (
+              <p className="muted">{fr.game.partnerConfirmed}</p>
+            ) : (
+              <button className="primary" onClick={props.onConfirmPartner}>
+                {fr.game.partnerConfirm}
+              </button>
+            )}
+          </>
+        ) : null)}
 
       {moment.type === "seersTurn" &&
         (moment.inspection ? (
@@ -253,6 +282,35 @@ export function GamePanel(props: Props) {
           <p className="muted">{fr.game.waitingForHostToPlayAgain}</p>
         ))}
     </section>
+  );
+}
+
+/** Cupid's choice of the two Lovers, any two living Players, sent once both are chosen. */
+function CupidsPick(props: { living: PlayerSummary[]; onChooseLovers: (lovers: PlayerId[]) => void }) {
+  const [chosen, setChosen] = useState<PlayerId[]>([]);
+  // A third choice replaces the oldest one.
+  const toggle = (id: PlayerId) =>
+    setChosen((now) => (now.includes(id) ? now.filter((c) => c !== id) : [...now, id].slice(-2)));
+  return (
+    <>
+      <p>{fr.game.cupidPick}</p>
+      <ul className="choices">
+        {props.living.map((p) => (
+          <li key={p.id}>
+            <button
+              className={chosen.includes(p.id) ? "chosen" : ""}
+              aria-pressed={chosen.includes(p.id)}
+              onClick={() => toggle(p.id)}
+            >
+              {p.name}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button className="primary" disabled={chosen.length !== 2} onClick={() => props.onChooseLovers(chosen)}>
+        {fr.game.cupidConfirm}
+      </button>
+    </>
   );
 }
 

@@ -17,6 +17,11 @@ stillReading: number,
 /**
  * Whether this Player has confirmed.
  */
+confirmed: boolean, } | { "type": "cupidsTurn" } | { "type": "loversTurn", 
+/**
+ * Whether this Player has confirmed. Always false for anyone but
+ * the Lovers.
+ */
 confirmed: boolean, } | { "type": "seersTurn", 
 /**
  * What the Seer learned this Turn. Only the Seer and the Spectators

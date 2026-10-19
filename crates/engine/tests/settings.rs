@@ -60,6 +60,7 @@ fn roles(werewolf: u8, seer: u8, witch: u8, hunter: u8, villager: u8) -> RoleCou
         seer,
         witch,
         hunter,
+        cupid: 0,
         villager,
     }
 }
@@ -99,6 +100,8 @@ fn the_timers_start_at_their_defaults() {
             discussion: 300,
             election: 60,
             vote: 60,
+            cupid: 30,
+            lovers: 30,
             seer: 30,
             werewolves: 60,
             witch: 30,
@@ -329,7 +332,7 @@ fn each_role_card_shows_its_camp() {
         let card = view(&outputs, &player(n)).role.clone().unwrap();
         let expected = match card.role {
             Role::Werewolf => Camp::Werewolves,
-            Role::Villager | Role::Seer | Role::Witch | Role::Hunter => Camp::Village,
+            Role::Villager | Role::Seer | Role::Witch | Role::Hunter | Role::Cupid => Camp::Village,
         };
         assert_eq!(card.camp, expected, "{:?}", card.role);
     }

@@ -37,6 +37,7 @@ const WITHOUT_SEER: RoleCounts = RoleCounts {
     seer: 0,
     witch: 1,
     hunter: 0,
+    cupid: 0,
     villager: 4,
 };
 
@@ -46,6 +47,7 @@ const WITH_SEER: RoleCounts = RoleCounts {
     seer: 1,
     witch: 1,
     hunter: 0,
+    cupid: 0,
     villager: 3,
 };
 
@@ -435,6 +437,7 @@ fn poisoning_the_last_werewolf_wins_the_game_for_the_village() {
         seer: 0,
         witch: 1,
         hunter: 0,
+        cupid: 0,
         villager: 5,
     });
     let witch = table.witch();

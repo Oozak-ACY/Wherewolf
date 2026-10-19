@@ -1,6 +1,10 @@
 {
   "roleReveal": "Chacun découvre son rôle en secret sur son téléphone.",
   "nightfall": "La nuit tombe.",
+  "cupidsTurn": "Cupidon se réveille.",
+  "cupidSleeps": "Cupidon a décoché ses flèches et se rendort.",
+  "loversTurn": "Les Amoureux se réveillent.",
+  "loversSleep": "Les Amoureux se rendorment, le cœur battant.",
   "seersTurn": "La Voyante se réveille.",
   "seerSleeps": "La Voyante referme les yeux sur ce qu'elle a vu.",
   "werewolvesTurn": "Les Loups-Garous se réveillent.",

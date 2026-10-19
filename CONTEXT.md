@@ -93,7 +93,7 @@ A Setting in which an eliminated Player's Role is not revealed to the living. To
 _Avoid_: Secret mode, blind mode
 
 **Turn**:
-The moment during the Night when one Role (or the Werewolves together) wakes up to act, while everyone else stays asleep. It ends as soon as its action is confirmed on the phones (every Werewolf confirming the same Victim, for the Werewolves), or when its timer runs out.
+The moment during the Night when one Role (or the Werewolves together, or the two Lovers whatever their Roles) wakes up to act, while everyone else stays asleep. It ends as soon as its action is confirmed on the phones (every Werewolf confirming the same Victim, for the Werewolves), or when its timer runs out.
 _Avoid_: Step, action phase
 
 **Visibility plan**:

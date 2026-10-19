@@ -27,6 +27,12 @@ pub enum ClientMessage {
     /// The Role reveal: "I've seen my Role". Confirming again changes
     /// nothing.
     ConfirmRole,
+    /// Cupid's Turn: name the two Lovers, two different living Players,
+    /// Cupid included if they like.
+    ChooseLovers { lovers: Vec<PlayerId> },
+    /// The Lovers' Turn: "I've seen who my partner is". Confirming again
+    /// changes nothing.
+    ConfirmPartner,
     /// Seer's Turn: see the Role of another living Player, once.
     Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.

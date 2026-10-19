@@ -133,6 +133,8 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         }}
         onConfirmRole={lobby.confirmRole}
         onEndDebate={lobby.endDebate}
+        onChooseLovers={lobby.chooseLovers}
+        onConfirmPartner={lobby.confirmPartner}
         onInspect={lobby.inspect}
         onPickVictim={lobby.pickVictim}
         onHeal={lobby.heal}
@@ -215,6 +217,8 @@ function Lobby(props: {
   onStart: () => void;
   onConfirmRole: () => void;
   onEndDebate: () => void;
+  onChooseLovers: (lovers: PlayerId[]) => void;
+  onConfirmPartner: () => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onHeal: () => void;
@@ -292,6 +296,8 @@ function Lobby(props: {
               endsAt={props.endsAt}
               onConfirmRole={props.onConfirmRole}
               onEndDebate={props.onEndDebate}
+              onChooseLovers={props.onChooseLovers}
+              onConfirmPartner={props.onConfirmPartner}
               onInspect={props.onInspect}
               onPickVictim={props.onPickVictim}
               onHeal={props.onHeal}

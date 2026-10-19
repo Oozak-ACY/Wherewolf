@@ -44,6 +44,11 @@ moment: Moment | null,
  */
 mayor: PlayerId | null, 
 /**
+ * The two Lovers, in seat order, once Cupid has named them: only to the
+ * Lovers themselves and to the Spectators. Empty for everyone else.
+ */
+lovers: Array<PlayerId>, 
+/**
  * The visibility plan, from this Player's side: who they may see and
  * hear right now.
  */
