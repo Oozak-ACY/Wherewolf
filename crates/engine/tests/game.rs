@@ -484,7 +484,7 @@ fn night_falls_again_after_the_vote_result() {
 impl Table {
     fn winner(&self, viewer: &str) -> Camp {
         match self.moment(viewer) {
-            Moment::Victory { winner } => *winner,
+            Moment::Victory { winner } => winner.expect("a Camp won, not a draw"),
             other => panic!("expected victory, got {other:?}"),
         }
     }

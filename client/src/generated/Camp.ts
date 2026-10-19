@@ -3,4 +3,4 @@
 /**
  * The side a Player wins or loses with.
  */
-export type Camp = "village" | "werewolves";
+export type Camp = "village" | "werewolves" | "lovers";

@@ -50,8 +50,9 @@ export function GamePanel(props: Props) {
       {view.paused && <p className="banner">{fr.game.paused(name(view.host))}</p>}
       {props.endsAt !== null && <Countdown endsAt={props.endsAt} paused={view.paused} />}
       {view.spectating && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}
-      {/* A Spectator knows the Lovers from the moment Cupid names them. */}
-      {partner === undefined && view.lovers.length === 2 && (
+      {/* A Spectator knows the Lovers from the moment Cupid names them, and
+          everyone does on the victory screen. */}
+      {(partner === undefined || moment.type === "victory") && view.lovers.length === 2 && (
         <p>{fr.game.lovers(name(view.lovers[0]!), name(view.lovers[1]!))}</p>
       )}
 

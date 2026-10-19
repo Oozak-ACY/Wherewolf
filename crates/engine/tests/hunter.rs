@@ -468,7 +468,7 @@ fn a_shot_that_ends_the_game_is_announced_before_the_victory() {
     assert_eq!(
         table.moment_for_all(),
         Moment::Victory {
-            winner: Camp::Village
+            winner: Some(Camp::Village)
         }
     );
 }

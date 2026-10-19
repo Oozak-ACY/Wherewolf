@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { Moment } from "./generated/Moment";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import { narratorCues, narratorText, type NarratorView } from "./narratorScript";
+import { fr } from "./strings";
 
 function player(id: number, alive = true, revealedRole: PlayerSummary["revealedRole"] = null) {
   return { id, name: `P${id}`, connected: true, alive, revealedRole } as PlayerSummary;
@@ -331,6 +332,12 @@ describe("the Day", () => {
   test("the victory is a fixed line for each Camp", () => {
     expect(heard(cuesAt({ type: "victory", winner: "village" }))).toEqual(["villageWins"]);
     expect(heard(cuesAt({ type: "victory", winner: "werewolves" }))).toEqual(["werewolvesWin"]);
+    expect(heard(cuesAt({ type: "victory", winner: "lovers" }))).toEqual(["loversWin"]);
+  });
+
+  test("a Game nobody survived ends on a fixed line of its own", () => {
+    expect(heard(cuesAt({ type: "victory", winner: null }))).toEqual(["nobodySurvived"]);
+    expect(fr.narrator.fixed.nobodySurvived).toBe("Personne n'a survécu.");
   });
 });
 

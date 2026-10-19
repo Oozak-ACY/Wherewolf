@@ -43,7 +43,11 @@ const SLEEP_LINES: Partial<Record<MomentType, FixedLine>> = {
   witchsTurn: "witchSleeps",
 };
 
-const VICTORY_LINES: Record<Camp, FixedLine> = { village: "villageWins", werewolves: "werewolvesWin" };
+const VICTORY_LINES: Record<Camp, FixedLine> = {
+  village: "villageWins",
+  werewolves: "werewolvesWin",
+  lovers: "loversWin",
+};
 
 /** The Phase whose background plays at each Moment. None during the Role reveal. */
 function phaseOf(type: MomentType): Phase | null {
@@ -147,6 +151,7 @@ function momentCues(moment: Moment, { players, settings }: NarratorView): Cue[] 
     case "grief":
       return [live(n.grief(name(moment.lover), roleOf(moment.lover)))];
     case "victory":
-      return [fixed(VICTORY_LINES[moment.winner])];
+      // No winner: nobody is left alive.
+      return [fixed(moment.winner ? VICTORY_LINES[moment.winner] : "nobodySurvived")];
   }
 }

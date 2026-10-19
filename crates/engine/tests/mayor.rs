@@ -598,7 +598,7 @@ fn a_mayor_whose_death_decides_the_game_names_no_successor() {
     assert_eq!(
         table.moment_for_all(),
         Moment::Victory {
-            winner: Camp::Werewolves
+            winner: Some(Camp::Werewolves)
         }
     );
 }

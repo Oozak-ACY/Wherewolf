@@ -452,7 +452,7 @@ fn poisoning_the_last_werewolf_wins_the_game_for_the_village() {
     assert!(matches!(
         table.moment("P1"),
         Moment::Victory {
-            winner: Camp::Village
+            winner: Some(Camp::Village)
         }
     ));
 }

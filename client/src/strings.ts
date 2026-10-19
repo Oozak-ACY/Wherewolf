@@ -201,6 +201,8 @@ export const fr = {
       shotLost: "Le Chasseur n'a tiré sur personne.",
       villageWins: "Le Village gagne : les Loups-Garous sont morts.",
       werewolvesWin: "Les Loups-Garous gagnent : le village est à eux.",
+      loversWin: "Les Amoureux gagnent : seuls au monde, ils vivront leur amour.",
+      nobodySurvived: "Personne n'a survécu.",
     },
     // Lines with names, spoken live.
     // A role is `null` while Hidden Roles keeps it secret.
@@ -272,6 +274,7 @@ export const fr = {
       name: "Loups-Garous",
       goal: "Être au moins aussi nombreux que les autres joueurs encore en vie.",
     },
+    lovers: { name: "Amoureux", goal: "Être, ton Amoureux et toi, les deux derniers survivants." },
   } satisfies Record<Camp, { name: string; goal: string }>,
 
   call: {

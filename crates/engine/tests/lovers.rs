@@ -1,11 +1,12 @@
 //! The Lovers' bond in death: when one Lover is eliminated, the other dies of
-//! grief, as a death trigger. Scripted only through the engine's public
-//! commands and outputs.
+//! grief, as a death trigger. And their Camp: a Werewolf and a non-Werewolf
+//! form the Lovers Camp, which wins as the last two alive. Scripted only
+//! through the engine's public commands and outputs.
 
 mod common;
 
 use wherewolf_engine::{
-    Command, Engine, LobbyCode, Moment, Outputs, PlayerId, PlayerView, Randomness, Role,
+    Camp, Command, Engine, LobbyCode, Moment, Outputs, PlayerId, PlayerView, Randomness, Role,
     RoleCounts, SeatToken,
 };
 
@@ -52,8 +53,17 @@ struct Table {
 impl Table {
     /// The Lovers are the Players `lovers` picks among the dealt Roles.
     fn start(hidden_roles: bool, lovers: impl Fn(&Table) -> [String; 2]) -> Self {
+        Self::start_with(ROLES, hidden_roles, lovers)
+    }
+
+    /// The same, with `roles` dealt instead.
+    fn start_with(
+        roles: RoleCounts,
+        hidden_roles: bool,
+        lovers: impl Fn(&Table) -> [String; 2],
+    ) -> Self {
         let mut engine = Engine::new(LobbyCode::new("LOUPS"), Seeded(11));
-        let names: Vec<String> = (1..=ROLES.total()).map(|n| format!("P{n}")).collect();
+        let names: Vec<String> = (1..=roles.total()).map(|n| format!("P{n}")).collect();
         let mut outputs = None;
         for name in &names {
             outputs = Some(engine.handle(&seat(name), join(name)).unwrap());
@@ -64,7 +74,7 @@ impl Table {
             .unwrap()
             .settings
             .clone();
-        settings.roles = ROLES;
+        settings.roles = roles;
         settings.hidden_roles = hidden_roles;
         engine
             .handle(&seat("P1"), Command::UpdateSettings { settings })
@@ -116,6 +126,14 @@ impl Table {
 
     fn villager(&self, n: usize) -> String {
         self.with_role(Role::Villager)[n].clone()
+    }
+
+    fn werewolf(&self, n: usize) -> String {
+        self.with_role(Role::Werewolf)[n].clone()
+    }
+
+    fn cupid(&self) -> String {
+        self.with_role(Role::Cupid)[0].clone()
     }
 
     fn hunter(&self) -> String {
@@ -264,6 +282,24 @@ impl Table {
                 ..
             }
         ));
+    }
+
+    /// The Vote eliminates `designated`, and its result is announced.
+    fn vote_out(&mut self, designated: &str) {
+        self.village_eliminates(designated);
+        self.time_runs_out();
+    }
+
+    /// The Camp on `name`'s Role card.
+    fn camp(&self, name: &str) -> Camp {
+        self.view(name).role.as_ref().unwrap().camp
+    }
+
+    /// The Lovers as `viewer` sees them, sorted.
+    fn lovers_seen_by(&self, viewer: &str) -> Vec<PlayerId> {
+        let mut lovers = self.view(viewer).lovers.clone();
+        lovers.sort();
+        lovers
     }
 
     fn grief(&self, lover: &str) -> Moment {
@@ -498,4 +534,180 @@ fn the_grief_is_announced_for_as_long_as_any_result() {
     for viewer in table.living() {
         assert!(table.view(&viewer).receives_anyone(), "{viewer}");
     }
+}
+
+/// Two Werewolves, Cupid and two Villagers.
+const SMALL: RoleCounts = RoleCounts {
+    werewolf: 2,
+    seer: 0,
+    witch: 0,
+    hunter: 0,
+    cupid: 1,
+    villager: 2,
+};
+
+/// The first Werewolf and the first Villager: a mixed couple.
+fn werewolf_and_villager(table: &Table) -> [String; 2] {
+    [table.werewolf(0), table.villager(0)]
+}
+
+#[test]
+fn a_werewolf_and_a_villager_lover_are_in_the_lovers_camp() {
+    let table = Table::start(false, werewolf_and_villager);
+    let (wolf, villager) = (table.werewolf(0), table.villager(0));
+
+    assert_eq!(table.camp(&wolf), Camp::Lovers);
+    assert_eq!(table.camp(&villager), Camp::Lovers);
+    assert_eq!(table.camp(&table.werewolf(1)), Camp::Werewolves);
+    assert_eq!(table.camp(&table.villager(1)), Camp::Village);
+}
+
+#[test]
+fn two_village_lovers_stay_village_and_two_werewolf_lovers_stay_werewolves() {
+    let village = Table::start(false, two_villagers);
+    assert_eq!(village.camp(&village.villager(0)), Camp::Village);
+    assert_eq!(village.camp(&village.villager(1)), Camp::Village);
+
+    let pack = Table::start(false, |t| [t.werewolf(0), t.werewolf(1)]);
+    assert_eq!(pack.camp(&pack.werewolf(0)), Camp::Werewolves);
+    assert_eq!(pack.camp(&pack.werewolf(1)), Camp::Werewolves);
+}
+
+#[test]
+fn a_werewolf_lover_keeps_their_role_and_still_wakes_with_the_pack() {
+    let table = Table::start(false, werewolf_and_villager);
+    let wolf = table.werewolf(0);
+
+    assert_eq!(
+        table.view(&wolf).role.as_ref().unwrap().role,
+        Role::Werewolf
+    );
+    assert!(table.view(&wolf).receives_anyone());
+}
+
+#[test]
+fn a_mixed_couple_as_the_last_two_alive_wins_and_everyone_sees_who_they_are() {
+    let mut table = Table::start_with(SMALL, false, werewolf_and_villager);
+    let (wolf, cupid) = (table.werewolf(1), table.cupid());
+    table.night(Some(&table.villager(1)), None);
+    table.until_the_vote(&cupid);
+    table.vote_out(&wolf);
+
+    table.night(Some(&cupid), None);
+    table.time_runs_out();
+
+    assert_eq!(
+        table.moment_for_all(),
+        Moment::Victory {
+            winner: Some(Camp::Lovers)
+        }
+    );
+    let couple = table.lovers_seen_by(&table.werewolf(0));
+    assert_eq!(couple.len(), 2);
+    for viewer in table.everyone() {
+        assert_eq!(table.lovers_seen_by(&viewer), couple, "{viewer}");
+    }
+}
+
+#[test]
+fn one_ordinary_werewolf_against_a_mixed_couple_has_not_won_until_the_couple_votes_it_out() {
+    let mut table = Table::start_with(SMALL, false, werewolf_and_villager);
+    let (wolf, cupid) = (table.werewolf(1), table.cupid());
+    table.night(Some(&table.villager(1)), None);
+    table.until_the_vote(&table.villager(0));
+    table.vote_out(&cupid);
+    // One Werewolf outside the couple, against both Lovers: the Night falls.
+    assert!(matches!(
+        table.moment(&table.villager(0)),
+        Moment::WerewolvesTurn { .. }
+    ));
+
+    table.night(None, None);
+    table.until_the_vote(&table.villager(0));
+    table.vote_out(&wolf);
+
+    assert_eq!(
+        table.moment_for_all(),
+        Moment::Victory {
+            winner: Some(Camp::Lovers)
+        }
+    );
+}
+
+#[test]
+fn killing_the_werewolf_lover_with_no_other_werewolf_left_wins_for_the_village() {
+    let mut table = Table::start_with(SMALL, false, werewolf_and_villager);
+    let (lover, wolf, cupid) = (table.werewolf(0), table.werewolf(1), table.cupid());
+    table.night(Some(&table.villager(1)), None);
+    table.until_the_vote(&cupid);
+    table.vote_out(&wolf);
+    table.night(None, None);
+    table.until_the_vote(&cupid);
+
+    table.vote_out(&lover);
+    assert_eq!(table.moment_for_all(), table.grief(&table.villager(0)));
+    table.time_runs_out();
+
+    assert_eq!(
+        table.moment_for_all(),
+        Moment::Victory {
+            winner: Some(Camp::Village)
+        }
+    );
+}
+
+#[test]
+fn the_werewolves_outside_the_couple_win_once_they_are_as_many_as_everyone_else() {
+    let roles = RoleCounts {
+        werewolf: 3,
+        ..SMALL
+    };
+    let mut table = Table::start_with(roles, false, werewolf_and_villager);
+    let cupid = table.cupid();
+    table.night(Some(&table.villager(1)), None);
+    // Two Werewolves outside the couple, against the two Lovers and Cupid.
+    table.time_runs_out();
+    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    table.until_the_vote(&cupid);
+
+    table.vote_out(&cupid);
+
+    assert_eq!(
+        table.moment_for_all(),
+        Moment::Victory {
+            winner: Some(Camp::Werewolves)
+        }
+    );
+}
+
+#[test]
+fn a_chain_of_triggers_that_kills_the_last_living_players_is_a_draw() {
+    let roles = RoleCounts {
+        hunter: 1,
+        villager: 1,
+        ..SMALL
+    };
+    let mut table = Table::start_with(roles, false, |t| [t.werewolf(0), t.hunter()]);
+    let (lover, wolf, hunter, villager) = (
+        table.werewolf(0),
+        table.werewolf(1),
+        table.hunter(),
+        table.villager(0),
+    );
+    table.night(Some(&table.cupid()), None);
+    table.until_the_vote(&villager);
+    table.vote_out(&wolf);
+    table.night(None, None);
+    table.until_the_vote(&villager);
+
+    // The Hunter's partner dies of grief, then he shoots the last one, the Mayor.
+    table.vote_out(&hunter);
+    assert_eq!(table.moment_for_all(), table.grief(&lover));
+    table.time_runs_out();
+    let player = table.id(&villager);
+    table.act(&hunter, Command::Shoot { player });
+    table.time_runs_out();
+
+    assert_eq!(table.moment_for_all(), Moment::Victory { winner: None });
+    assert!(table.living().is_empty());
 }

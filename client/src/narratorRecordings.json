@@ -21,5 +21,7 @@
   "huntersShot": "Il choisit sur qui tirer.",
   "shotLost": "Le Chasseur n'a tiré sur personne.",
   "villageWins": "Le Village gagne : les Loups-Garous sont morts.",
-  "werewolvesWin": "Les Loups-Garous gagnent : le village est à eux."
+  "werewolvesWin": "Les Loups-Garous gagnent : le village est à eux.",
+  "loversWin": "Les Amoureux gagnent : seuls au monde, ils vivront leur amour.",
+  "nobodySurvived": "Personne n'a survécu."
 }

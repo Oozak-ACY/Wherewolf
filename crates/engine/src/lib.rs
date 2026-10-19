@@ -180,6 +180,7 @@ pub enum Role {
 }
 
 impl Role {
+    /// The Camp this Role plays for, outside a mixed couple of Lovers.
     pub fn camp(self) -> Camp {
         match self {
             Role::Werewolf => Camp::Werewolves,
@@ -195,6 +196,8 @@ impl Role {
 pub enum Camp {
     Village,
     Werewolves,
+    /// A Werewolf and a non-Werewolf Lover: they win as the last two alive.
+    Lovers,
 }
 
 /// A Player's own Role, as only they see it.
@@ -549,8 +552,9 @@ pub enum Moment {
     },
     /// A Lover dies of grief, their partner having just been eliminated.
     Grief { lover: PlayerId },
-    /// The Game is over. Every Role is revealed.
-    Victory { winner: Camp },
+    /// The Game is over. Every Role is revealed, and the Lovers to everyone.
+    /// No winner if nobody is left alive: a draw.
+    Victory { winner: Option<Camp> },
 }
 
 /// The Role the Seer saw on a Player.
@@ -843,7 +847,7 @@ enum MomentState {
         then: Resume,
     },
     Victory {
-        winner: Camp,
+        winner: Option<Camp>,
     },
 }
 
@@ -1700,7 +1704,7 @@ impl Engine {
             .map(|g| g.potions);
         Some(RoleCard {
             role,
-            camp: role.camp(),
+            camp: self.camp_of(seat),
             fellow_werewolves,
             potions,
         })
@@ -1816,8 +1820,31 @@ impl Engine {
     /// Spectator.
     fn lovers_seen_by(&self, viewer: &Seat) -> Vec<PlayerId> {
         match self.game.as_ref().and_then(|g| g.lovers) {
-            Some(lovers) if self.is_lover(viewer) || self.spectating(viewer) => lovers.to_vec(),
+            Some(lovers) if self.is_lover(viewer) || self.spectating(viewer) || self.is_over() => {
+                lovers.to_vec()
+            }
             _ => Vec::new(),
+        }
+    }
+
+    /// Whether the Game is over, on the victory screen.
+    fn is_over(&self) -> bool {
+        self.game.as_ref().is_some_and(Game::is_over)
+    }
+
+    /// The Camp `seat` plays for: the Lovers Camp in a mixed couple (one a
+    /// Werewolf, the other not), otherwise their Role's.
+    fn camp_of(&self, seat: &Seat) -> Camp {
+        let werewolf = |s: &Seat| s.role == Some(Role::Werewolf);
+        let partner = self
+            .game
+            .as_ref()
+            .and_then(|g| g.partner_of(seat.id))
+            .and_then(|id| self.seats.iter().find(|s| s.id == id));
+        match (seat.role, partner) {
+            (_, Some(partner)) if werewolf(seat) != werewolf(partner) => Camp::Lovers,
+            (Some(role), _) => role.camp(),
+            (None, _) => Camp::Village,
         }
     }
 
@@ -2026,16 +2053,14 @@ impl Engine {
                 .go_to(MomentState::HuntersShot { hunter, then }),
             // Once a Camp has won (or nobody is left alive), a successor
             // would change nothing.
-            Some(Trigger::Succession { .. }) if self.winner().is_some() => {
-                self.resolve_triggers(then)
-            }
+            Some(Trigger::Succession { .. }) if self.decided() => self.resolve_triggers(then),
             Some(Trigger::Succession { mayor }) => self
                 .game_mut()
                 .go_to(MomentState::Succession { mayor, then }),
             None => match then {
-                Resume::Day => self.unless_won(MomentState::Discussion),
+                Resume::Day => self.unless_decided(MomentState::Discussion),
                 Resume::Night => {
-                    self.unless_won(self.nightfall(false));
+                    self.unless_decided(self.nightfall(false));
                     self.feign_if_idle();
                 }
             },
@@ -2063,26 +2088,39 @@ impl Engine {
         });
     }
 
-    /// Moves on to `next`, unless a Camp has won: then the Game is over.
-    fn unless_won(&mut self, next: MomentState) {
-        let next = match self.winner() {
-            Some(winner) => MomentState::Victory { winner },
-            None => next,
+    /// Moves on to `next`, unless the Game is decided: then it is over.
+    fn unless_decided(&mut self, next: MomentState) {
+        let next = if self.decided() {
+            MomentState::Victory {
+                winner: self.winner(),
+            }
+        } else {
+            next
         };
         self.game_mut().go_to(next);
     }
 
-    /// The Village wins once every Werewolf is dead, which takes precedence;
-    /// the Werewolves win once they are at least as many as the rest.
+    /// Whether the Game is over: a Camp has won, or nobody is left alive.
+    fn decided(&self) -> bool {
+        self.winner().is_some() || self.living().next().is_none()
+    }
+
+    /// The Village wins once every Werewolf is dead, a Werewolf Lover
+    /// included, which takes precedence; a mixed couple of Lovers wins as the
+    /// last two alive; the Werewolves win once they are at least as many as
+    /// everyone else, the Lovers counted among everyone else. Nobody wins
+    /// while nobody is alive.
     fn winner(&self) -> Option<Camp> {
-        let werewolves = self
-            .living()
-            .filter(|s| s.role.map(Role::camp) == Some(Camp::Werewolves))
-            .count();
-        let others = self.living().count() - werewolves;
-        if werewolves == 0 {
+        let living = self.living().count();
+        let in_camp = |camp| self.living().filter(|s| self.camp_of(s) == camp).count();
+        let werewolves = in_camp(Camp::Werewolves);
+        if living == 0 {
+            None
+        } else if !self.living().any(|s| s.role == Some(Role::Werewolf)) {
             Some(Camp::Village)
-        } else if werewolves >= others {
+        } else if living == 2 && in_camp(Camp::Lovers) == 2 {
+            Some(Camp::Lovers)
+        } else if werewolves >= living - werewolves {
             Some(Camp::Werewolves)
         } else {
             None

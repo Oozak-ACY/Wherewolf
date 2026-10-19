@@ -463,7 +463,7 @@ fn on_the_victory_screen_reveals_every_role() {
     assert!(matches!(
         table.moment("P1"),
         Moment::Victory {
-            winner: Camp::Village
+            winner: Some(Camp::Village)
         }
     ));
     for (name, role) in table.players.clone() {
