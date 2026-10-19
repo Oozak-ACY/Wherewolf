@@ -40,6 +40,17 @@ const WITH_THIEF: RoleCounts = RoleCounts {
     villager: 1,
 };
 
+/// Two Werewolves, Cupid, the Thief and a Villager: five Players.
+const WITH_CUPID: RoleCounts = RoleCounts {
+    werewolf: 2,
+    seer: 0,
+    witch: 0,
+    hunter: 0,
+    cupid: 1,
+    thief: 1,
+    villager: 1,
+};
+
 /// A Lobby of `players` Players, P1 (the Host) onwards, not started yet.
 fn lobby(seed: u64, players: usize) -> (Engine, Settings) {
     let mut engine = Engine::new(LobbyCode::new("LOUPS"), Seeded(seed));
@@ -194,6 +205,18 @@ impl Table {
         let after = self.engine.handle(&seat(name), join(name)).unwrap();
         assert_eq!(before, after, "a refused command changed the Game");
         reason
+    }
+
+    /// Cupid makes `first` and `second` the Lovers, on the first Night.
+    fn make_lovers(&mut self, first: &str, second: &str) {
+        let cupid = self.dealt(Role::Cupid);
+        let lovers = vec![self.id(first), self.id(second)];
+        self.act(&cupid, Command::ChooseLovers { lovers });
+    }
+
+    /// The two Lovers, as `name` sees them.
+    fn lovers_seen_by(&self, name: &str) -> Vec<PlayerId> {
+        self.view(name).lovers.clone()
     }
 
     /// Lets the time run out until `reached` holds for the current Moment.
@@ -588,9 +611,7 @@ fn the_lovers_bond_stays_with_the_robbed_player() {
     let seer = table.dealt(Role::Seer);
     let villager = table.dealt(Role::Villager);
     let thief = table.thief();
-    let cupid = table.dealt(Role::Cupid);
-    let lovers = vec![table.id(&seer), table.id(&villager)];
-    table.act(&cupid, Command::ChooseLovers { lovers });
+    table.make_lovers(&seer, &villager);
     table.until_the_next_night();
 
     table.rob(&seer);
@@ -777,4 +798,95 @@ fn with_hidden_roles_on_a_dead_thiefs_turn_on_the_second_night_is_feigned() {
 
     table.time_runs_out();
     assert!(matches!(table.moment("P1"), Moment::SeersTurn { .. }));
+}
+
+#[test]
+fn robbing_the_werewolf_lover_of_a_mixed_couple_puts_both_lovers_in_the_village() {
+    let mut table = Table::start_with(WITH_CUPID, 11, false);
+    let [wolf, other_wolf] = [0, 1].map(|i| table.dealt_all(Role::Werewolf)[i].clone());
+    let villager = table.dealt(Role::Villager);
+    let thief = table.thief();
+    table.make_lovers(&wolf, &villager);
+    assert_eq!(table.card(&wolf).camp, Camp::Lovers);
+    let lovers = table.lovers_seen_by(&wolf);
+    table.until_the_next_night();
+
+    table.rob(&wolf);
+    table.until_the_debate();
+
+    assert_eq!(table.card(&wolf).role, Role::Villager);
+    assert_eq!(table.card(&wolf).camp, Camp::Village);
+    assert_eq!(table.card(&villager).camp, Camp::Village);
+    assert_eq!(table.card(&thief).camp, Camp::Werewolves);
+    assert_eq!(table.card(&other_wolf).camp, Camp::Werewolves);
+    // The bond stays with the two Players: the Thief is no Lover.
+    assert_eq!(table.lovers_seen_by(&wolf), lovers);
+    assert_eq!(table.lovers_seen_by(&villager), lovers);
+    assert_eq!(table.lovers_seen_by(&thief), Vec::<PlayerId>::new());
+}
+
+#[test]
+fn a_thief_lover_taking_a_werewolf_card_from_a_village_partner_forms_the_lovers_camp() {
+    let mut table = Table::start_with(WITH_CUPID, 11, false);
+    let [robbed, other_wolf] = [0, 1].map(|i| table.dealt_all(Role::Werewolf)[i].clone());
+    let villager = table.dealt(Role::Villager);
+    let thief = table.thief();
+    table.make_lovers(&thief, &villager);
+    assert_eq!(table.card(&thief).camp, Camp::Village);
+    let lovers = table.lovers_seen_by(&thief);
+    table.until_the_next_night();
+
+    table.rob(&robbed);
+    table.until_the_debate();
+
+    assert_eq!(table.card(&thief).role, Role::Werewolf);
+    assert_eq!(table.card(&thief).camp, Camp::Lovers);
+    assert_eq!(table.card(&villager).camp, Camp::Lovers);
+    assert_eq!(table.card(&robbed).camp, Camp::Village);
+    assert_eq!(table.card(&other_wolf).camp, Camp::Werewolves);
+    assert_eq!(table.lovers_seen_by(&thief), lovers);
+    assert_eq!(table.lovers_seen_by(&villager), lovers);
+    assert_eq!(table.lovers_seen_by(&robbed), Vec::<PlayerId>::new());
+}
+
+#[test]
+fn the_werewolves_win_that_dawn_once_the_theft_breaks_up_the_mixed_couple() {
+    let mut table = Table::start_with(WITH_CUPID, 11, false);
+    let wolf = table.dealt(Role::Werewolf);
+    let villager = table.dealt(Role::Villager);
+    let cupid = table.dealt(Role::Cupid);
+    table.make_lovers(&wolf, &villager);
+    table.until_the_next_night();
+
+    table.rob(&wolf);
+    // Before the Theft, one Werewolf outside the couple among four; after it,
+    // the Thief and the other Werewolf against the two Village Lovers.
+    table.werewolves_kill(&cupid);
+    table.until(|m| matches!(m, Moment::Victory { .. }));
+
+    assert_eq!(
+        table.moment("P1"),
+        &Moment::Victory {
+            winner: Some(Camp::Werewolves)
+        }
+    );
+}
+
+#[test]
+fn the_werewolves_have_not_won_that_dawn_once_the_theft_makes_a_mixed_couple() {
+    let mut table = Table::start_with(WITH_CUPID, 11, false);
+    let robbed = table.dealt(Role::Werewolf);
+    let villager = table.dealt(Role::Villager);
+    let thief = table.thief();
+    let cupid = table.dealt(Role::Cupid);
+    table.make_lovers(&thief, &villager);
+    table.until_the_next_night();
+
+    table.rob(&robbed);
+    // Before the Theft, two Werewolves among four; after it, the other
+    // Werewolf alone against the robbed Player and the mixed couple.
+    table.werewolves_kill(&cupid);
+    table.until(|m| matches!(m, Moment::Discussion | Moment::Victory { .. }));
+
+    assert_eq!(table.moment("P1"), &Moment::Discussion);
 }
