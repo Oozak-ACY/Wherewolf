@@ -319,6 +319,15 @@ describe("the Day", () => {
     ]);
   });
 
+  test("a Lover dying of grief is named live, with their Role unless it is hidden", () => {
+    const grief: Moment = { type: "grief", lover: 2 };
+
+    expect(heard(cuesAt(grief, [player(1, false), player(2, false, "witch")]))).toEqual([
+      "P2, qui était Sorcière, meurt de chagrin.",
+    ]);
+    expect(heard(cuesAt(grief, [player(1, false), player(2, false)], true))).toEqual(["P2 meurt de chagrin."]);
+  });
+
   test("the victory is a fixed line for each Camp", () => {
     expect(heard(cuesAt({ type: "victory", winner: "village" }))).toEqual(["villageWins"]);
     expect(heard(cuesAt({ type: "victory", winner: "werewolves" }))).toEqual(["werewolvesWin"]);

@@ -144,6 +144,8 @@ function momentCues(moment: Moment, { players, settings }: NarratorView): Cue[] 
       return [
         live(moment.byLot ? n.successorByLot(name(moment.successor)) : n.successor(name(moment.successor))),
       ];
+    case "grief":
+      return [live(n.grief(name(moment.lover), roleOf(moment.lover)))];
     case "victory":
       return [fixed(VICTORY_LINES[moment.winner])];
   }

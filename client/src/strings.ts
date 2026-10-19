@@ -225,6 +225,8 @@ export const fr = {
     succession: (mayor: string) => `${mayor}, le Maire, désigne son successeur.`,
     successor: (name: string) => `${name} devient Maire.`,
     successorByLot: (name: string) => `Le sort désigne ${name} comme nouveau Maire.`,
+    grief: (name: string, role: string | null) =>
+      role ? `${name}, qui était ${role}, meurt de chagrin.` : `${name} meurt de chagrin.`,
   },
 
   roleCard: {

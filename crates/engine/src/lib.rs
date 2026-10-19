@@ -547,6 +547,8 @@ pub enum Moment {
         /// named nobody in time.
         by_lot: bool,
     },
+    /// A Lover dies of grief, their partner having just been eliminated.
+    Grief { lover: PlayerId },
     /// The Game is over. Every Role is revealed.
     Victory { winner: Camp },
 }
@@ -717,22 +719,42 @@ struct Game {
 /// Game moves on (and before any victory is checked).
 #[derive(Debug, Clone, Copy)]
 enum Trigger {
-    HuntersShot { hunter: PlayerId },
-    Succession { mayor: PlayerId },
+    /// `lover` dies of grief for `mourned`, unless already dead.
+    Grief {
+        mourned: PlayerId,
+        lover: PlayerId,
+    },
+    HuntersShot {
+        hunter: PlayerId,
+    },
+    Succession {
+        mayor: PlayerId,
+    },
 }
 
 impl Trigger {
     /// The death triggers `dead` sets off, in the order they are resolved:
-    /// a Hunter who is also Mayor shoots first, then names a successor.
-    fn set_off_by(dead: PlayerId, role: Option<Role>, was_mayor: bool) -> Vec<Self> {
+    /// their Lover dies of grief first, then a Hunter shoots, then a Mayor
+    /// names a successor.
+    fn set_off_by(
+        dead: PlayerId,
+        role: Option<Role>,
+        was_mayor: bool,
+        partner: Option<PlayerId>,
+    ) -> Vec<Self> {
+        let grief = partner.map(|lover| Trigger::Grief {
+            mourned: dead,
+            lover,
+        });
         let shot = (role == Some(Role::Hunter)).then_some(Trigger::HuntersShot { hunter: dead });
         let succession = was_mayor.then_some(Trigger::Succession { mayor: dead });
-        shot.into_iter().chain(succession).collect()
+        grief.into_iter().chain(shot).chain(succession).collect()
     }
 
     /// The eliminated Player this trigger belongs to.
     fn owner(self) -> PlayerId {
         match self {
+            Trigger::Grief { mourned, .. } => mourned,
             Trigger::HuntersShot { hunter } => hunter,
             Trigger::Succession { mayor } => mayor,
         }
@@ -814,6 +836,10 @@ enum MomentState {
     SuccessionResult {
         successor: PlayerId,
         by_lot: bool,
+        then: Resume,
+    },
+    Grief {
+        lover: PlayerId,
         then: Resume,
     },
     Victory {
@@ -921,6 +947,7 @@ impl Game {
             MomentState::ShotResult { .. } => ANNOUNCEMENT_SECONDS,
             MomentState::Succession { .. } => timers.mayor_successor,
             MomentState::SuccessionResult { .. } => ANNOUNCEMENT_SECONDS,
+            MomentState::Grief { .. } => ANNOUNCEMENT_SECONDS,
             MomentState::Victory { .. } => return None,
         };
         let seconds = self.feigned.unwrap_or(seconds);
@@ -932,6 +959,16 @@ impl Game {
 
     fn is_over(&self) -> bool {
         matches!(self.state, MomentState::Victory { .. })
+    }
+
+    /// The other Lover, if `id` is one of the Lovers.
+    fn partner_of(&self, id: PlayerId) -> Option<PlayerId> {
+        let [first, second] = self.lovers?;
+        match id {
+            _ if id == first => Some(second),
+            _ if id == second => Some(first),
+            _ => None,
+        }
     }
 
     /// This moment as `viewer` may see it.
@@ -1007,6 +1044,7 @@ impl Game {
                 successor: *successor,
                 by_lot: *by_lot,
             },
+            MomentState::Grief { lover, .. } => Moment::Grief { lover: *lover },
             MomentState::Victory { winner } => Moment::Victory { winner: *winner },
         }
     }
@@ -1415,11 +1453,9 @@ impl Engine {
             MomentState::WitchsTurn { .. } => self.end_witchs_turn(),
             MomentState::Dawn { .. } => self.resolve_triggers(Resume::Day),
             MomentState::Discussion => self.end_debate(),
-            MomentState::ElectionResult { .. } => {
-                self.game_mut().go_to(MomentState::Vote {
-                    ballots: Vec::new(),
-                })
-            }
+            MomentState::ElectionResult { .. } => self.game_mut().go_to(MomentState::Vote {
+                ballots: Vec::new(),
+            }),
             MomentState::Election { .. } => self.end_election(),
             MomentState::Vote { .. } => self.end_vote(),
             // The Mayor did not choose: nobody is eliminated.
@@ -1444,6 +1480,7 @@ impl Engine {
                 self.hand_over_mayor(successor, true, then);
             }
             &MomentState::SuccessionResult { then, .. } => self.resolve_triggers(then),
+            &MomentState::Grief { then, .. } => self.resolve_triggers(then),
             MomentState::Victory { .. } => return Err(Rejection::NotNow),
         }
         Ok(self.outputs())
@@ -1620,7 +1657,7 @@ impl Engine {
     /// The chosen Player, if any, is a living Player of this Game.
     fn require_in_play(&self, chosen: Option<PlayerId>) -> Result<(), Rejection> {
         match chosen {
-            Some(id) if !self.living().any(|s| s.id == id) => Err(Rejection::NotInPlay),
+            Some(id) if !self.is_alive(id) => Err(Rejection::NotInPlay),
             _ => Ok(()),
         }
     }
@@ -1975,6 +2012,15 @@ impl Engine {
     /// Game moves on as `then` says, unless a Camp has won.
     fn resolve_triggers(&mut self, then: Resume) {
         match self.game_mut().triggers.pop_front() {
+            // A Lover already dead (both died at once, or the Hunter shot
+            // them) does not die again.
+            Some(Trigger::Grief { lover, .. }) if !self.is_alive(lover) => {
+                self.resolve_triggers(then)
+            }
+            Some(Trigger::Grief { lover, .. }) => {
+                self.eliminate(lover);
+                self.game_mut().go_to(MomentState::Grief { lover, then });
+            }
             Some(Trigger::HuntersShot { hunter }) => self
                 .game_mut()
                 .go_to(MomentState::HuntersShot { hunter, then }),
@@ -2047,6 +2093,10 @@ impl Engine {
         self.seats.iter().filter(|s| s.alive)
     }
 
+    fn is_alive(&self, id: PlayerId) -> bool {
+        self.living().any(|s| s.id == id)
+    }
+
     /// `id` dies, setting off their death triggers, if they have any.
     fn eliminate(&mut self, id: PlayerId) {
         let Some(seat) = self.seats.iter_mut().find(|s| s.id == id) else {
@@ -2055,7 +2105,7 @@ impl Engine {
         seat.alive = false;
         let role = seat.role;
         let game = self.game_mut();
-        let triggers = Trigger::set_off_by(id, role, game.mayor == Some(id));
+        let triggers = Trigger::set_off_by(id, role, game.mayor == Some(id), game.partner_of(id));
         game.triggers.extend(triggers);
     }
 
@@ -2166,7 +2216,8 @@ impl Engine {
                 | MomentState::HuntersShot { .. }
                 | MomentState::ShotResult { .. }
                 | MomentState::Succession { .. }
-                | MomentState::SuccessionResult { .. },
+                | MomentState::SuccessionResult { .. }
+                | MomentState::Grief { .. },
             ) => true,
         }
     }

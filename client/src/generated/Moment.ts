@@ -84,4 +84,4 @@ ballots: Array<Ballot>, eliminated: PlayerId | null, } | { "type": "huntersShot"
  * Whether they were drawn at random, the eliminated Mayor having
  * named nobody in time.
  */
-byLot: boolean, } | { "type": "victory", winner: Camp, };
+byLot: boolean, } | { "type": "grief", lover: PlayerId, } | { "type": "victory", winner: Camp, };

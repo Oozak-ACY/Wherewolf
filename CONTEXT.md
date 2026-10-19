@@ -69,7 +69,7 @@ Any Player's death, whether by the Werewolves, the Witch's poison, the Vote, the
 _Avoid_: Kill (for the generic case), removal
 
 **Death trigger**:
-What an Elimination sets off: the Hunter's shot, the Mayor naming a successor (a Hunter who is also Mayor shoots first), or a Lover dying of grief, which the Narrator announces as such. Triggers are resolved one at a time, in the order the deaths happened, right after the announcement of those deaths (the dawn, the Vote's result, or a previous shot); a death they cause can set off another. Victory is checked only once every trigger is resolved. Until their trigger is resolved, the eliminated Player stays at the table rather than becoming a Spectator: the living see and hear them, and they know only what the living know.
+What an Elimination sets off: the Hunter's shot, the Mayor naming a successor, or a Lover dying of grief, which the Narrator announces as such. Of one death's triggers, the partner's grief comes first, then the shot, then the succession, so a dying Lover is never shot at nor named Mayor. Triggers are resolved one at a time, in the order the deaths happened, right after the announcement of those deaths (the dawn, the Vote's result, or a previous shot); a death they cause can set off another. Victory is checked only once every trigger is resolved. Until their trigger is resolved, the eliminated Player stays at the table rather than becoming a Spectator: the living see and hear them, and they know only what the living know.
 _Avoid_: On-death effect, last will
 
 **Election**:
