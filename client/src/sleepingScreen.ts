@@ -21,6 +21,7 @@ export type SleepingScreen = {
 const ACTING: Partial<Record<NonNullable<PlayerView["moment"]>["type"], (view: PlayerView) => boolean>> = {
   cupidsTurn: holds("cupid"),
   loversTurn: (view) => view.lovers.includes(view.you),
+  thiefsTurn: holds("thief"),
   seersTurn: holds("seer"),
   werewolvesTurn: holds("werewolf"),
   witchsTurn: holds("witch"),

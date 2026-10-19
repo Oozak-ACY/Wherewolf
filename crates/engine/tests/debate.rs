@@ -4,8 +4,8 @@
 mod common;
 
 use wherewolf_engine::{
-    Command, Engine, LobbyCode, Moment, Outputs, PlayerId, PlayerView, Randomness, Rejection,
-    Role, RoleCounts, SeatToken,
+    Command, Engine, LobbyCode, Moment, Outputs, PlayerId, PlayerView, Randomness, Rejection, Role,
+    RoleCounts, SeatToken,
 };
 
 /// Deterministic randomness (xorshift), so every deal can be replayed.
@@ -37,6 +37,7 @@ const ROLES: RoleCounts = RoleCounts {
     witch: 0,
     hunter: 0,
     cupid: 0,
+    thief: 0,
     villager: 5,
 };
 
@@ -59,7 +60,12 @@ impl Table {
         for name in &names {
             outputs = Some(engine.handle(&seat(name), join(name)).unwrap());
         }
-        let mut settings = outputs.unwrap().view_for(&seat(HOST)).unwrap().settings.clone();
+        let mut settings = outputs
+            .unwrap()
+            .view_for(&seat(HOST))
+            .unwrap()
+            .settings
+            .clone();
         settings.roles = ROLES;
         engine
             .handle(&seat(HOST), Command::UpdateSettings { settings })
@@ -75,7 +81,13 @@ impl Table {
         let players = names
             .into_iter()
             .map(|name| {
-                let role = outputs.view_for(&seat(&name)).unwrap().role.as_ref().unwrap().role;
+                let role = outputs
+                    .view_for(&seat(&name))
+                    .unwrap()
+                    .role
+                    .as_ref()
+                    .unwrap()
+                    .role;
                 (name, role)
             })
             .collect();
@@ -106,7 +118,10 @@ impl Table {
     }
 
     fn moment(&self) -> &Moment {
-        self.view(HOST).moment.as_ref().expect("the Game is running")
+        self.view(HOST)
+            .moment
+            .as_ref()
+            .expect("the Game is running")
     }
 
     fn id(&self, name: &str) -> PlayerId {
@@ -115,11 +130,17 @@ impl Table {
 
     fn alive(&self, name: &str) -> bool {
         let id = self.id(name);
-        self.view(HOST).players.iter().any(|p| p.id == id && p.alive)
+        self.view(HOST)
+            .players
+            .iter()
+            .any(|p| p.id == id && p.alive)
     }
 
     fn living(&self) -> Vec<String> {
-        self.everyone().into_iter().filter(|p| self.alive(p)).collect()
+        self.everyone()
+            .into_iter()
+            .filter(|p| self.alive(p))
+            .collect()
     }
 
     /// Who sees the button that ends the debate.
@@ -243,7 +264,10 @@ fn once_a_mayor_is_elected_the_host_no_longer_ends_the_debate() {
     let mayor = table.villager(2);
     table.second_debate(&mayor);
 
-    assert_eq!(table.refused(HOST, Command::EndDebate), Rejection::NotYourTurn);
+    assert_eq!(
+        table.refused(HOST, Command::EndDebate),
+        Rejection::NotYourTurn
+    );
     assert_eq!(
         table.refused(&table.villager(3), Command::EndDebate),
         Rejection::NotYourTurn
@@ -271,7 +295,10 @@ fn a_spectator_cannot_end_the_debate() {
     let victim = table.villager(0);
     table.first_debate(&victim);
 
-    assert_eq!(table.refused(&victim, Command::EndDebate), Rejection::Spectating);
+    assert_eq!(
+        table.refused(&victim, Command::EndDebate),
+        Rejection::Spectating
+    );
 }
 
 #[test]
@@ -294,7 +321,10 @@ fn only_the_player_who_may_end_the_debate_sees_the_button() {
     table.first_debate(&table.villager(0));
     assert_eq!(table.may_end_debate(), vec![HOST.to_string()]);
     table.act(HOST, Command::EndDebate);
-    assert!(table.may_end_debate().is_empty(), "nobody, during the Election");
+    assert!(
+        table.may_end_debate().is_empty(),
+        "nobody, during the Election"
+    );
 
     let mut table = Table::start();
     let mayor = table.villager(2);

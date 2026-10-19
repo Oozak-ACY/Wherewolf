@@ -22,6 +22,15 @@ export function partnerOf(view: PlayerView): PlayerId | undefined {
 }
 
 /**
+ * Whether this Player's Role card turns face up by itself, as the card they
+ * hold goes from `before` to `now`: when the Roles are dealt, and when the
+ * Theft changes it, for the Thief and for the Player they robbed.
+ */
+export function cardTurnsFaceUp(before: Role | null, now: Role | null): boolean {
+  return now !== null && now !== before;
+}
+
+/**
  * A Player's own Role card, shown privately on their phone. During the Role
  * reveal, closing it the first time confirms the Player has seen their Role.
  */

@@ -33,6 +33,9 @@ pub enum ClientMessage {
     /// The Lovers' Turn: "I've seen who my partner is". Confirming again
     /// changes nothing.
     ConfirmPartner,
+    /// The Thief's Turn, on the second Night: rob a living Player other than
+    /// themself.
+    Rob { player: PlayerId },
     /// Seer's Turn: see the Role of another living Player, once.
     Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.

@@ -37,6 +37,7 @@ const ROLES: RoleCounts = RoleCounts {
     witch: 1,
     hunter: 0,
     cupid: 0,
+    thief: 0,
     villager: 3,
 };
 
@@ -302,7 +303,7 @@ fn off_a_dead_witchs_turn_is_skipped() {
 
     // The Werewolves agreeing ended the Night at once.
     let victim = table.id(&victim);
-    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim]));
+    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths, .. } if deaths == &[victim]));
 }
 
 // In both modes, a living Role's Turn ends once its action is confirmed.
@@ -370,7 +371,7 @@ fn the_witchs_turn_ends_once_she_has_no_potion_left_to_use_in_both_modes() {
         table.act(&witch, Command::Poison { player });
 
         assert!(
-            matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[player]),
+            matches!(table.moment("P1"), Moment::Dawn { deaths, .. } if deaths == &[player]),
             "hidden_roles: {hidden_roles}"
         );
     }
@@ -386,7 +387,7 @@ fn off_a_living_witch_with_her_potions_spent_takes_no_time() {
     table.werewolves_pick(&victim);
 
     let victim = table.id(&victim);
-    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim]));
+    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths, .. } if deaths == &[victim]));
 }
 
 #[test]
@@ -402,7 +403,7 @@ fn the_witch_passing_ends_her_turn_and_the_victim_dies_in_both_modes() {
 
         let victim = table.id(&victim);
         assert!(
-            matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim]),
+            matches!(table.moment("P1"), Moment::Dawn { deaths, .. } if deaths == &[victim]),
             "hidden_roles: {hidden_roles}"
         );
     }
@@ -546,7 +547,7 @@ fn on_a_dead_witchs_turn_is_feigned() {
     assert!(matches!(table.moment("P1"), Moment::WitchsTurn { .. }));
     assert!((10..=30).contains(&table.timer().seconds));
     table.time_runs_out();
-    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim_id]));
+    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths, .. } if deaths == &[victim_id]));
 }
 
 #[test]
@@ -565,7 +566,7 @@ fn on_a_dead_witch_with_no_potion_left_has_her_turn_feigned() {
     assert!(matches!(table.moment("P1"), Moment::WitchsTurn { .. }));
     assert!((10..=30).contains(&table.timer().seconds));
     table.time_runs_out();
-    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim_id]));
+    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths, .. } if deaths == &[victim_id]));
 }
 
 #[test]
@@ -588,7 +589,7 @@ fn on_a_living_witch_with_her_potions_spent_has_her_turn_feigned() {
     table.act(&witch, Command::Pass);
     assert!(matches!(table.moment("P1"), Moment::WitchsTurn { .. }));
     table.time_runs_out();
-    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim_id]));
+    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths, .. } if deaths == &[victim_id]));
 }
 
 // The countdown of a Night Turn.

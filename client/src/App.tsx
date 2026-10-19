@@ -10,7 +10,7 @@ import type { Settings } from "./generated/Settings";
 import { speaksAloud, unlockSpeech } from "./narrator";
 import { PlayerGrid } from "./PlayerGrid";
 import { QrCodeView } from "./QrCodeView";
-import { RoleCardView } from "./RoleCardView";
+import { cardTurnsFaceUp, RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
 import { SettingsPanel } from "./SettingsPanel";
@@ -135,6 +135,7 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
         onEndDebate={lobby.endDebate}
         onChooseLovers={lobby.chooseLovers}
         onConfirmPartner={lobby.confirmPartner}
+        onRob={lobby.rob}
         onInspect={lobby.inspect}
         onPickVictim={lobby.pickVictim}
         onHeal={lobby.heal}
@@ -219,6 +220,7 @@ function Lobby(props: {
   onEndDebate: () => void;
   onChooseLovers: (lovers: PlayerId[]) => void;
   onConfirmPartner: () => void;
+  onRob: (player: PlayerId) => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onHeal: () => void;
@@ -235,12 +237,15 @@ function Lobby(props: {
   onLeave: () => void;
 }) {
   const { view } = props;
-  const started = view.role !== null;
-  // The card turns face up by itself when the Roles are dealt.
+  const held = view.role?.role ?? null;
+  const started = held !== null;
+  // The card turns face up by itself when the Roles are dealt, and when the Theft changes it.
   const [cardOpen, setCardOpen] = useState(started);
-  useEffect(() => {
-    if (started) setCardOpen(true);
-  }, [started]);
+  const [shownRole, setShownRole] = useState(held);
+  if (held !== shownRole) {
+    setShownRole(held);
+    if (cardTurnsFaceUp(shownRole, held)) setCardOpen(true);
+  }
   const url = joinLink(window.location.origin, view.code);
   const [copied, setCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
@@ -298,6 +303,7 @@ function Lobby(props: {
               onEndDebate={props.onEndDebate}
               onChooseLovers={props.onChooseLovers}
               onConfirmPartner={props.onConfirmPartner}
+              onRob={props.onRob}
               onInspect={props.onInspect}
               onPickVictim={props.onPickVictim}
               onHeal={props.onHeal}

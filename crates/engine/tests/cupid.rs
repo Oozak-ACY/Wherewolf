@@ -37,6 +37,7 @@ fn with_cupid() -> RoleCounts {
         witch: 1,
         hunter: 0,
         cupid: 1,
+        thief: 0,
         villager: 2,
     }
 }

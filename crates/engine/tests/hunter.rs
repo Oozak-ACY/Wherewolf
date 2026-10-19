@@ -37,6 +37,7 @@ const ONE_HUNTER: RoleCounts = RoleCounts {
     witch: 0,
     hunter: 1,
     cupid: 0,
+    thief: 0,
     villager: 4,
 };
 
@@ -47,6 +48,7 @@ const TWO_HUNTERS: RoleCounts = RoleCounts {
     witch: 0,
     hunter: 2,
     cupid: 0,
+    thief: 0,
     villager: 3,
 };
 

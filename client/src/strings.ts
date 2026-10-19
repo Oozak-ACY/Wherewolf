@@ -7,12 +7,13 @@ import type { Role } from "./generated/Role";
 import type { Timers } from "./generated/Timers";
 import type { MicProblem } from "./useCall";
 
-// Mirror MIN_PLAYERS, MAX_PLAYERS, MAX_WITCHES, MAX_CUPIDS, TIMER_BOUNDS and
-// GRACE_PERIOD_BOUNDS (the same as TIMER_BOUNDS) in crates/engine/src/lib.rs.
+// Mirror MIN_PLAYERS, MAX_PLAYERS, MAX_WITCHES, MAX_CUPIDS, MAX_THIEVES, TIMER_BOUNDS
+// and GRACE_PERIOD_BOUNDS (the same as TIMER_BOUNDS) in crates/engine/src/lib.rs.
 export const MIN_PLAYERS = 5;
 export const MAX_PLAYERS = 12;
 export const MAX_WITCHES = 1;
 export const MAX_CUPIDS = 1;
+export const MAX_THIEVES = 1;
 export const TIMER_MIN_SECONDS = 10;
 export const TIMER_MAX_SECONDS = 1800;
 
@@ -89,6 +90,7 @@ export const fr = {
       vote: "Vote du village",
       cupid: "Tour de Cupidon",
       lovers: "Tour des Amoureux",
+      thief: "Tour du Voleur",
       seer: "Tour de la Voyante",
       werewolves: "Tour des Loups-Garous",
       witch: "Tour de la Sorcière",
@@ -117,6 +119,11 @@ export const fr = {
     partnerConfirm: "J'ai vu mon Amoureux",
     partnerConfirmed: "Ton Amoureux le découvre à son tour.",
     lovers: (first: string, second: string) => `${first} et ${second} sont les Amoureux.`,
+    thiefPick: "Choisis le joueur à voler : à l'aube, tu prendras son rôle et il deviendra Villageois.",
+    thiefPass: "Ne voler personne",
+    thiefChoosing: "Le Voleur choisit…",
+    theft: (thief: string, robbed: string | null) =>
+      robbed ? `${thief}, le Voleur, a volé le rôle de ${robbed}.` : `${thief} est le Voleur.`,
     seerPick: "Choisis le joueur dont tu veux découvrir le rôle.",
     seerSaw: (name: string, role: string) => `${name} est ${role}.`,
     seerSawNothing: "La Voyante n'a encore rien vu.",
@@ -183,6 +190,8 @@ export const fr = {
       cupidSleeps: "Cupidon a décoché ses flèches et se rendort.",
       loversTurn: "Les Amoureux se réveillent.",
       loversSleep: "Les Amoureux se rendorment, le cœur battant.",
+      thiefsTurn: "Le Voleur se réveille.",
+      thiefSleeps: "Le Voleur se rendort sans un bruit.",
       seersTurn: "La Voyante se réveille.",
       // Each Role goes back to sleep with the same line whatever it did.
       seerSleeps: "La Voyante referme les yeux sur ce qu'elle a vu.",
@@ -192,6 +201,8 @@ export const fr = {
       witchSleeps: "La Sorcière range ses fioles et se rendort.",
       dawn: "Le jour se lève.",
       dawnNobody: "Personne n'est mort cette nuit.",
+      // The same line whether or not a Theft took place.
+      robbery: "Il semble qu'une maison ait été cambriolée cette nuit, vérifiez votre carte.",
       discussion: "Le village débat : qui sont les Loups-Garous ?",
       election: "Le village élit son Maire.",
       tieBreak: "Le Maire choisit qui est éliminé.",
@@ -262,6 +273,11 @@ export const fr = {
       name: "Cupidon",
       power: "La première nuit, tu désignes deux Amoureux, toi compris si tu veux.",
     },
+    thief: {
+      name: "Voleur",
+      power:
+        "La deuxième nuit, tu peux voler le rôle d'un joueur : à l'aube, tu prends sa carte telle quelle et il devient Villageois. Sinon, tu restes Villageois.",
+    },
     villager: {
       name: "Villageois",
       power: "Aucun pouvoir : seulement ton flair et ta voix pour démasquer les Loups.",
@@ -299,7 +315,7 @@ export const fr = {
     notSeated: "Tu n'as pas de place dans ce salon.",
     invalidName: "Choisis un prénom de 1 à 20 caractères.",
     notHost: "Seul l'hôte peut faire ça.",
-    invalidSettings: `Paramètres refusés : ${MAX_PLAYERS} rôles au plus, une seule Sorcière, un seul Cupidon, et chaque minuterie (comme le délai de reconnexion) entre ${TIMER_MIN_SECONDS} s et ${TIMER_MAX_SECONDS / 60} min.`,
+    invalidSettings: `Paramètres refusés : ${MAX_PLAYERS} rôles au plus, une seule Sorcière, un seul Cupidon, un seul Voleur, et chaque minuterie (comme le délai de reconnexion) entre ${TIMER_MIN_SECONDS} s et ${TIMER_MAX_SECONDS / 60} min.`,
     notEnoughPlayers: `Il faut au moins ${MIN_PLAYERS} joueurs.`,
     roleCountMismatch: "Il faut autant de rôles que de joueurs.",
     playersDisconnected: "Attends que tous les joueurs soient reconnectés.",

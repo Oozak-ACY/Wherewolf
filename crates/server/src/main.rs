@@ -559,6 +559,9 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
             ClientMessage::ConfirmPartner => {
                 lobby.command(&seat, Command::ConfirmPartner, &outbox);
             }
+            ClientMessage::Rob { player } => {
+                lobby.command(&seat, Command::Rob { player }, &outbox);
+            }
             ClientMessage::Inspect { player } => {
                 lobby.command(&seat, Command::Inspect { player }, &outbox);
             }

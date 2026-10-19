@@ -86,6 +86,54 @@ describe("Cupid and the Lovers, on the first Night", () => {
   });
 });
 
+const thiefsTurn: Moment = { type: "thiefsTurn" };
+
+describe("the Thief, on the second Night", () => {
+  test("night falls, then the Thief wakes first", () => {
+    const voteResult: Moment = { type: "voteResult", ballots: [], eliminated: null };
+
+    expect(heard(narratorCues(view(voteResult), view(thiefsTurn)))).toEqual([
+      "background:night",
+      "nightfall",
+      "thiefsTurn",
+    ]);
+  });
+
+  test("the Thief goes back to sleep, then the Seer wakes", () => {
+    expect(heard(narratorCues(view(thiefsTurn), view(seersTurn)))).toEqual(["thiefSleeps", "seersTurn"]);
+  });
+
+  test("every phone shows the same line, never naming the Thief", () => {
+    expect(narratorText(view(thiefsTurn))).toBe("Le Voleur se réveille.");
+  });
+
+  test("the dawn after tells of a robbery once the deaths are announced, and asks everyone to check their card", () => {
+    const robbed: Moment = { type: "dawn", deaths: [], robbery: true };
+
+    expect(heard(cuesAt(robbed, everyone, false, witchsTurn))).toEqual([
+      "witchSleeps",
+      "background:day",
+      "sound:rooster",
+      "dawn",
+      "dawnNobody",
+      "robbery",
+    ]);
+    expect(narratorText(view(robbed))).toBe(
+      "Le jour se lève. Personne n'est mort cette nuit. Il semble qu'une maison ait été cambriolée cette nuit, vérifiez votre carte.",
+    );
+  });
+
+  test("the robbery line follows the deaths too", () => {
+    const players = [player(1, false, "villager"), player(2)];
+    const robbed: Moment = { type: "dawn", deaths: [1], robbery: true };
+
+    expect(heard(cuesAt(robbed, players, false, witchsTurn)).slice(-2)).toEqual([
+      "Cette nuit, le village a perdu P1, qui était Villageois.",
+      "robbery",
+    ]);
+  });
+});
+
 describe("the Night", () => {
   test("night falls once every Role is seen, with the Night background, then the Seer wakes", () => {
     expect(heard(narratorCues(view(roleReveal), view(seersTurn)))).toEqual([
@@ -137,7 +185,7 @@ describe("the Night", () => {
 
   test("no bottle on a potion: the Witch's choice makes no sound, during her Turn or after it", () => {
     const woken: Moment = { type: "witchsTurn", witch: { victim: 2, healed: false, poisoned: null, passed: false } };
-    const dawn: Moment = { type: "dawn", deaths: [3] };
+    const dawn: Moment = { type: "dawn", deaths: [3], robbery: false };
     const choices: Moment[] = [
       { type: "witchsTurn", witch: { victim: 2, healed: true, poisoned: null, passed: false } },
       { type: "witchsTurn", witch: { victim: 2, healed: false, poisoned: 3, passed: false } },
@@ -188,7 +236,7 @@ describe("the dawn", () => {
   test("the last Role goes back to sleep, day breaks with the Day background and a rooster, and every death is announced live", () => {
     const players = [player(1, false, "villager"), player(2, false, "seer"), player(3)];
 
-    const cues = narratorCues(view(witchsTurn, players), view({ type: "dawn", deaths: [1, 2] }, players));
+    const cues = narratorCues(view(witchsTurn, players), view({ type: "dawn", deaths: [1, 2], robbery: false }, players));
 
     expect(cues).toEqual([
       { type: "fixed", key: "witchSleeps", text: "La Sorcière range ses fioles et se rendort." },
@@ -202,7 +250,7 @@ describe("the dawn", () => {
   test("a death is announced with the Role the dead Player was", () => {
     const players = [player(1, false, "villager"), player(2)];
 
-    expect(narratorText(view({ type: "dawn", deaths: [1] }, players))).toBe(
+    expect(narratorText(view({ type: "dawn", deaths: [1], robbery: false }, players))).toBe(
       "Le jour se lève. Cette nuit, le village a perdu P1, qui était Villageois.",
     );
   });
@@ -210,7 +258,7 @@ describe("the dawn", () => {
   test("three or more deaths are listed with `et` before the last one", () => {
     const players = [player(1, false, "villager"), player(2, false, "seer"), player(3, false, "witch"), player(4)];
 
-    expect(narratorText(view({ type: "dawn", deaths: [1, 2, 3] }, players))).toBe(
+    expect(narratorText(view({ type: "dawn", deaths: [1, 2, 3], robbery: false }, players))).toBe(
       "Le jour se lève. Cette nuit, le village a perdu P1, qui était Villageois, P2, qui était Voyante, et P3, qui était Sorcière.",
     );
   });
@@ -218,11 +266,11 @@ describe("the dawn", () => {
   test("a death is announced without its cause", () => {
     const players = [player(1, false, "villager"), player(2)];
 
-    expect(narratorText(view({ type: "dawn", deaths: [1] }, players))).not.toMatch(/poison|loup|sorci/i);
+    expect(narratorText(view({ type: "dawn", deaths: [1], robbery: false }, players))).not.toMatch(/poison|loup|sorci/i);
   });
 
   test("a Night without a death is all fixed lines", () => {
-    expect(heard(cuesAt({ type: "dawn", deaths: [] }, everyone, false, witchsTurn))).toEqual([
+    expect(heard(cuesAt({ type: "dawn", deaths: [], robbery: false }, everyone, false, witchsTurn))).toEqual([
       "witchSleeps",
       "background:day",
       "sound:rooster",
@@ -234,7 +282,7 @@ describe("the dawn", () => {
   test("with Hidden Roles on, the dead are announced without their Role", () => {
     const players = [player(1, false), player(2, false), player(3)];
 
-    expect(narratorText(view({ type: "dawn", deaths: [1, 2] }, players, true))).toBe(
+    expect(narratorText(view({ type: "dawn", deaths: [1, 2], robbery: false }, players, true))).toBe(
       "Le jour se lève. Cette nuit, le village a perdu P1, P2.",
     );
   });
@@ -243,7 +291,7 @@ describe("the dawn", () => {
     // A dead Host is a Spectator: their view reveals every Role.
     const players = [player(1, false, "seer"), player(2)];
 
-    expect(narratorText(view({ type: "dawn", deaths: [1] }, players, true))).toBe(
+    expect(narratorText(view({ type: "dawn", deaths: [1], robbery: false }, players, true))).toBe(
       "Le jour se lève. Cette nuit, le village a perdu P1.",
     );
   });
@@ -251,7 +299,7 @@ describe("the dawn", () => {
 
 describe("the Day", () => {
   test("the debate, the Election and the Vote are fixed lines", () => {
-    expect(heard(cuesAt({ type: "discussion" }, everyone, false, { type: "dawn", deaths: [] }))).toEqual(["discussion"]);
+    expect(heard(cuesAt({ type: "discussion" }, everyone, false, { type: "dawn", deaths: [], robbery: false }))).toEqual(["discussion"]);
     expect(heard(cuesAt({ type: "election", voted: [], yourBallot: null }, everyone, false, { type: "discussion" }))).toEqual([
       "election",
     ]);
@@ -368,7 +416,7 @@ describe("Paused", () => {
   });
 
   test("a dawn said again on resume has no rooster", () => {
-    const dawn: Moment = { type: "dawn", deaths: [] };
+    const dawn: Moment = { type: "dawn", deaths: [], robbery: false };
 
     expect(heard(narratorCues(view(dawn, everyone, false, true), view(dawn)))).toEqual([
       "background:day",

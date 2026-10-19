@@ -58,6 +58,7 @@ impl Table {
             witch: 0,
             hunter: 0,
             cupid: 0,
+            thief: 0,
             villager: count as u8 - werewolves,
         };
         engine
@@ -220,7 +221,8 @@ fn a_unanimous_pick_kills_the_victim_at_dawn_and_reveals_their_role() {
         assert_eq!(
             table.moment(&name),
             &Moment::Dawn {
-                deaths: vec![victim_id]
+                deaths: vec![victim_id],
+                robbery: false,
             }
         );
         let seen = table.summary(&name, &victim);
@@ -245,7 +247,7 @@ impl Table {
 
     fn dawn_deaths(&self) -> Vec<PlayerId> {
         match self.moment("P1") {
-            Moment::Dawn { deaths } => deaths.clone(),
+            Moment::Dawn { deaths, .. } => deaths.clone(),
             other => panic!("expected dawn, got {other:?}"),
         }
     }

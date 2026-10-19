@@ -8,6 +8,7 @@ import type { Rejection } from "./Rejection";
 import type { RoleCard } from "./RoleCard";
 import type { RoleCounts } from "./RoleCounts";
 import type { Settings } from "./Settings";
+import type { Theft } from "./Theft";
 
 /**
  * Everything one Player is allowed to know right now.
@@ -48,6 +49,12 @@ mayor: PlayerId | null,
  * Lovers themselves and to the Spectators. Empty for everyone else.
  */
 lovers: Array<PlayerId>, 
+/**
+ * Who the Thief is and whom they robbed, in a Game with a Thief: only to
+ * the Spectators, and to everyone on the victory screen. `None` for
+ * everyone else.
+ */
+theft: Theft | null, 
 /**
  * The visibility plan, from this Player's side: who they may see and
  * hear right now.

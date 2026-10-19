@@ -38,6 +38,7 @@ const sound = (sound: Sound): Cue => ({ type: "sound", sound });
 const SLEEP_LINES: Partial<Record<MomentType, FixedLine>> = {
   cupidsTurn: "cupidSleeps",
   loversTurn: "loversSleep",
+  thiefsTurn: "thiefSleeps",
   seersTurn: "seerSleeps",
   werewolvesTurn: "werewolvesSleep",
   witchsTurn: "witchSleeps",
@@ -108,6 +109,8 @@ function momentCues(moment: Moment, { players, settings }: NarratorView): Cue[] 
       return [fixed("cupidsTurn")];
     case "loversTurn":
       return [fixed("loversTurn")];
+    case "thiefsTurn":
+      return [fixed("thiefsTurn")];
     case "seersTurn":
       return [fixed("seersTurn")];
     case "werewolvesTurn":
@@ -121,6 +124,7 @@ function momentCues(moment: Moment, { players, settings }: NarratorView): Cue[] 
         moment.deaths.length === 0
           ? fixed("dawnNobody")
           : live(n.dawnDeaths(moment.deaths.map((id) => ({ name: name(id), role: roleOf(id) })))),
+        ...(moment.robbery ? [fixed("robbery")] : []),
       ];
     case "discussion":
       return [fixed("discussion")];

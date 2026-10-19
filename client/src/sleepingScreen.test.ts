@@ -58,6 +58,7 @@ function view(role: Role | null, moment: Moment, changes: Partial<PlayerView> = 
     moment,
     mayor: null,
     lovers: [],
+    theft: null,
     receives: [],
     audience: [],
     seesCountdown: true,
@@ -88,6 +89,15 @@ describe("a phone at Night", () => {
       expect(sleepingScreen(view(role, moment(role)))).toBeNull();
     });
   }
+
+  test("during the Thief's Turn, the Thief is awake and everyone else sees the same sleeping screen", () => {
+    const thiefsTurn: Moment = { type: "thiefsTurn" };
+    const screens = roles.map((role) => sleepingScreen(view(role, thiefsTurn)));
+
+    expect(sleepingScreen(view("thief", thiefsTurn))).toBeNull();
+    expect(screens[0]).not.toBeNull();
+    for (const screen of screens) expect(screen).toEqual(screens[0]);
+  });
 
   test("during Cupid's Turn, Cupid is awake and everyone else sees the same sleeping screen", () => {
     const cupidsTurn: Moment = { type: "cupidsTurn" };
@@ -155,7 +165,7 @@ describe("a phone at Night", () => {
 describe("a phone outside the Night", () => {
   const moments: Moment[] = [
     { type: "roleReveal", stillReading: 2, confirmed: true },
-    { type: "dawn", deaths: [] },
+    { type: "dawn", deaths: [], robbery: false },
     { type: "discussion" },
     { type: "vote", voted: [], yourBallot: null },
     { type: "victory", winner: "village" },

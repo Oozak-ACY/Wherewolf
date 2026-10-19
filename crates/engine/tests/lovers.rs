@@ -39,6 +39,7 @@ const ROLES: RoleCounts = RoleCounts {
     witch: 1,
     hunter: 1,
     cupid: 1,
+    thief: 0,
     villager: 4,
 };
 
@@ -323,7 +324,8 @@ fn a_lover_killed_by_the_werewolves_dies_at_dawn_and_the_partner_dies_of_grief_r
     assert_eq!(
         table.moment_for_all(),
         Moment::Dawn {
-            deaths: vec![table.id(&killed)]
+            deaths: vec![table.id(&killed)],
+            robbery: false,
         }
     );
     assert!(table.alive(&grieving));
@@ -372,7 +374,8 @@ fn a_lover_poisoned_by_the_witch_dies_at_dawn_and_the_partner_dies_of_grief() {
     assert_eq!(
         table.moment_for_all(),
         Moment::Dawn {
-            deaths: vec![table.id(&poisoned)]
+            deaths: vec![table.id(&poisoned)],
+            robbery: false,
         }
     );
     table.time_runs_out();
@@ -476,7 +479,7 @@ fn both_lovers_dying_the_same_night_die_at_dawn_and_grief_kills_nobody_twice() {
     let (killed, poisoned) = (table.villager(0), table.villager(1));
 
     table.night(Some(&killed), Some(&poisoned));
-    let Moment::Dawn { deaths } = table.moment_for_all() else {
+    let Moment::Dawn { deaths, .. } = table.moment_for_all() else {
         panic!("the village wakes up");
     };
     let mut both = vec![table.id(&killed), table.id(&poisoned)];
@@ -543,6 +546,7 @@ const SMALL: RoleCounts = RoleCounts {
     witch: 0,
     hunter: 0,
     cupid: 1,
+    thief: 0,
     villager: 2,
 };
 

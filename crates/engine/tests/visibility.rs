@@ -108,6 +108,7 @@ impl Table {
             witch: 0,
             hunter: 0,
             cupid: 0,
+            thief: 0,
             villager: count as u8 - werewolves,
         };
         table.act("P1", Command::UpdateSettings { settings });
@@ -370,6 +371,7 @@ fn during_the_seers_turn_she_and_every_living_player_see_and_hear_nobody() {
         witch: 0,
         hunter: 0,
         cupid: 0,
+        thief: 0,
         villager: 4,
     };
     table.act("P1", Command::UpdateSettings { settings });

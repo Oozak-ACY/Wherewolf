@@ -17,6 +17,7 @@ type Props = {
   onEndDebate: () => void;
   onChooseLovers: (lovers: PlayerId[]) => void;
   onConfirmPartner: () => void;
+  onRob: (player: PlayerId) => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onHeal: () => void;
@@ -54,6 +55,10 @@ export function GamePanel(props: Props) {
           everyone does on the victory screen. */}
       {(partner === undefined || moment.type === "victory") && view.lovers.length === 2 && (
         <p>{fr.game.lovers(name(view.lovers[0]!), name(view.lovers[1]!))}</p>
+      )}
+      {/* Only a Spectator, or everyone on the victory screen, knows who the Thief robbed. */}
+      {view.theft && (
+        <p>{fr.game.theft(name(view.theft.thief), view.theft.robbed === null ? null : name(view.theft.robbed))}</p>
       )}
 
       {moment.type === "roleReveal" && (
@@ -96,6 +101,17 @@ export function GamePanel(props: Props) {
             )}
           </>
         ) : null)}
+
+      {moment.type === "thiefsTurn" &&
+        (view.role?.role === "thief" && me?.alive ? (
+          <>
+            <p>{fr.game.thiefPick}</p>
+            <ChoiceList players={living.filter((p) => p.id !== view.you)} chosen={null} onChoose={props.onRob} />
+            <button onClick={props.onPass}>{fr.game.thiefPass}</button>
+          </>
+        ) : (
+          <p className="muted">{fr.game.thiefChoosing}</p>
+        ))}
 
       {moment.type === "seersTurn" &&
         (moment.inspection ? (

@@ -38,6 +38,7 @@ const WITHOUT_SEER: RoleCounts = RoleCounts {
     witch: 1,
     hunter: 0,
     cupid: 0,
+    thief: 0,
     villager: 4,
 };
 
@@ -48,6 +49,7 @@ const WITH_SEER: RoleCounts = RoleCounts {
     witch: 1,
     hunter: 0,
     cupid: 0,
+    thief: 0,
     villager: 3,
 };
 
@@ -215,7 +217,7 @@ impl Table {
 
     fn dawn_deaths(&self) -> Vec<PlayerId> {
         match self.moment("P1") {
-            Moment::Dawn { deaths } => deaths.clone(),
+            Moment::Dawn { deaths, .. } => deaths.clone(),
             other => panic!("expected the dawn, got {other:?}"),
         }
     }
@@ -438,6 +440,7 @@ fn poisoning_the_last_werewolf_wins_the_game_for_the_village() {
         witch: 1,
         hunter: 0,
         cupid: 0,
+        thief: 0,
         villager: 5,
     });
     let witch = table.witch();

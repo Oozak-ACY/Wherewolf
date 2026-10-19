@@ -71,6 +71,9 @@ pub enum Command {
     /// The Lovers' Turn: "I've seen who my partner is". Confirming again
     /// changes nothing.
     ConfirmPartner,
+    /// The Thief's Turn, on the second Night: rob a living Player other than
+    /// themself. The Theft takes effect at dawn. Ends the Turn.
+    Rob { player: PlayerId },
     /// Seer's Turn: see the Role of another living Player, once.
     Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.
@@ -81,12 +84,12 @@ pub enum Command {
     /// potion, once a Game.
     Poison { player: PlayerId },
     /// Do nothing in this Moment, as letting its time run out would: the
-    /// Seer inspects nobody, a Werewolf picks nobody (and may still change
-    /// their mind), the Witch uses no more potions, the eliminated Hunter
-    /// shoots nobody, the Mayor on a tie eliminates nobody. With Hidden Roles
-    /// off, a Night Turn then ends as soon as its action is complete; with it
-    /// on, it runs its full time. Not when the eliminated Mayor names a
-    /// successor.
+    /// Thief robs nobody, the Seer inspects nobody, a Werewolf picks nobody
+    /// (and may still change their mind), the Witch uses no more potions, the
+    /// eliminated Hunter shoots nobody, the Mayor on a tie eliminates nobody.
+    /// With Hidden Roles off, a Night Turn then ends as soon as its action is
+    /// complete; with it on, it runs its full time. Not when the eliminated
+    /// Mayor names a successor.
     Pass,
     /// The Election: vote for a living Player, yourself included, to be
     /// Mayor. Can be changed until the Election ends.
@@ -138,8 +141,8 @@ pub enum Rejection {
     /// The Game cannot start while a seated Player is Disconnected.
     PlayersDisconnected,
     /// Someone else's Turn: only Cupid names the Lovers, only the Lovers
-    /// confirm their bond, only the Seer inspects, only the Werewolves pick a
-    /// Victim, only the Witch uses potions.
+    /// confirm their bond, only the Thief robs, only the Seer inspects, only
+    /// the Werewolves pick a Victim, only the Witch uses potions.
     NotYourTurn,
     /// Cupid must name exactly two different Players.
     NotTwoPlayers,
@@ -176,6 +179,7 @@ pub enum Role {
     Witch,
     Hunter,
     Cupid,
+    Thief,
     Villager,
 }
 
@@ -184,7 +188,12 @@ impl Role {
     pub fn camp(self) -> Camp {
         match self {
             Role::Werewolf => Camp::Werewolves,
-            Role::Seer | Role::Witch | Role::Hunter | Role::Cupid | Role::Villager => Camp::Village,
+            Role::Seer
+            | Role::Witch
+            | Role::Hunter
+            | Role::Cupid
+            | Role::Thief
+            | Role::Villager => Camp::Village,
         }
     }
 }
@@ -245,6 +254,7 @@ pub struct RoleCounts {
     pub witch: u8,
     pub hunter: u8,
     pub cupid: u8,
+    pub thief: u8,
     pub villager: u8,
 }
 
@@ -264,6 +274,7 @@ impl RoleCounts {
             witch: 1,
             hunter,
             cupid: 0,
+            thief: 0,
             villager: (players.max(5) as u8).saturating_sub(special),
         }
     }
@@ -278,6 +289,7 @@ impl RoleCounts {
             (Role::Witch, self.witch),
             (Role::Hunter, self.hunter),
             (Role::Cupid, self.cupid),
+            (Role::Thief, self.thief),
             (Role::Villager, self.villager),
         ]
         .into_iter()
@@ -292,6 +304,7 @@ impl RoleCounts {
             self.witch,
             self.hunter,
             self.cupid,
+            self.thief,
             self.villager,
         ]
         .iter()
@@ -310,6 +323,7 @@ pub struct Timers {
     pub vote: u32,
     pub cupid: u32,
     pub lovers: u32,
+    pub thief: u32,
     pub seer: u32,
     pub werewolves: u32,
     pub witch: u32,
@@ -322,13 +336,14 @@ pub struct Timers {
 }
 
 impl Timers {
-    fn all(&self) -> [u32; 12] {
+    fn all(&self) -> [u32; 13] {
         [
             self.discussion,
             self.election,
             self.vote,
             self.cupid,
             self.lovers,
+            self.thief,
             self.seer,
             self.werewolves,
             self.witch,
@@ -348,6 +363,7 @@ impl Default for Timers {
             vote: 60,
             cupid: 30,
             lovers: 30,
+            thief: 30,
             seer: 30,
             werewolves: 60,
             witch: 30,
@@ -411,6 +427,10 @@ pub struct PlayerView {
     /// The two Lovers, in seat order, once Cupid has named them: only to the
     /// Lovers themselves and to the Spectators. Empty for everyone else.
     pub lovers: Vec<PlayerId>,
+    /// Who the Thief is and whom they robbed, in a Game with a Thief: only to
+    /// the Spectators, and to everyone on the victory screen. `None` for
+    /// everyone else.
+    pub theft: Option<Theft>,
     /// The visibility plan, from this Player's side: who they may see and
     /// hear right now.
     pub receives: Vec<PlayerId>,
@@ -441,6 +461,18 @@ impl PlayerView {
     }
 }
 
+/// The Thief, and the Player they robbed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct Theft {
+    /// The Player dealt the Thief.
+    pub thief: PlayerId,
+    /// Whom the Thief chose to rob, once they have. `None` if they robbed
+    /// nobody, or once the Theft is cancelled at dawn because either of them
+    /// died that Night.
+    pub robbed: Option<PlayerId>,
+}
+
 /// A moment of the Game, as one Player sees it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(
@@ -469,6 +501,8 @@ pub enum Moment {
         /// the Lovers.
         confirmed: bool,
     },
+    /// The second Night, first: the Thief chooses whom to rob, if anyone.
+    ThiefsTurn,
     /// Night: the Seer inspects another living Player's Role.
     SeersTurn {
         /// What the Seer learned this Turn. Only the Seer and the Spectators
@@ -492,7 +526,13 @@ pub enum Moment {
     },
     /// The village wakes up and learns who died in the Night, in seat order,
     /// never why.
-    Dawn { deaths: Vec<PlayerId> },
+    Dawn {
+        deaths: Vec<PlayerId>,
+        /// Whether the Narrator says a house was robbed: at the dawn after
+        /// the second Night, in a Game with a Thief, whether or not a Theft
+        /// takes place.
+        robbery: bool,
+    },
     /// Day: the living debate.
     Discussion,
     /// The first Day: the living elect the Mayor. Ballots stay secret until
@@ -683,6 +723,12 @@ pub const MAX_WITCHES: u8 = 1;
 /// A Game has at most one Cupid: there is one pair of Lovers.
 pub const MAX_CUPIDS: u8 = 1;
 
+/// A Game has at most one Thief.
+pub const MAX_THIEVES: u8 = 1;
+
+/// The Night the Thief wakes on, and after which the Theft takes effect.
+const THIEFS_NIGHT: u32 = 2;
+
 /// Long enough for a first name, short enough to fit under a video tile.
 pub const MAX_NAME_CHARS: usize = 20;
 
@@ -713,6 +759,11 @@ struct Game {
     /// In seat order. `None` until Cupid names them, and in a Game without
     /// Cupid.
     lovers: Option<[PlayerId; 2]>,
+    /// Which Night it is, or was last: 0 before the first Night falls.
+    night: u32,
+    /// The Thief and whom they chose to rob, in a Game with a Thief. Whom
+    /// they robbed is cleared at dawn if the Theft is cancelled.
+    theft: Option<Theft>,
     /// How long the current Turn lasts, if it is a Feigned Turn.
     feigned: Option<u32>,
     /// False while the Narrator announces the current Moment.
@@ -786,6 +837,7 @@ enum MomentState {
     LoversTurn {
         confirmed: Vec<PlayerId>,
     },
+    ThiefsTurn,
     SeersTurn {
         inspection: Option<Inspection>,
         /// She chose to inspect nobody tonight.
@@ -800,6 +852,7 @@ enum MomentState {
     },
     Dawn {
         deaths: Vec<PlayerId>,
+        robbery: bool,
     },
     Discussion,
     /// In the order they were cast.
@@ -932,6 +985,7 @@ impl Game {
             MomentState::RoleReveal { .. } => return None,
             MomentState::CupidsTurn => timers.cupid,
             MomentState::LoversTurn { .. } => timers.lovers,
+            MomentState::ThiefsTurn => timers.thief,
             // Her Turn ends once she has read what she saw.
             MomentState::SeersTurn {
                 inspection: Some(_),
@@ -987,6 +1041,7 @@ impl Game {
             MomentState::LoversTurn { confirmed } => Moment::LoversTurn {
                 confirmed: confirmed.contains(&viewer.id),
             },
+            MomentState::ThiefsTurn => Moment::ThiefsTurn,
             MomentState::SeersTurn { inspection, passed } => {
                 // The Seer and the Spectators see it.
                 let sees = viewer.role == Some(Role::Seer) || !viewer.alive;
@@ -1004,8 +1059,9 @@ impl Game {
                 // The Witch and the Spectators see it.
                 witch: (viewer.role == Some(Role::Witch) || !viewer.alive).then_some(*sight),
             },
-            MomentState::Dawn { deaths } => Moment::Dawn {
+            MomentState::Dawn { deaths, robbery } => Moment::Dawn {
                 deaths: deaths.clone(),
+                robbery: *robbery,
             },
             MomentState::Discussion => Moment::Discussion,
             MomentState::Election { ballots } => Moment::Election {
@@ -1169,6 +1225,7 @@ impl Engine {
                 if settings.roles.total() > MAX_PLAYERS
                     || settings.roles.witch > MAX_WITCHES
                     || settings.roles.cupid > MAX_CUPIDS
+                    || settings.roles.thief > MAX_THIEVES
                     || !timers_valid
                     || !GRACE_PERIOD_BOUNDS.contains(&settings.grace_period)
                 {
@@ -1185,6 +1242,14 @@ impl Engine {
                     return Err(blocker);
                 }
                 self.deal();
+                let theft = self
+                    .seats
+                    .iter()
+                    .find(|s| s.role == Some(Role::Thief))
+                    .map(|s| Theft {
+                        thief: s.id,
+                        robbed: None,
+                    });
                 self.game = Some(Game {
                     state: MomentState::RoleReveal {
                         confirmed: Vec::new(),
@@ -1197,6 +1262,8 @@ impl Engine {
                     triggers: VecDeque::new(),
                     mayor: None,
                     lovers: None,
+                    night: 0,
+                    theft,
                     feigned: None,
                     open: false,
                 });
@@ -1211,7 +1278,7 @@ impl Engine {
                     confirmed.push(player);
                 }
                 if confirmed.len() == living {
-                    let night = self.nightfall(true);
+                    let night = self.nightfall();
                     self.game_mut().go_to(night);
                     self.feign_if_idle();
                 }
@@ -1243,6 +1310,17 @@ impl Engine {
                 if confirmed.len() == 2 {
                     self.end_lovers_turn();
                 }
+            }
+            Command::Rob { player } => {
+                let thief = self.require_thiefs_turn(seat)?;
+                self.require_in_play(Some(player))?;
+                if player == thief {
+                    return Err(Rejection::Yourself);
+                }
+                if let Some(theft) = &mut self.game_mut().theft {
+                    theft.robbed = Some(player);
+                }
+                self.end_thiefs_turn();
             }
             Command::Inspect { player } => {
                 let seer = self.require_seers_turn(seat)?;
@@ -1294,6 +1372,10 @@ impl Engine {
                 Some(MomentState::WerewolvesTurn { .. }) => {
                     let werewolf = self.require_werewolves_turn(seat)?;
                     self.pick(werewolf, None);
+                }
+                Some(MomentState::ThiefsTurn) => {
+                    self.require_thiefs_turn(seat)?;
+                    self.end_thiefs_turn();
                 }
                 Some(MomentState::SeersTurn { .. }) => {
                     self.require_seers_turn(seat)?;
@@ -1449,6 +1531,8 @@ impl Engine {
                 self.bind_lovers(first, second);
             }
             MomentState::LoversTurn { .. } => self.end_lovers_turn(),
+            // The Thief robbed nobody in time.
+            MomentState::ThiefsTurn => self.end_thiefs_turn(),
             MomentState::SeersTurn { .. } => self.game_mut().go_to(Self::werewolves_turn()),
             MomentState::WerewolvesTurn { .. } => {
                 let victim = self.most_picked();
@@ -1562,6 +1646,19 @@ impl Engine {
             Err(Rejection::NotYourTurn)
         } else {
             Ok(())
+        }
+    }
+
+    /// The Player on this seat is the living Thief, and it is their Turn.
+    fn require_thiefs_turn(&self, token: &SeatToken) -> Result<PlayerId, Rejection> {
+        let thief = self.require_living(token)?;
+        let is_thief = self.seat_of(token)?.role == Some(Role::Thief);
+        if !matches!(self.state(), Some(MomentState::ThiefsTurn)) {
+            Err(Rejection::NotNow)
+        } else if !is_thief {
+            Err(Rejection::NotYourTurn)
+        } else {
+            Ok(thief)
         }
     }
 
@@ -1775,13 +1872,19 @@ impl Engine {
         self.living().any(|s| s.role == Some(role))
     }
 
-    /// The first Turn of the Night. The Night order is Cupid and then the
-    /// Lovers, on the `first` Night only, then the Seer, then the Werewolves.
-    /// Nobody can be dead on the first Night, so neither Cupid's nor the
-    /// Lovers' Turn is ever Feigned.
-    fn nightfall(&self, first: bool) -> MomentState {
-        if first && self.wakes(Role::Cupid) {
+    /// The next Night falls: its first Turn. The Night order is Cupid and
+    /// then the Lovers, on the first Night only, the Thief on the second
+    /// Night only, then the Seer, then the Werewolves. Nobody can be dead on
+    /// the first Night, so neither Cupid's nor the Lovers' Turn is ever
+    /// Feigned.
+    fn nightfall(&mut self) -> MomentState {
+        let game = self.game_mut();
+        game.night += 1;
+        let night = game.night;
+        if night == 1 && self.wakes(Role::Cupid) {
             MomentState::CupidsTurn
+        } else if night == THIEFS_NIGHT && self.wakes(Role::Thief) {
+            MomentState::ThiefsTurn
         } else {
             self.seers_turn_or_after()
         }
@@ -1814,6 +1917,53 @@ impl Engine {
         let next = self.seers_turn_or_after();
         self.game_mut().go_to(next);
         self.feign_if_idle();
+    }
+
+    /// The Thief goes back to sleep, and the Night goes on.
+    fn end_thiefs_turn(&mut self) {
+        let next = self.seers_turn_or_after();
+        self.game_mut().go_to(next);
+        self.feign_if_idle();
+    }
+
+    /// The Theft takes effect, at the dawn after the second Night, once its
+    /// deaths are resolved: if the Thief and the Player they robbed are both
+    /// alive, the Thief takes their Role as it stands and they hold a
+    /// Villager card. Otherwise the Theft is cancelled, and a living Thief
+    /// without a Role plays as a Villager. It happens once: afterwards the
+    /// Thief no longer holds the Thief card.
+    fn carry_out_theft(&mut self) {
+        let Some(Theft { thief, robbed }) = self.game.as_ref().and_then(|g| g.theft) else {
+            return;
+        };
+        let robs = self
+            .living()
+            .any(|s| s.id == thief && s.role == Some(Role::Thief));
+        if !robs && self.is_alive(thief) {
+            return;
+        }
+        let robbed = robbed.filter(|&r| robs && self.is_alive(r));
+        if let Some(theft) = &mut self.game_mut().theft {
+            theft.robbed = robbed;
+        }
+        if !robs {
+            return;
+        }
+        let mut taken = Role::Villager;
+        if let Some(seat) = self.seats.iter_mut().find(|s| Some(s.id) == robbed) {
+            taken = seat.role.replace(Role::Villager).unwrap_or(Role::Villager);
+        }
+        if let Some(seat) = self.seats.iter_mut().find(|s| s.id == thief) {
+            seat.role = Some(taken);
+        }
+    }
+
+    /// The Thief and whom they robbed, if `viewer` may know: a Spectator, or
+    /// anyone once the Game is over.
+    fn theft_seen_by(&self, viewer: &Seat) -> Option<Theft> {
+        let game = self.game.as_ref()?;
+        game.theft
+            .filter(|_| self.spectating(viewer) || game.is_over())
     }
 
     /// The two Lovers, if `viewer` may know who they are: a Lover, or a
@@ -1910,15 +2060,18 @@ impl Engine {
     }
 
     /// With Hidden Roles on, a Turn where nothing can happen is feigned, so
-    /// its length reveals nothing: the Seer's or the Witch's Turn when she
-    /// is dead, or the Witch's when she has no potion she could use tonight.
-    /// It lasts a random time, from the Feigned Turn minimum up to the
-    /// Turn's own timer.
+    /// its length reveals nothing: the Thief's, the Seer's or the Witch's
+    /// Turn when they are dead, or the Witch's when she has no potion she
+    /// could use tonight. It lasts a random time, from the Feigned Turn
+    /// minimum up to the Turn's own timer.
     fn feign_if_idle(&mut self) {
         if !self.hidden_roles {
             return;
         }
         let longest = match self.state() {
+            Some(MomentState::ThiefsTurn) if !self.has_living_holder(Role::Thief) => {
+                self.timers.thief
+            }
             Some(MomentState::SeersTurn { .. }) if !self.has_living_holder(Role::Seer) => {
                 self.timers.seer
             }
@@ -1952,7 +2105,9 @@ impl Engine {
         for &id in &deaths {
             self.eliminate(id);
         }
-        self.game_mut().go_to(MomentState::Dawn { deaths });
+        let game = self.game_mut();
+        let robbery = game.night == THIEFS_NIGHT && game.theft.is_some();
+        game.go_to(MomentState::Dawn { deaths, robbery });
     }
 
     /// The Player most picked by the Werewolves, unless several choices are
@@ -2058,9 +2213,15 @@ impl Engine {
                 .game_mut()
                 .go_to(MomentState::Succession { mayor, then }),
             None => match then {
-                Resume::Day => self.unless_decided(MomentState::Discussion),
+                Resume::Day => {
+                    if self.game.as_ref().is_some_and(|g| g.night == THIEFS_NIGHT) {
+                        self.carry_out_theft();
+                    }
+                    self.unless_decided(MomentState::Discussion);
+                }
                 Resume::Night => {
-                    self.unless_decided(self.nightfall(false));
+                    let night = self.nightfall();
+                    self.unless_decided(night);
                     self.feign_if_idle();
                 }
             },
@@ -2231,9 +2392,11 @@ impl Engine {
             // Spectators see everyone; the living never see the Spectators.
             Some(_) if self.spectating(receiver) => true,
             Some(_) if self.spectating(sender) => false,
-            // Cupid, the Seer and the Witch act alone, seeing and heard by no one.
+            // Cupid, the Thief, the Seer and the Witch act alone, seeing and
+            // heard by no one.
             Some(
                 MomentState::CupidsTurn
+                | MomentState::ThiefsTurn
                 | MomentState::SeersTurn { .. }
                 | MomentState::WitchsTurn { .. },
             ) => false,
@@ -2279,6 +2442,7 @@ impl Engine {
         let acting = match self.state() {
             Some(MomentState::CupidsTurn) => has(Role::Cupid),
             Some(MomentState::LoversTurn { .. }) => self.is_lover(viewer),
+            Some(MomentState::ThiefsTurn) => has(Role::Thief),
             Some(MomentState::SeersTurn { .. }) => has(Role::Seer),
             Some(MomentState::WerewolvesTurn { .. }) => has(Role::Werewolf),
             Some(MomentState::WitchsTurn { .. }) => has(Role::Witch),
@@ -2348,6 +2512,7 @@ impl Engine {
                     moment: self.game.as_ref().map(|g| g.moment(s, living)),
                     mayor: self.mayor(),
                     lovers: self.lovers_seen_by(s),
+                    theft: self.theft_seen_by(s),
                     receives: self.received_by(s),
                     audience: self.audience_of(s),
                     sees_countdown: self.sees_countdown(s),

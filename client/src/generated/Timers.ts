@@ -3,7 +3,7 @@
 /**
  * How long each timed moment lasts, in seconds.
  */
-export type Timers = { discussion: number, election: number, vote: number, cupid: number, lovers: number, seer: number, werewolves: number, witch: number, hunter: number, mayorSuccessor: number, mayorTieBreak: number, 
+export type Timers = { discussion: number, election: number, vote: number, cupid: number, lovers: number, thief: number, seer: number, werewolves: number, witch: number, hunter: number, mayorSuccessor: number, mayorTieBreak: number, 
 /**
  * With Hidden Roles on, the shortest a Feigned Turn may last: it lasts
  * a random time from this up to the Turn's own timer.

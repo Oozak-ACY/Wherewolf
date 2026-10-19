@@ -22,7 +22,7 @@ confirmed: boolean, } | { "type": "cupidsTurn" } | { "type": "loversTurn",
  * Whether this Player has confirmed. Always false for anyone but
  * the Lovers.
  */
-confirmed: boolean, } | { "type": "seersTurn", 
+confirmed: boolean, } | { "type": "thiefsTurn" } | { "type": "seersTurn", 
 /**
  * What the Seer learned this Turn. Only the Seer and the Spectators
  * see it.
@@ -42,7 +42,13 @@ picks: Array<Pick> | null, } | { "type": "witchsTurn",
  * What the Witch knows and did this Turn. Only the Witch and the
  * Spectators see it.
  */
-witch: WitchSight | null, } | { "type": "dawn", deaths: Array<PlayerId>, } | { "type": "discussion" } | { "type": "election", 
+witch: WitchSight | null, } | { "type": "dawn", deaths: Array<PlayerId>, 
+/**
+ * Whether the Narrator says a house was robbed: at the dawn after
+ * the second Night, in a Game with a Thief, whether or not a Theft
+ * takes place.
+ */
+robbery: boolean, } | { "type": "discussion" } | { "type": "election", 
 /**
  * Who has already voted, but not for whom.
  */

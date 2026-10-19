@@ -40,6 +40,7 @@ const ROLES: RoleCounts = RoleCounts {
     witch: 1,
     hunter: 0,
     cupid: 0,
+    thief: 0,
     villager: 3,
 };
 
@@ -272,7 +273,7 @@ fn a_disconnected_werewolf_does_not_hold_up_the_kill() {
     table.act(&present, Command::PickVictim { victim: victim_id });
     table.until(|m| matches!(m, Moment::Dawn { .. }));
 
-    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths } if deaths == &[victim_id]));
+    assert!(matches!(table.moment("P1"), Moment::Dawn { deaths, .. } if deaths == &[victim_id]));
 }
 
 #[test]
