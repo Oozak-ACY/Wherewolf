@@ -29,13 +29,14 @@ export function themeColor(ground: Ground): string {
   return THEME_COLORS[ground];
 }
 
-/**
- * How this Player's pick rows send their choice: `tap` sends on each tap and
- * stays changeable, `confirm` only selects until a confirm step, for the
- * irreversible choices. `null` when this Player has no choice to make.
- */
+/** How pick rows send a choice: on each tap, or once a confirm step follows the selection. */
 export type Picking = "tap" | "confirm";
 
+/**
+ * How this Player's pick rows send their choice: a confirm step for the
+ * irreversible choices, a tap for those that stay changeable. `null` when
+ * this Player has no choice to make.
+ */
 export function picking(view: PlayerView): Picking | null {
   const { moment } = view;
   if (!moment || view.announcing !== null || view.spectating) return null;

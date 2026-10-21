@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from "react";
-import type { Potions } from "./generated/Potions";
 import type { Ballot } from "./generated/Ballot";
 import type { Moment } from "./generated/Moment";
 import type { Pick } from "./generated/Pick";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
+import type { Potions } from "./generated/Potions";
 import { picking, type Picking } from "./ground";
 import { partnerOf } from "./RoleCardView";
 import { fr } from "./strings";
@@ -473,7 +473,7 @@ function Choice(props: {
 }) {
   const [selected, setSelected] = useState<PlayerId | null>(null);
   const confirming = props.mode === "confirm";
-  // A selected Player who died meanwhile is no longer a choice.
+  // A selected Player who died meanwhile is no longer a choice
   const picked = props.players.find((p) => p.id === selected);
   const pressed = confirming ? picked?.id : props.chosen;
   return (
