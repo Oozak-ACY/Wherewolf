@@ -17,7 +17,7 @@ import { rememberedName } from "./seat";
 import { createLobby } from "./server";
 import { SettingsPanel } from "./SettingsPanel";
 import { ground } from "./ground";
-import { sleepingScreen, waitingScreen } from "./sleepingScreen";
+import { pausedBy, sleepingScreen, waitingScreen } from "./sleepingScreen";
 import { SleepingView } from "./SleepingView";
 import { fr } from "./strings";
 import { preloadTableAudio, unlockTableAudio } from "./tableAudio";
@@ -276,6 +276,7 @@ function Lobby(props: {
   // While the Narrator announces the coming Moment, every phone waits for the Narrator.
   const asleep = sleepingScreen(view);
   const waiting = waitingScreen(view);
+  const paused = pausedBy(view);
   const content = asleep ? (
     <SleepingView screen={asleep} night reconnecting={props.reconnecting} />
   ) : waiting ? (
@@ -284,7 +285,7 @@ function Lobby(props: {
     <div className="lobby">
       <section className="stack">
         {props.reconnecting && <ConnectionLost />}
-        {view.paused && <Paused host={view.players.find((p) => p.id === view.host)?.name ?? "?"} />}
+        {paused !== null && <Paused hostName={paused} />}
         {props.rejection && <p className="error">{fr.rejection[props.rejection]}</p>}
         <h2>{fr.lobby.players(view.players.length)}</h2>
         <PlayerGrid view={view} />
@@ -344,10 +345,10 @@ function Lobby(props: {
     </div>
   );
 
-  // First, so the mixer stays open from one screen to the next.
   const bar = narratorBar(view);
   return (
     <>
+      {/* First, so the mixer stays open from one screen to the next. */}
       {bar && (
         <NarratorBar bar={bar} endsAt={props.endsAt} paused={view.paused} onOpenCard={() => setCardOpen(true)} />
       )}

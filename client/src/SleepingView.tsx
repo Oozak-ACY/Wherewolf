@@ -14,7 +14,7 @@ export function SleepingView(props: { screen: SleepingScreen; night: boolean; re
     // No aria-live: a screen reader would speak the line out loud at the table.
     <section className="sleeping">
       {props.reconnecting && <ConnectionLost />}
-      {screen.pausedBy !== null && <Paused host={screen.pausedBy} />}
+      {screen.pausedBy !== null && <Paused hostName={screen.pausedBy} />}
       <div className="sleeping-body">
         {props.night ? (
           <>

@@ -71,11 +71,11 @@ function MoonIcon() {
   );
 }
 
-/** A generic card back, never the Player's own art */
+/** A generic card back, never the Player's own art. */
 function CardBackIcon() {
   return (
     <svg viewBox="0 0 18 32" width="16" height="28" aria-hidden="true">
-      <rect x="1" y="1" width="16" height="30" rx="2" fill="#101a2c" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="1" y="1" width="16" height="30" rx="2" fill="var(--ww-night)" stroke="currentColor" strokeWidth="1.5" />
       <rect x="3.5" y="3.5" width="11" height="25" rx="1" fill="none" stroke="currentColor" strokeWidth="0.75" />
       <path d="M10.5 11.5a4.5 4.5 0 1 0 2.9 7 5.3 5.3 0 0 1-2.9-7z" fill="currentColor" />
     </svg>

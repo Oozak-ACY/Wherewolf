@@ -64,6 +64,6 @@ export function waitingScreen(view: PlayerView): SleepingScreen | null {
 }
 
 /** The Host's name while the Game is Paused waiting for them. */
-function pausedBy(view: PlayerView): string | null {
+export function pausedBy(view: PlayerView): string | null {
   return view.paused ? (view.players.find((p) => p.id === view.host)?.name ?? "?") : null;
 }

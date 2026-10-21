@@ -5,11 +5,11 @@ import { isNightTurn, sleepingScreen, waitingScreen } from "./sleepingScreen";
 
 /** What the Narrator bar atop every in-Game screen shows. */
 export type NarratorBar = {
-  /** The Night during its Turns, the Day for everything else. */
+  /** The Night during its Turns, the Day for everything else, the Role reveal included. */
   phase: Phase;
   /** The Narrator's current line, the same on every phone. */
   line: string;
-  /** Whether "Ma carte" opens the Player's card: never on a phone that hides it. */
+  /** Whether the bar opens the Player's card: never on a phone that hides it. */
   card: boolean;
   /** Whether the bar opens the mixer: on the Table device only. */
   mixer: boolean;

@@ -13,15 +13,15 @@ export function ConnectionLost() {
   );
 }
 
-/** The Game is Paused until `host`, the Table device, takes their seat back. */
-export function Paused({ host }: { host: string }) {
+/** The Game is Paused until the Host, named `hostName`, takes their seat back. */
+export function Paused({ hostName }: { hostName: string }) {
   return (
     <p className="banner" role="status">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" />
         <rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" />
       </svg>
-      <span>{fr.game.paused(host)}</span>
+      <span>{fr.game.paused(hostName)}</span>
     </p>
   );
 }
