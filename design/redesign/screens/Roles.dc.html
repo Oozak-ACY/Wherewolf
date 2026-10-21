@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Wherewolf — Les rôles</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&amp;family=EB+Garamond:ital,wght@0,400;0,600;1,400&amp;family=UnifrakturMaguntia&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#8A2A1F}a:hover{color:#5E1A12}
+</style>
+</helmet>
+<div style="width: 390px; height: 2300px; box-sizing: border-box; background: #EFE4CB; font-family: 'EB Garamond', Georgia, serif; color: #2B1D12; padding: 24px 20px; display: flex; flex-direction: column; gap: 16px">
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+    <span style="font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.3em; color: #5A4632">LES CARTES DU VILLAGE</span>
+    <h1 style="margin: 0; font-family: 'UnifrakturMaguntia', serif; font-weight: 400; font-size: 48px; color: #8A2A1F">Les Rôles</h1>
+  </div>
+
+  <h2 style="margin: 0; font-family: 'Cinzel', serif; font-size: 16px; letter-spacing: 0.12em; border-bottom: 1px solid #B88A2E; padding-bottom: 6px">En jeu</h2>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 14px">
+    <sc-for list="{{inPlay}}" as="r" hint-placeholder-count="8">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <img src="{{r.img}}" alt="{{r.name}}" style="width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 14px rgba(43,29,18,0.3)">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 6px">
+          <span style="font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px">{{r.name}}</span>
+          <span style="font-size: 13px; font-style: italic; color: #5A4632">{{r.camp}}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <h2 style="margin: 8px 0 0; font-family: 'Cinzel', serif; font-size: 16px; letter-spacing: 0.12em; border-bottom: 1px solid #B88A2E; padding-bottom: 6px">À venir</h2>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 14px">
+    <sc-for list="{{soon}}" as="r" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <img src="{{r.img}}" alt="{{r.name}}" style="width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 14px rgba(43,29,18,0.3)">
+        <span style="font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px">{{r.name}}</span>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const inPlay = [
+      { name: 'Loup-Garou', camp: 'Loups', img: '../roles/werewolf.webp' },
+      { name: 'Voyante', camp: 'Village', img: '../roles/seer.webp' },
+      { name: 'Sorcière', camp: 'Village', img: '../roles/witch.webp' },
+      { name: 'Chasseur', camp: 'Village', img: '../roles/hunter.webp' },
+      { name: 'Cupidon', camp: 'Village', img: '../roles/cupid.webp' },
+      { name: 'Voleur', camp: 'Village', img: '../roles/thief.webp' },
+      { name: 'Villageois', camp: 'Village', img: '../roles/villager.webp' },
+      { name: 'Maire', camp: 'Titre', img: '../roles/mayor.webp' }
+    ];
+    const soon = [
+      { name: 'Ange', img: '../roles/angel.webp' },
+      { name: 'Petite Fille', img: '../roles/little-girl.webp' },
+      { name: 'Pyromane', img: '../roles/pyromaniac.webp' },
+      { name: 'Assassin', img: '../roles/assassin.webp' }
+    ];
+    return { inPlay, soon };
+  }
+}
+</script>
+</body>
+</html>

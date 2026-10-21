@@ -1,0 +1,54 @@
+/* Wherewolf medieval redesign: design tokens. Mirrors tokens.json. */
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=UnifrakturMaguntia&display=swap");
+
+:root {
+  /* Day side (parchment) */
+  --ww-parchment: #efe4cb;
+  --ww-parchment-deep: #e6d7b5;
+  --ww-vellum: #fbf4e2;
+  --ww-border-parchment: #c9ae7c;
+  --ww-ink: #2b1d12;
+  --ww-ink-soft: #4a3826;
+  --ww-ink-muted: #5a4632;
+
+  /* Glass colors */
+  --ww-oxblood: #8a2a1f;
+  --ww-oxblood-dark: #5e1a12;
+  --ww-cobalt: #1f3f6e;
+  --ww-forest: #2f5a3a;
+  --ww-gold: #b88a2e;
+  --ww-gold-light: #d9b45a;
+  --ww-gold-glow: #f0d58a;
+
+  /* Night side */
+  --ww-night: #101a2c;
+  --ww-night-deep: #0a1220;
+  --ww-night-tile: #16233a;
+  --ww-night-tile-selected: #24365a;
+  --ww-night-border: #2c3c58;
+  --ww-night-text: #ede4ce;
+  --ww-night-muted: #b5c2d6;
+
+  /* Role reveal */
+  --ww-reveal: #1a1210;
+  --ww-reveal-text: #f3e8cf;
+  --ww-reveal-muted: #cdb98f;
+
+  --ww-disabled-badge: #9c8a6e;
+
+  /* Type */
+  --ww-font-blackletter: "UnifrakturMaguntia", serif;
+  --ww-font-display: "Cinzel", serif;
+  --ww-font-body: "EB Garamond", Georgia, serif;
+
+  /* Space and shape */
+  --ww-gutter: 20px;
+  --ww-radius: 6px;
+  --ww-radius-card: 8px;
+  --ww-touch-min: 44px;
+  --ww-card-aspect: 9 / 16;
+
+  --ww-shadow-card: 0 6px 14px rgba(43, 29, 18, 0.3);
+  --ww-shadow-card-raised: 0 12px 26px rgba(43, 29, 18, 0.45);
+  --ww-shadow-card-reveal: 0 0 0 2px var(--ww-gold), 0 18px 40px rgba(0, 0, 0, 0.6);
+}

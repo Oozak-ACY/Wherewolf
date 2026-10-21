@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Wherewolf — Tour de la Voyante</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&amp;family=EB+Garamond:ital,wght@0,400;0,600;1,400&amp;family=UnifrakturMaguntia&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#D9B45A}a:hover{color:#F0D58A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #101A2C; font-family: 'EB Garamond', Georgia, serif; color: #EDE4CE; display: flex; flex-direction: column; overflow: hidden">
+
+  <div style="padding: 16px 20px; background: #0A1220; border-bottom: 2px solid #B88A2E; display: flex; align-items: center; gap: 12px">
+    <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" fill="#F0D58A"></path></svg>
+    <div style="flex: 1; display: flex; flex-direction: column">
+      <span style="font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.24em; color: #B5C2D6">NUIT 1 · LE NARRATEUR</span>
+      <span style="font-size: 19px; font-style: italic">La Voyante se réveille.</span>
+    </div>
+    <span style="font-family: 'Cinzel', serif; font-weight: 700; font-size: 20px; color: #F0D58A">0:42</span>
+  </div>
+
+  <div style="padding: 18px 20px 10px; display: flex; gap: 14px; align-items: center">
+    <img src="../roles/seer.webp" alt="Carte de la Voyante" style="width: 74px; height: 132px; flex: none; object-fit: cover; border-radius: 6px; box-shadow: 0 0 0 2px #B88A2E">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <h1 style="margin: 0; font-family: 'UnifrakturMaguntia', serif; font-weight: 400; font-size: 36px; line-height: 1; color: #F0D58A">Voyante</h1>
+      <p style="margin: 0; font-size: 18px; line-height: 1.3">Choisis le joueur dont tu veux découvrir le rôle.</p>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; padding: 8px 20px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto">
+    <sc-for list="{{players}}" as="p" hint-placeholder-count="5">
+      <button type="button" aria-pressed="{{p.pressed}}" style="{{p.style}}">
+        <span style="width: 34px; height: 34px; flex: none; border-radius: 50%; background: #1F3F6E; border: 2px solid #D9B45A; color: #FBF4E2; font-family: 'Cinzel', serif; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center">{{p.initial}}</span>
+        <span style="flex: 1; text-align: left; font-size: 19px; font-weight: 600">{{p.name}}</span>
+        <sc-if value="{{p.selected}}" hint-placeholder-val="{{false}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F0D58A" stroke-width="2.5" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </sc-if>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #2C3C58">
+    <button type="button" style="height: 56px; border-radius: 6px; border: 2px solid #D9B45A; box-shadow: inset 0 0 0 2px #0A1220; background: #1F3F6E; color: #FBF4E2; font-family: 'Cinzel', serif; font-weight: 700; font-size: 17px; letter-spacing: 0.06em; cursor: pointer">Découvrir le rôle de Léa</button>
+    <button type="button" style="height: 48px; border-radius: 6px; border: 1px solid #5B6B86; background: transparent; color: #D6DEEA; font-family: 'Cinzel', serif; font-size: 14px; cursor: pointer">N'inspecter personne cette nuit</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const base = 'display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px; border-radius: 6px; font-family: inherit; color: #EDE4CE; cursor: pointer; ';
+    const players = ['Hugo', 'Léa', 'Mathis', 'Inès', 'Théo'].map((name) => {
+      const selected = name === 'Léa';
+      return {
+        name, selected, initial: name[0], pressed: selected ? 'true' : 'false',
+        style: base + (selected
+          ? 'background: #24365A; border: 2px solid #F0D58A;'
+          : 'background: #16233A; border: 2px solid #2C3C58;')
+      };
+    });
+    return { players };
+  }
+}
+</script>
+</body>
+</html>

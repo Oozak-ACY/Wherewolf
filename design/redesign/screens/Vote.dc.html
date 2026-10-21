@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Wherewolf — Vote du village</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&amp;family=EB+Garamond:ital,wght@0,400;0,600;1,400&amp;family=UnifrakturMaguntia&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#8A2A1F}a:hover{color:#5E1A12}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #EFE4CB; font-family: 'EB Garamond', Georgia, serif; color: #2B1D12; display: flex; flex-direction: column; overflow: hidden">
+
+  <div style="padding: 16px 20px; background: #8A2A1F; border-bottom: 3px solid #B88A2E; display: flex; align-items: center; gap: 12px; color: #FBF4E2">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F0D58A" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="#F0D58A"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg>
+    <div style="flex: 1; display: flex; flex-direction: column">
+      <span style="font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.24em; color: #F3DCCB">JOUR 2 · LE NARRATEUR</span>
+      <span style="font-size: 19px; font-style: italic">Le village vote.</span>
+    </div>
+    <span style="font-family: 'Cinzel', serif; font-weight: 700; font-size: 20px; color: #F0D58A">1:15</span>
+  </div>
+
+  <div style="padding: 18px 20px 6px; display: flex; flex-direction: column; gap: 4px">
+    <h1 style="margin: 0; font-family: 'UnifrakturMaguntia', serif; font-weight: 400; font-size: 40px; line-height: 1.05; color: #8A2A1F">Qui faut-il éliminer ?</h1>
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <span style="font-size: 17px; font-weight: 600">Ton vote : Mathis</span>
+      <span style="font-size: 16px; font-style: italic; color: #5A4632">4 / 5 ont voté</span>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; padding: 10px 20px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto">
+    <sc-for list="{{players}}" as="p" hint-placeholder-count="5">
+      <button type="button" aria-pressed="{{p.pressed}}" style="{{p.style}}">
+        <span style="width: 34px; height: 34px; flex: none; border-radius: 50%; background: #8A2A1F; border: 2px solid #D9B45A; color: #FBF4E2; font-family: 'Cinzel', serif; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center">{{p.initial}}</span>
+        <span style="flex: 1; display: flex; flex-direction: column; text-align: left">
+          <span style="font-size: 19px; font-weight: 600; line-height: 1.15">{{p.name}}</span>
+          <span style="font-size: 14px; font-style: italic; color: #5A4632; line-height: 1.15">{{p.by}}</span>
+        </span>
+        <span style="min-width: 32px; height: 32px; border-radius: 16px; background: {{p.badge}}; color: #FBF4E2; font-family: 'Cinzel', serif; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center">{{p.votes}}</span>
+      </button>
+    </sc-for>
+
+    <div style="margin-top: 6px; padding: 10px 14px; border: 1px dashed #8A6A2A; border-radius: 6px; display: flex; gap: 10px; align-items: center">
+      <img src="../roles/mayor.webp" alt="Carte du Maire" style="width: 36px; height: 64px; flex: none; object-fit: cover; border-radius: 4px">
+      <span style="font-size: 16px; line-height: 1.3">Inès est Maire : en cas d'égalité, c'est elle qui tranche.</span>
+    </div>
+  </div>
+
+  <div style="padding: 12px 20px 20px; border-top: 2px solid #B88A2E; background: #E6D7B5">
+    <button type="button" style="width: 100%; height: 48px; border-radius: 6px; border: 2px solid #2B1D12; background: transparent; color: #2B1D12; font-family: 'Cinzel', serif; font-weight: 700; font-size: 15px; cursor: pointer">S'abstenir</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const base = 'display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 14px; border-radius: 6px; font-family: inherit; color: #2B1D12; cursor: pointer; ';
+    const rows = [
+      { name: 'Hugo', votes: 1, by: 'Théo' },
+      { name: 'Mathis', votes: 2, by: 'Camille (toi), Léa' },
+      { name: 'Léa', votes: 0, by: '' },
+      { name: 'Inès', votes: 1, by: 'Hugo' },
+      { name: 'Théo', votes: 0, by: '' }
+    ];
+    const players = rows.map((r) => {
+      const selected = r.name === 'Mathis';
+      return {
+        ...r, initial: r.name[0], pressed: selected ? 'true' : 'false',
+        badge: r.votes ? '#8A2A1F' : '#9C8A6E',
+        style: base + (selected
+          ? 'background: #F6E3C2; border: 2px solid #8A2A1F; box-shadow: inset 0 0 0 1px #D9B45A;'
+          : 'background: #FBF4E2; border: 2px solid #C9AE7C;')
+      };
+    });
+    return { players };
+  }
+}
+</script>
+</body>
+</html>

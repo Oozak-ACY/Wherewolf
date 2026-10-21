@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wherewolf — Composants</title>
+<link rel="stylesheet" href="../tokens/tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  body { margin: 0; background: #d8cbb0; }
+  .sheet { display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; }
+  .sheet > .ww-screen { width: 390px; min-height: 0; gap: 16px; padding-bottom: 20px; }
+  .pad { padding: 0 var(--ww-gutter); display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <section class="ww-screen" aria-label="Jour">
+    <div class="ww-header">
+      <div><div class="ww-label" style="color:#e8d9b4">Code du salon</div><div class="ww-room-code">K7QX</div></div>
+      <button type="button" class="ww-btn ww-btn--icon" aria-label="Afficher le QR code">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v7M14 20h3"/></svg>
+      </button>
+    </div>
+    <div class="pad">
+      <h1 class="ww-wordmark">Wherewolf</h1>
+      <h2 class="ww-title">Qui faut-il éliminer ?</h2>
+      <span class="ww-label">Label</span>
+      <h3 class="ww-section-title">Joueurs (6 / 12)</h3>
+      <button type="button" class="ww-btn ww-btn--primary">Créer un salon</button>
+      <div class="ww-divider">OU</div>
+      <label class="ww-label" for="code">Rejoindre avec un code</label>
+      <div style="display:flex;gap:10px"><input id="code" class="ww-input" style="flex:1" placeholder="Code du salon"><button type="button" class="ww-btn ww-btn--secondary">Y aller</button></div>
+      <button type="button" class="ww-btn ww-btn--ghost">S'abstenir</button>
+      <div style="display:flex;gap:6px"><button type="button" class="ww-stepper" aria-label="Un de moins">−</button><button type="button" class="ww-stepper" aria-label="Un de plus">+</button></div>
+      <div class="ww-player-tile"><span class="ww-avatar">C</span><span>Camille</span></div>
+      <button type="button" class="ww-pick" aria-pressed="false"><span class="ww-avatar">H</span><span style="flex:1">Hugo</span><span class="ww-count">1</span></button>
+      <button type="button" class="ww-pick" aria-pressed="true"><span class="ww-avatar">M</span><span style="flex:1">Mathis</span><span class="ww-count">2</span></button>
+      <div style="display:flex;gap:10px;align-items:end">
+        <img class="ww-card" style="width:96px" src="../roles/werewolf.webp" alt="Loup-Garou">
+        <img class="ww-card ww-card--off" style="width:96px" src="../roles/hunter.webp" alt="Chasseur">
+        <span class="ww-pill">Village</span>
+      </div>
+    </div>
+    <div class="ww-footer"><button type="button" class="ww-btn ww-btn--primary">Lancer la partie</button></div>
+  </section>
+
+  <section class="ww-screen ww-screen--night" aria-label="Nuit">
+    <div class="ww-narrator ww-narrator--night">
+      <div style="flex:1"><div class="ww-label" style="color:var(--ww-night-muted)">Nuit 1 · Le Narrateur</div><div class="ww-narrator__line">La Voyante se réveille.</div></div>
+      <span class="ww-narrator__timer">0:42</span>
+    </div>
+    <div class="pad">
+      <div style="display:flex;gap:14px;align-items:center"><img class="ww-card ww-card--thumb" src="../roles/seer.webp" alt="Voyante"><h2 class="ww-title">Voyante</h2></div>
+      <button type="button" class="ww-pick" aria-pressed="false"><span class="ww-avatar">H</span>Hugo</button>
+      <button type="button" class="ww-pick" aria-pressed="true"><span class="ww-avatar">L</span>Léa</button>
+    </div>
+    <div class="ww-footer">
+      <button type="button" class="ww-btn ww-btn--primary">Découvrir le rôle de Léa</button>
+      <button type="button" class="ww-btn ww-btn--ghost">N'inspecter personne cette nuit</button>
+    </div>
+  </section>
+
+  <section class="ww-screen ww-screen--reveal" aria-label="Révélation">
+    <div class="pad" style="align-items:center;padding-top:22px">
+      <span class="ww-label" style="color:var(--ww-reveal-muted)">Tu es</span>
+      <img class="ww-card ww-card--reveal" src="../roles/witch.webp" alt="Sorcière">
+      <h2 class="ww-title" style="font-size:46px">Sorcière</h2>
+      <span class="ww-pill">Village</span>
+    </div>
+    <div class="ww-narrator"><div style="flex:1"><div class="ww-label" style="color:#f3dccb">Jour 2 · Le Narrateur</div><div class="ww-narrator__line">Le village vote.</div></div><span class="ww-narrator__timer">1:15</span></div>
+  </section>
+
+</div>
+</body>
+</html>
