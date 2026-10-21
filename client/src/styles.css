@@ -668,18 +668,18 @@ input::placeholder {
 }
 
 /* The Lobby before a Game: a cobalt header, the Players and the Settings, a sticky start */
-.screen:has(> .room) {
+.screen:has(> .lobby-screen) {
   padding: 0;
   gap: 0;
 }
 
-.room {
+.lobby-screen {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-.room-header {
+.lobby-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -690,21 +690,22 @@ input::placeholder {
   color: var(--ww-vellum);
 }
 
-.room-code {
+.lobby-code {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.room-code span {
+.lobby-code span {
   font-family: var(--ww-font-display);
   font-size: 12px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: #e8d9b4;
+  color: var(--ww-parchment-deep);
 }
 
-.room-code strong {
+.lobby-code strong,
+.qr-code {
   font-family: var(--ww-font-display);
   font-size: 34px;
   font-weight: 700;
@@ -712,21 +713,21 @@ input::placeholder {
   line-height: 1.1;
 }
 
-.room-actions {
+.lobby-actions {
   display: flex;
   gap: 8px;
 }
 
-.room-actions button.icon {
+.lobby-actions button.icon {
   color: var(--ww-vellum);
 }
 
-.room-actions svg {
+.lobby-actions svg {
   width: 22px;
   height: 22px;
 }
 
-.room-body {
+.lobby-body {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -766,7 +767,7 @@ input::placeholder {
   border-radius: var(--ww-radius);
 }
 
-.player-tile[data-offline="true"] .avatar {
+.player-tile[data-disconnected="true"] .avatar {
   opacity: 0.5;
 }
 
@@ -1010,7 +1011,7 @@ input::placeholder {
   color: var(--muted);
 }
 
-.room-footer {
+.lobby-footer {
   position: sticky;
   bottom: 0;
   z-index: 4;
@@ -1022,13 +1023,13 @@ input::placeholder {
   background: var(--ww-parchment-deep);
 }
 
-.room-footer p {
+.lobby-footer p {
   margin: 0;
   text-align: center;
   font-size: 16px;
 }
 
-.room-footer .waiting {
+.lobby-footer .waiting {
   min-height: 56px;
   display: flex;
   align-items: center;
@@ -1071,10 +1072,6 @@ input::placeholder {
 }
 
 .qr-code {
-  font-family: var(--ww-font-display);
-  font-size: 34px;
-  font-weight: 700;
-  letter-spacing: 0.22em;
   color: var(--ww-oxblood);
 }
 

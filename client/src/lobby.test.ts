@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
 import type { RoleCounts } from "./generated/RoleCounts";
-import { initial, playerTag, roleTotal } from "./lobbyRoom";
+import { initial, isHost, playerTag, roleTotal } from "./lobby";
 
 const seat = (id: number, name: string, connected = true): PlayerSummary => ({
   id,
@@ -29,6 +29,11 @@ describe("a Player's tile tag", () => {
     expect(playerTag(view(1, 1), seat(2, "Mathis", false))).toBe("déconnecté");
     expect(playerTag(view(2, 1), seat(1, "Camille", false))).toBe("Hôte · déconnecté");
   });
+});
+
+test("only the Host is the Host", () => {
+  expect(isHost(view(1, 1))).toBe(true);
+  expect(isHost(view(2, 1))).toBe(false);
 });
 
 describe("a Player's avatar", () => {

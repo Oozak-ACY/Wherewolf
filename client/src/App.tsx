@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Alert, ConnectionLost, Paused } from "./Banners";
 import { GamePanel } from "./GamePanel";
 import { lobbyCodeFromPath } from "./joinLink";
-import { LobbyRoom } from "./LobbyRoom";
+import { LobbyView } from "./LobbyView";
 import type { MomentId } from "./generated/MomentId";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
@@ -304,7 +304,7 @@ function Lobby(props: {
   ) : waiting ? (
     <SleepingView screen={waiting} night={false} reconnecting={props.reconnecting} />
   ) : !view.moment ? (
-    <LobbyRoom
+    <LobbyView
       view={view}
       banners={banners}
       onSettingsChange={props.onSettingsChange}

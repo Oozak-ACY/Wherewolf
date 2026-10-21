@@ -7,8 +7,14 @@ import { fr } from "./strings";
 /** The order the Night calls them in, then the Villagers. */
 export const ROLES: Role[] = ["werewolf", "cupid", "thief", "seer", "witch", "hunter", "villager"];
 
+/** How many Roles are in play, all Roles together. */
 export function roleTotal(roles: RoleCounts): number {
   return ROLES.reduce((sum, role) => sum + roles[role], 0);
+}
+
+/** Whether this Player is the Host. */
+export function isHost(view: PlayerView): boolean {
+  return view.you === view.host;
 }
 
 /** Who the Player is to this Lobby, under their name on their tile. */
@@ -20,7 +26,7 @@ export function playerTag(view: PlayerView, player: PlayerSummary): string {
   return parts.length ? parts.join(" · ") : fr.lobby.ready;
 }
 
-/** The first character of a name, an emoji kept whole. */
+/** The first letter of a name, in capitals. */
 export function initial(name: string): string {
   return (Array.from(name.trim())[0] ?? "").toUpperCase();
 }

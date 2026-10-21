@@ -2,13 +2,13 @@ import { useState, type ReactNode } from "react";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Settings } from "./generated/Settings";
 import { joinLink } from "./joinLink";
-import { initial, playerTag } from "./lobbyRoom";
+import { initial, isHost, playerTag } from "./lobby";
 import { QrCodeView } from "./QrCodeView";
-import { MoreSettings, RoleCards, StartFooter } from "./SettingsPanel";
+import { MoreSettings, RoleCards, StartFooter } from "./LobbySettings";
 import { fr } from "./strings";
 
 /** The Lobby before a Game: the code to invite the table, the Players, the Settings and the start. */
-export function LobbyRoom(props: {
+export function LobbyView(props: {
   view: PlayerView;
   banners: ReactNode;
   onSettingsChange: (settings: Settings) => void;
@@ -19,7 +19,7 @@ export function LobbyRoom(props: {
   const url = joinLink(window.location.origin, view.code);
   const [copied, setCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
-  const isHost = view.you === view.host;
+  const host = isHost(view);
 
   const copy = async () => {
     try {
@@ -33,14 +33,14 @@ export function LobbyRoom(props: {
   const share = () => navigator.share({ title: fr.lobby.shareTitle, url }).catch(() => {});
 
   return (
-    <div className="room">
-      <header className="room-header">
-        <div className="room-code">
+    <div className="lobby-screen">
+      <header className="lobby-header">
+        <div className="lobby-code">
           <span>{fr.lobby.code}</span>
           <strong>{view.code}</strong>
         </div>
-        <div className="room-actions">
-          {isHost && (
+        <div className="lobby-actions">
+          {host && (
             <button className="icon" aria-label={fr.lobby.showQrCode} onClick={() => setQrOpen(true)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <rect x="3" y="3" width="7" height="7" />
@@ -63,7 +63,7 @@ export function LobbyRoom(props: {
         </div>
       </header>
 
-      <div className="room-body">
+      <div className="lobby-body">
         {props.banners}
 
         <section className="stack">
@@ -73,7 +73,7 @@ export function LobbyRoom(props: {
           </div>
           <ul className="player-tiles">
             {view.players.map((player) => (
-              <li key={player.id} className="player-tile" data-offline={!player.connected}>
+              <li key={player.id} className="player-tile" data-disconnected={!player.connected}>
                 <span className="avatar" aria-hidden="true">
                   {initial(player.name)}
                 </span>
@@ -107,7 +107,7 @@ export function LobbyRoom(props: {
       </div>
 
       <StartFooter view={view} onStart={props.onStart} />
-      {isHost && qrOpen && <QrCodeView link={url} code={view.code} onClose={() => setQrOpen(false)} />}
+      {host && qrOpen && <QrCodeView link={url} code={view.code} onClose={() => setQrOpen(false)} />}
     </div>
   );
 }

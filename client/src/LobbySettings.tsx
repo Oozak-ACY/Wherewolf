@@ -4,7 +4,7 @@ import type { Role } from "./generated/Role";
 import type { RoleCounts } from "./generated/RoleCounts";
 import type { Settings } from "./generated/Settings";
 import type { Timers } from "./generated/Timers";
-import { ROLES, roleTotal } from "./lobbyRoom";
+import { isHost, ROLES, roleTotal } from "./lobby";
 import { cardImageUrl } from "./RoleCardView";
 import {
   fr,
@@ -27,7 +27,6 @@ type Props = {
 
 /** The Roles in play as a sideways row of cards; only the Host gets the steppers. */
 export function RoleCards({ view, onChange }: Props) {
-  const isHost = view.you === view.host;
   const { settings } = view;
   const total = roleTotal(settings.roles);
   const followsSuggestion = ROLES.every((r) => settings.roles[r] === view.suggestedRoles[r]);
@@ -52,7 +51,7 @@ export function RoleCards({ view, onChange }: Props) {
                 <span className="role-count">{count}</span>
               </div>
               <span className="role-name">{name}</span>
-              {isHost && (
+              {isHost(view) && (
                 <span className="stepper">
                   <button
                     aria-label={fr.settings.less(name)}
@@ -74,7 +73,7 @@ export function RoleCards({ view, onChange }: Props) {
           );
         })}
       </ul>
-      {isHost && !followsSuggestion && (
+      {isHost(view) && !followsSuggestion && (
         <button className="quiet" onClick={() => setRoles(view.suggestedRoles)}>
           {fr.settings.suggested}
         </button>
@@ -85,7 +84,7 @@ export function RoleCards({ view, onChange }: Props) {
 
 /** The timers, Hidden Roles and the Grace period, folded under one row; editable by the Host only. */
 export function MoreSettings({ view, onChange }: Props) {
-  const isHost = view.you === view.host;
+  const editable = isHost(view);
   const { settings } = view;
   const setTimer = (timer: keyof Timers, seconds: number) =>
     onChange({ ...settings, timers: { ...settings.timers, [timer]: seconds } });
@@ -104,7 +103,7 @@ export function MoreSettings({ view, onChange }: Props) {
           <input
             type="checkbox"
             checked={settings.hiddenRoles}
-            disabled={!isHost}
+            disabled={!editable}
             onChange={(e) => onChange({ ...settings, hiddenRoles: e.target.checked })}
           />
         </label>
@@ -113,9 +112,9 @@ export function MoreSettings({ view, onChange }: Props) {
         <ul className="timers">
           <li>
             <label htmlFor="grace-period">{fr.settings.gracePeriod}</label>
-            <Seconds
+            <TimerValue
               id="grace-period"
-              editable={isHost}
+              editable={editable}
               seconds={settings.gracePeriod}
               onCommit={(gracePeriod) => onChange({ ...settings, gracePeriod })}
             />
@@ -127,9 +126,9 @@ export function MoreSettings({ view, onChange }: Props) {
           {TIMERS.map((timer) => (
             <li key={timer}>
               <label htmlFor={`timer-${timer}`}>{fr.settings.timer[timer]}</label>
-              <Seconds
+              <TimerValue
                 id={`timer-${timer}`}
-                editable={isHost}
+                editable={editable}
                 seconds={settings.timers[timer]}
                 onCommit={(seconds) => setTimer(timer, seconds)}
               />
@@ -143,15 +142,15 @@ export function MoreSettings({ view, onChange }: Props) {
 
 /** The Host's start button and why it is blocked, or the waiting line for everyone else. */
 export function StartFooter({ view, onStart }: { view: PlayerView; onStart: () => void }) {
-  if (view.you !== view.host) {
+  if (!isHost(view)) {
     return (
-      <footer className="room-footer">
+      <footer className="lobby-footer">
         <p className="waiting">{fr.settings.waitingForHost}</p>
       </footer>
     );
   }
   return (
-    <footer className="room-footer">
+    <footer className="lobby-footer">
       <button className="primary" disabled={view.startBlockedBy !== null} onClick={onStart}>
         {fr.settings.start}
       </button>
@@ -164,7 +163,8 @@ export function StartFooter({ view, onStart }: { view: PlayerView; onStart: () =
   );
 }
 
-function Seconds(props: { id: string; editable: boolean; seconds: number; onCommit: (seconds: number) => void }) {
+/** A timer in seconds, typed by the Host and read by everyone else. */
+function TimerValue(props: { id: string; editable: boolean; seconds: number; onCommit: (seconds: number) => void }) {
   if (props.editable) return <TimerInput id={props.id} seconds={props.seconds} onCommit={props.onCommit} />;
   return (
     <strong id={props.id}>
