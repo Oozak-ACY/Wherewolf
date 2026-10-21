@@ -30,19 +30,20 @@ export function cardTurnsFaceUp(before: Role | null, now: Role | null): boolean 
   return now !== null && now !== before;
 }
 
-/** A bordered box of the reveal naming this Player's allies. */
-export type Allies = { title: string; names: string };
+/** One box of allies on the reveal, untitled for a lone Werewolf */
+export type AlliesBox = { title: string | null; names: string };
 
-/** Who this Player knows is on their side: the other Werewolves, and their partner if they are a Lover. */
-export function allies(view: PlayerView): Allies[] {
+/** Who this Player knows is on their side, the other Werewolves then their partner */
+export function allies(card: RoleCard, view: PlayerView): AlliesBox[] {
   const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? "?";
-  const boxes: Allies[] = [];
-  if (view.role?.role === "werewolf") {
-    const pack = view.role.fellowWerewolves.map(name);
-    boxes.push({
-      title: fr.roleCard.fellowWerewolves,
-      names: pack.length > 0 ? pack.join(", ") : fr.roleCard.loneWerewolf,
-    });
+  const boxes: AlliesBox[] = [];
+  if (card.role === "werewolf") {
+    const pack = card.fellowWerewolves.map(name);
+    boxes.push(
+      pack.length > 0
+        ? { title: fr.roleCard.fellowWerewolves, names: pack.join(", ") }
+        : { title: null, names: fr.roleCard.loneWerewolf },
+    );
   }
   const partner = partnerOf(view);
   if (partner !== undefined) boxes.push({ title: fr.roleCard.partner, names: name(partner) });
@@ -76,11 +77,10 @@ export function RoleCardView(props: {
     <dialog
       ref={dialog}
       className="reveal"
-      data-ground="reveal"
       aria-labelledby="role-name"
-      // The Role reveal ends only on the confirm button
+      // The Role reveal ends only on the confirm button, even when Escape cannot be prevented
       onCancel={(e) => confirming && e.preventDefault()}
-      onClose={props.onClose}
+      onClose={() => (confirming && dialog.current?.isConnected ? dialog.current.showModal() : props.onClose())}
     >
       <article className="role-card">
         <p className="eyebrow">{fr.roleCard.you}</p>
@@ -91,9 +91,9 @@ export function RoleCardView(props: {
           <span className="camp-pill">{fr.camps[card.camp].name}</span>
         </p>
         <p className="power">{role.power}</p>
-        {allies(view).map((box) => (
-          <p key={box.title} className="allies">
-            <span className="eyebrow">{box.title}</span>
+        {allies(card, view).map((box) => (
+          <p key={box.names} className="allies">
+            {box.title && <span className="eyebrow">{box.title}</span>}
             <span>{box.names}</span>
           </p>
         ))}
@@ -102,7 +102,7 @@ export function RoleCardView(props: {
           className="primary"
           onClick={() => {
             if (confirming) props.onConfirm();
-            dialog.current?.close();
+            props.onClose();
           }}
         >
           {confirming ? fr.game.confirmRole : fr.roleCard.close}

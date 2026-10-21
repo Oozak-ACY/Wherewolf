@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Role } from "./generated/Role";
+import type { RoleCard } from "./generated/RoleCard";
 import { allies, cardTurnsFaceUp, cardImageUrl } from "./RoleCardView";
 import { fr } from "./strings";
 
@@ -42,39 +43,36 @@ describe("the allies shown on the reveal", () => {
     revealedRole: null,
   }));
 
-  function view(role: Role, fellowWerewolves: number[], lovers: number[] = []): PlayerView {
-    return {
-      you: 3,
-      players,
-      role: { role, camp: role === "werewolf" ? "werewolves" : "village", fellowWerewolves, potions: null },
-      lovers,
-    } as unknown as PlayerView;
+  /** The card of Chloé, holding `role`, and her view with these `lovers`. */
+  function reveal(role: Role, fellowWerewolves: number[], lovers: number[] = []): [RoleCard, PlayerView] {
+    const card: RoleCard = { role, camp: role === "werewolf" ? "werewolves" : "village", fellowWerewolves, potions: null };
+    return [card, { you: 3, players, role: card, lovers } as unknown as PlayerView];
   }
 
   test("are the pack for a Werewolf", () => {
-    expect(allies(view("werewolf", [1, 4]))).toEqual([
+    expect(allies(...reveal("werewolf", [1, 4]))).toEqual([
       { title: fr.roleCard.fellowWerewolves, names: "Alice, David" },
     ]);
   });
 
   test("tell a lone Werewolf they are alone", () => {
-    expect(allies(view("werewolf", []))).toEqual([
-      { title: fr.roleCard.fellowWerewolves, names: fr.roleCard.loneWerewolf },
+    expect(allies(...reveal("werewolf", []))).toEqual([
+      { title: null, names: fr.roleCard.loneWerewolf },
     ]);
   });
 
   test("are the partner for a Lover, whatever their Role", () => {
-    expect(allies(view("seer", [], [2, 3]))).toEqual([{ title: fr.roleCard.partner, names: "Bob" }]);
+    expect(allies(...reveal("seer", [], [2, 3]))).toEqual([{ title: fr.roleCard.partner, names: "Bob" }]);
   });
 
   test("are both for a Werewolf in love", () => {
-    expect(allies(view("werewolf", [1], [3, 2]))).toEqual([
+    expect(allies(...reveal("werewolf", [1], [3, 2]))).toEqual([
       { title: fr.roleCard.fellowWerewolves, names: "Alice" },
       { title: fr.roleCard.partner, names: "Bob" },
     ]);
   });
 
-  test("are nobody for a lone villager", () => {
-    expect(allies(view("villager", []))).toEqual([]);
+  test("are nobody for a Villager", () => {
+    expect(allies(...reveal("villager", []))).toEqual([]);
   });
 });
