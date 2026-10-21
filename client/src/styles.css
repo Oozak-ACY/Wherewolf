@@ -1479,7 +1479,7 @@ button.chosen {
   color: var(--text);
 }
 
-/* A Night Turn: the card and title of who acts, the prompt, the pick rows, then the footer */
+/* A Night Turn with the card and title of who acts over its pick rows and footer */
 .night-turn {
   flex: 1;
   display: flex;

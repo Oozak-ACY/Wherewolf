@@ -25,6 +25,7 @@ type Props = {
   onHeal: () => void;
   onPass: () => void;
   onPoison: (player: PlayerId) => void;
+  onLeave: () => void;
 };
 
 /**
@@ -51,7 +52,7 @@ export function NightTurnView(props: Props) {
       </div>
     </header>
   );
-  const waiting = (line: string) => head(<p className="muted">{line}</p>);
+  const choosing = (line: string) => head(<p className="muted">{line}</p>);
 
   let content: ReactNode = head(null);
   switch (moment.type) {
@@ -59,7 +60,7 @@ export function NightTurnView(props: Props) {
       content = mode ? (
         <CupidsPick prompt={head(<p>{fr.game.cupidPick}</p>)} living={living} onChooseLovers={props.onChooseLovers} />
       ) : (
-        waiting(fr.game.cupidChoosing)
+        choosing(fr.game.cupidChoosing)
       );
       break;
 
@@ -93,7 +94,7 @@ export function NightTurnView(props: Props) {
           </Choice>
         </>
       ) : (
-        waiting(fr.game.thiefChoosing)
+        choosing(fr.game.thiefChoosing)
       );
       break;
 
@@ -101,7 +102,7 @@ export function NightTurnView(props: Props) {
       content = moment.inspection ? (
         head(<p>{fr.game.seerSaw(name(moment.inspection.player), fr.roles[moment.inspection.role].name)}</p>)
       ) : moment.passed ? (
-        waiting(fr.game.seerPassed)
+        choosing(fr.game.seerPassed)
       ) : mode ? (
         <>
           {head(<p>{fr.game.seerPick}</p>)}
@@ -118,7 +119,7 @@ export function NightTurnView(props: Props) {
           </Choice>
         </>
       ) : (
-        waiting(fr.game.seerSawNothing)
+        choosing(fr.game.seerSawNothing)
       );
       break;
 
@@ -152,7 +153,7 @@ export function NightTurnView(props: Props) {
     case "witchsTurn": {
       const witch = moment.witch;
       if (!witch) break;
-      const acting = me?.alive && view.role?.potions && !witch.passed;
+      const potions = me?.alive && !witch.passed ? view.role?.potions : null;
       content = (
         <>
           {head(
@@ -162,14 +163,12 @@ export function NightTurnView(props: Props) {
               {witch.poisoned !== null && <p>{fr.game.witchPoisoned(name(witch.poisoned))}</p>}
               {witch.passed && <p className="muted">{fr.game.witchPassed}</p>}
             </>,
-            acting && view.role?.potions && (
-              <p className="muted hint">{fr.game.potionsLeft(view.role.potions.healing, view.role.potions.poison)}</p>
-            ),
+            potions && <p className="muted hint">{fr.game.potionsLeft(potions.healing, potions.poison)}</p>,
           )}
-          {acting && view.role?.potions && (
+          {potions && (
             <WitchsChoice
               mode={mode}
-              potions={view.role.potions}
+              potions={potions}
               victim={witch.victim}
               living={living}
               name={name}
@@ -188,8 +187,13 @@ export function NightTurnView(props: Props) {
     <section className="night-turn">
       {props.banners}
       {content}
-      {/* Only a Spectator has notes at Night, and no footer to keep them under */}
+      {/* Only a Spectator has notes at Night and they have no footer */}
       <GameNotes view={view} moment={moment} />
+      {view.spectating && (
+        <button className="quiet" onClick={props.onLeave}>
+          {fr.lobby.leave}
+        </button>
+      )}
     </section>
   );
 }

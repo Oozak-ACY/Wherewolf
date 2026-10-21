@@ -333,6 +333,7 @@ function Lobby(props: {
         onHeal={props.onHeal}
         onPass={props.onPass}
         onPoison={props.onPoison}
+        onLeave={props.onLeave}
       />
     </>
   ) : (
