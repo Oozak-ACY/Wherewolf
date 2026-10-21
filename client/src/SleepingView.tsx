@@ -1,12 +1,14 @@
 import { ConnectionLost, Paused } from "./Banners";
+import { CardBack } from "./PlayerGrid";
 import type { SleepingScreen } from "./sleepingScreen";
 import { fr } from "./strings";
 
 /**
  * A sleeping phone at Night, under the Narrator bar: silent, and the same
  * for every Role. It shows nothing but the screen and this phone's own
- * connection. Outside the Night (`night` off), the same screen waits for
- * the Narrator on parchment, without the moon or the call to sleep.
+ * connection, in the layout of an acting phone with a card back for the
+ * Role. Outside the Night (`night` off), the same screen waits for the
+ * Narrator on parchment, without the card or the call to sleep.
  */
 export function SleepingView(props: { screen: SleepingScreen; night: boolean; reconnecting: boolean }) {
   const { screen } = props;
@@ -15,18 +17,19 @@ export function SleepingView(props: { screen: SleepingScreen; night: boolean; re
     <section className="sleeping">
       {props.reconnecting && <ConnectionLost />}
       {screen.pausedBy !== null && <Paused hostName={screen.pausedBy} />}
-      <div className="sleeping-body">
-        {props.night ? (
-          <>
-            <svg viewBox="0 0 40 40" className="moon" aria-hidden="true">
-              <path d="M24 9a11 11 0 1 0 7 17A13 13 0 0 1 24 9z" fill="currentColor" />
-            </svg>
+      {props.night ? (
+        <header className="turn-head">
+          <CardBack />
+          <div className="turn-text">
+            <h1>{fr.game.sleepingTitle}</h1>
             <p>{fr.game.asleep}</p>
-          </>
-        ) : (
+          </div>
+        </header>
+      ) : (
+        <div className="sleeping-body">
           <p className="narrator">{screen.line}</p>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }

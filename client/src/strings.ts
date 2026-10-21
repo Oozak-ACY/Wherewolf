@@ -158,6 +158,7 @@ export const fr = {
           : poison
             ? "Il te reste la potion de poison."
             : "Tu as utilisé tes deux potions.",
+    sleepingTitle: "Nuit",
     asleep: "Tu dors : garde les yeux fermés jusqu'à ce que le Narrateur t'appelle.",
     narratorSpeaking: "Le Narrateur parle…",
     electPrompt: "Qui doit être Maire ?",

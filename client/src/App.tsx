@@ -11,6 +11,8 @@ import type { Settings } from "./generated/Settings";
 import { speaksAloud, unlockSpeech } from "./narrator";
 import { NarratorBar } from "./NarratorBar";
 import { narratorBar } from "./narratorBar";
+import { nightTurn } from "./nightTurn";
+import { NightTurnView } from "./NightTurnView";
 import { PlayerGrid } from "./PlayerGrid";
 import { cardImageUrl, cardTurnsFaceUp, RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
@@ -292,12 +294,16 @@ function Lobby(props: {
   const asleep = sleepingScreen(view);
   const waiting = waitingScreen(view);
   const paused = pausedBy(view);
+  const turn = nightTurn(view);
   const banners = (
     <>
       {props.reconnecting && <ConnectionLost />}
       {paused !== null && <Paused hostName={paused} />}
       {props.rejection && <p className="error">{fr.rejection[props.rejection]}</p>}
     </>
+  );
+  const card = view.role && cardOpen && (
+    <RoleCardView card={view.role} view={view} onConfirm={props.onConfirmRole} onClose={() => setCardOpen(false)} />
   );
   const content = asleep ? (
     <SleepingView screen={asleep} night reconnecting={props.reconnecting} />
@@ -311,6 +317,24 @@ function Lobby(props: {
       onStart={props.onStart}
       onLeave={props.onLeave}
     />
+  ) : turn ? (
+    <>
+      {card}
+      <NightTurnView
+        view={view}
+        moment={view.moment}
+        turn={turn}
+        banners={banners}
+        onChooseLovers={props.onChooseLovers}
+        onConfirmPartner={props.onConfirmPartner}
+        onRob={props.onRob}
+        onInspect={props.onInspect}
+        onPickVictim={props.onPickVictim}
+        onHeal={props.onHeal}
+        onPass={props.onPass}
+        onPoison={props.onPoison}
+      />
+    </>
   ) : (
     <div className="lobby">
       <section className="stack">
@@ -320,27 +344,13 @@ function Lobby(props: {
       </section>
 
       <aside className="stack">
-        {view.role && cardOpen && (
-          <RoleCardView
-            card={view.role}
-            view={view}
-            onConfirm={props.onConfirmRole}
-            onClose={() => setCardOpen(false)}
-          />
-        )}
+        {card}
         <GamePanel
           view={view}
           moment={view.moment}
           onConfirmRole={props.onConfirmRole}
           onEndDebate={props.onEndDebate}
-          onChooseLovers={props.onChooseLovers}
-          onConfirmPartner={props.onConfirmPartner}
-          onRob={props.onRob}
-          onInspect={props.onInspect}
-          onPickVictim={props.onPickVictim}
-          onHeal={props.onHeal}
           onPass={props.onPass}
-          onPoison={props.onPoison}
           onVote={props.onVote}
           onShoot={props.onShoot}
           onElect={props.onElect}

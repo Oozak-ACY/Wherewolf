@@ -1247,7 +1247,18 @@ dialog.reveal::backdrop {
   color: var(--text);
 }
 
+.pick-row .avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+
+[data-ground="night"] .avatar {
+  background: var(--ww-cobalt);
+}
+
 .pick-name {
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1258,6 +1269,13 @@ dialog.reveal::backdrop {
   font-size: 0.8rem;
   font-weight: 400;
   font-style: italic;
+}
+
+.pick-mark {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: var(--ww-gold-glow);
 }
 
 .pick-count {
@@ -1461,8 +1479,60 @@ button.chosen {
   color: var(--text);
 }
 
-.sleeping .moon {
-  width: 48px;
-  height: 48px;
-  color: var(--ww-gold-light);
+/* A Night Turn: the card and title of who acts, the prompt, the pick rows, then the footer */
+.night-turn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.night-turn p {
+  margin: 0;
+}
+
+.turn-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.turn-head .card-art,
+.turn-head .card-back {
+  flex: none;
+  width: 74px;
+  height: auto;
+  aspect-ratio: var(--ww-card-aspect);
+  border-radius: var(--ww-radius);
+}
+
+.turn-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.turn-text h1 {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.turn-text p {
+  margin: 0;
+  line-height: 1.3;
+}
+
+.turn-text .hint,
+.choice-label {
+  font-size: 16px;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.night-turn .footer {
+  margin: auto calc(-1 * var(--ww-gutter)) calc(-1 * max(24px, env(safe-area-inset-bottom)));
+  padding: 12px var(--ww-gutter) max(20px, env(safe-area-inset-bottom));
+  background: var(--ground);
+  border-radius: 0;
 }
