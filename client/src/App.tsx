@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Alert, ConnectionLost, Paused } from "./Banners";
 import { GamePanel } from "./GamePanel";
-import { joinLink, lobbyCodeFromPath } from "./joinLink";
+import { lobbyCodeFromPath } from "./joinLink";
+import { LobbyRoom } from "./LobbyRoom";
 import type { MomentId } from "./generated/MomentId";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
@@ -11,11 +12,9 @@ import { speaksAloud, unlockSpeech } from "./narrator";
 import { NarratorBar } from "./NarratorBar";
 import { narratorBar } from "./narratorBar";
 import { PlayerGrid } from "./PlayerGrid";
-import { QrCodeView } from "./QrCodeView";
 import { cardImageUrl, cardTurnsFaceUp, RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
-import { SettingsPanel } from "./SettingsPanel";
 import { ground } from "./ground";
 import { pausedBy, sleepingScreen, waitingScreen } from "./sleepingScreen";
 import { SleepingView } from "./SleepingView";
@@ -281,21 +280,6 @@ function Lobby(props: {
     setShownRole(held);
     if (cardTurnsFaceUp(shownRole, held)) setCardOpen(true);
   }
-  const url = joinLink(window.location.origin, view.code);
-  const [copied, setCopied] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
-  const isHost = view.you === view.host;
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-    } catch {
-      // Clipboard refused (insecure context): the link stays visible to copy by hand.
-    }
-  };
-
-  const share = () => navigator.share({ title: fr.lobby.shareTitle, url }).catch(() => {});
 
   // Silent while this phone has lost the server: for the Table device, the
   // Game is Paused, and it repeats the current line once it is back.
@@ -308,16 +292,29 @@ function Lobby(props: {
   const asleep = sleepingScreen(view);
   const waiting = waitingScreen(view);
   const paused = pausedBy(view);
+  const banners = (
+    <>
+      {props.reconnecting && <ConnectionLost />}
+      {paused !== null && <Paused hostName={paused} />}
+      {props.rejection && <p className="error">{fr.rejection[props.rejection]}</p>}
+    </>
+  );
   const content = asleep ? (
     <SleepingView screen={asleep} night reconnecting={props.reconnecting} />
   ) : waiting ? (
     <SleepingView screen={waiting} night={false} reconnecting={props.reconnecting} />
+  ) : !view.moment ? (
+    <LobbyRoom
+      view={view}
+      banners={banners}
+      onSettingsChange={props.onSettingsChange}
+      onStart={props.onStart}
+      onLeave={props.onLeave}
+    />
   ) : (
     <div className="lobby">
       <section className="stack">
-        {props.reconnecting && <ConnectionLost />}
-        {paused !== null && <Paused hostName={paused} />}
-        {props.rejection && <p className="error">{fr.rejection[props.rejection]}</p>}
+        {banners}
         <h2>{fr.lobby.players(view.players.length)}</h2>
         <PlayerGrid view={view} />
       </section>
@@ -331,44 +328,26 @@ function Lobby(props: {
             onClose={() => setCardOpen(false)}
           />
         )}
-        {view.moment ? (
-          <GamePanel
-            view={view}
-            moment={view.moment}
-            onConfirmRole={props.onConfirmRole}
-            onEndDebate={props.onEndDebate}
-            onChooseLovers={props.onChooseLovers}
-            onConfirmPartner={props.onConfirmPartner}
-            onRob={props.onRob}
-            onInspect={props.onInspect}
-            onPickVictim={props.onPickVictim}
-            onHeal={props.onHeal}
-            onPass={props.onPass}
-            onPoison={props.onPoison}
-            onVote={props.onVote}
-            onShoot={props.onShoot}
-            onElect={props.onElect}
-            onBreakTie={props.onBreakTie}
-            onNameSuccessor={props.onNameSuccessor}
-            onPlayAgain={props.onPlayAgain}
-          />
-        ) : (
-          <SettingsPanel view={view} onChange={props.onSettingsChange} onStart={props.onStart} />
-        )}
-        {!started && (
-          <section className="card invite">
-            <p className="muted">{fr.lobby.code}</p>
-            <p className="code">{view.code}</p>
-            <p className="muted">{fr.lobby.shareHint}</p>
-            <p className="link">{url}</p>
-            <div className="row">
-              <button onClick={copy}>{copied ? fr.lobby.copied : fr.lobby.copy}</button>
-              {"share" in navigator && <button onClick={share}>{fr.lobby.share}</button>}
-            </div>
-            {isHost && <button onClick={() => setQrOpen(true)}>{fr.lobby.showQrCode}</button>}
-          </section>
-        )}
-        {isHost && !started && qrOpen && <QrCodeView link={url} onClose={() => setQrOpen(false)} />}
+        <GamePanel
+          view={view}
+          moment={view.moment}
+          onConfirmRole={props.onConfirmRole}
+          onEndDebate={props.onEndDebate}
+          onChooseLovers={props.onChooseLovers}
+          onConfirmPartner={props.onConfirmPartner}
+          onRob={props.onRob}
+          onInspect={props.onInspect}
+          onPickVictim={props.onPickVictim}
+          onHeal={props.onHeal}
+          onPass={props.onPass}
+          onPoison={props.onPoison}
+          onVote={props.onVote}
+          onShoot={props.onShoot}
+          onElect={props.onElect}
+          onBreakTie={props.onBreakTie}
+          onNameSuccessor={props.onNameSuccessor}
+          onPlayAgain={props.onPlayAgain}
+        />
         <button className="quiet" onClick={props.onLeave}>
           {fr.lobby.leave}
         </button>

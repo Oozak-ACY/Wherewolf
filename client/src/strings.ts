@@ -44,17 +44,18 @@ export const fr = {
   },
 
   lobby: {
-    code: "Code",
-    shareHint: "Envoie ce lien à tes amis :",
+    code: "Code du salon",
     copy: "Copier le lien",
     copied: "Lien copié !",
-    share: "Partager",
+    share: "Partager le lien",
     shareTitle: "Rejoins ma partie de Loups-Garous",
     showQrCode: "Afficher le QR code",
     qrCodeLabel: "QR code pour rejoindre le salon",
     qrCodeHint: "Touche l'écran pour revenir au salon",
     players: (count: number) => `Joueurs (${count} / ${MAX_PLAYERS})`,
+    minimum: `${MIN_PLAYERS} au minimum`,
     you: "toi",
+    ready: "prêt",
     host: "Hôte",
     mayor: "Maire",
     offline: "déconnecté",
@@ -77,12 +78,11 @@ export const fr = {
   },
 
   settings: {
-    title: "Paramètres",
     roles: "Rôles",
     rolesCount: (roles: number, players: number) =>
       `${roles} rôle${roles > 1 ? "s" : ""} pour ${players} joueur${players > 1 ? "s" : ""}`,
     suggested: "Composition suggérée",
-    timers: "Minuteries",
+    disclosure: "Minuteries et rôles cachés",
     gracePeriod: "Délai de reconnexion",
     gracePeriodHint: "Un joueur déconnecté plus longtemps perd sa place dans le salon.",
     hiddenRoles: "Rôles cachés",
@@ -106,7 +106,7 @@ export const fr = {
       mayorTieBreak: "Égalité tranchée par le Maire",
       feignedTurnMinimum: "Tour feint, au moins (rôles cachés)",
     } satisfies Record<keyof Timers, string>,
-    start: "Lancer",
+    start: "Lancer la partie",
     waitingForHost: "L'hôte lancera la partie.",
   },
 

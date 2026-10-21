@@ -4,6 +4,8 @@ import type { Role } from "./generated/Role";
 import type { RoleCounts } from "./generated/RoleCounts";
 import type { Settings } from "./generated/Settings";
 import type { Timers } from "./generated/Timers";
+import { ROLES, roleTotal } from "./lobbyRoom";
+import { cardImageUrl } from "./RoleCardView";
 import {
   fr,
   MAX_CUPIDS,
@@ -14,9 +16,6 @@ import {
   TIMER_MIN_SECONDS,
 } from "./strings";
 
-// The order the Night calls them in, then the Villagers.
-const ROLES: Role[] = ["werewolf", "cupid", "thief", "seer", "witch", "hunter", "villager"];
-
 /** The most of each Role a Game may hold, when there is a limit. */
 const MAX_COUNTS: Partial<Record<Role, number>> = { witch: MAX_WITCHES, cupid: MAX_CUPIDS, thief: MAX_THIEVES };
 const TIMERS = Object.keys(fr.settings.timer) as (keyof Timers)[];
@@ -24,33 +23,36 @@ const TIMERS = Object.keys(fr.settings.timer) as (keyof Timers)[];
 type Props = {
   view: PlayerView;
   onChange: (settings: Settings) => void;
-  onStart: () => void;
 };
 
-/** The Settings every Player sees; only the Host can edit them and start. */
-export function SettingsPanel({ view, onChange, onStart }: Props) {
+/** The Roles in play as a sideways row of cards; only the Host gets the steppers. */
+export function RoleCards({ view, onChange }: Props) {
   const isHost = view.you === view.host;
   const { settings } = view;
-  const roleTotal = ROLES.reduce((sum, role) => sum + settings.roles[role], 0);
+  const total = roleTotal(settings.roles);
   const followsSuggestion = ROLES.every((r) => settings.roles[r] === view.suggestedRoles[r]);
-
   const setRoles = (roles: RoleCounts) => onChange({ ...settings, roles });
-  const setTimer = (timer: keyof Timers, seconds: number) =>
-    onChange({ ...settings, timers: { ...settings.timers, [timer]: seconds } });
 
   return (
-    <section className="card stack settings">
-      <h2>{fr.settings.title}</h2>
-
-      <h3>{fr.settings.roles}</h3>
-      <ul className="role-counts">
+    <section className="stack">
+      <div className="section-head">
+        <h2>{fr.settings.roles}</h2>
+        <span className="role-total" data-match={total === view.players.length}>
+          {fr.settings.rolesCount(total, view.players.length)}
+        </span>
+      </div>
+      <ul className="role-row">
         {ROLES.map((role) => {
           const name = fr.roles[role].name;
           const count = settings.roles[role];
           return (
             <li key={role}>
-              <span>{name}</span>
-              {isHost ? (
+              <div className="role-art">
+                <img className={count ? "card-art" : "card-art off"} src={cardImageUrl(role)} alt="" />
+                <span className="role-count">{count}</span>
+              </div>
+              <span className="role-name">{name}</span>
+              {isHost && (
                 <span className="stepper">
                   <button
                     aria-label={fr.settings.less(name)}
@@ -59,97 +61,115 @@ export function SettingsPanel({ view, onChange, onStart }: Props) {
                   >
                     −
                   </button>
-                  <strong>{count}</strong>
                   <button
                     aria-label={fr.settings.more(name)}
-                    disabled={roleTotal >= MAX_PLAYERS || count >= (MAX_COUNTS[role] ?? Infinity)}
+                    disabled={total >= MAX_PLAYERS || count >= (MAX_COUNTS[role] ?? Infinity)}
                     onClick={() => setRoles({ ...settings.roles, [role]: count + 1 })}
                   >
                     +
                   </button>
                 </span>
-              ) : (
-                <strong>{count}</strong>
               )}
             </li>
           );
         })}
       </ul>
-      <p className={view.startBlockedBy === "roleCountMismatch" ? "error" : "muted"}>
-        {fr.settings.rolesCount(roleTotal, view.players.length)}
-      </p>
       {isHost && !followsSuggestion && (
-        <button onClick={() => setRoles(view.suggestedRoles)}>{fr.settings.suggested}</button>
+        <button className="quiet" onClick={() => setRoles(view.suggestedRoles)}>
+          {fr.settings.suggested}
+        </button>
       )}
+    </section>
+  );
+}
 
-      <label className="toggle">
-        <h3>{fr.settings.hiddenRoles}</h3>
-        <input
-          type="checkbox"
-          checked={settings.hiddenRoles}
-          disabled={!isHost}
-          onChange={(e) => onChange({ ...settings, hiddenRoles: e.target.checked })}
-        />
-      </label>
-      <p className="muted">{settings.hiddenRoles ? fr.settings.hiddenRolesOn : fr.settings.hiddenRolesOff}</p>
+/** The timers, Hidden Roles and the Grace period, folded under one row; editable by the Host only. */
+export function MoreSettings({ view, onChange }: Props) {
+  const isHost = view.you === view.host;
+  const { settings } = view;
+  const setTimer = (timer: keyof Timers, seconds: number) =>
+    onChange({ ...settings, timers: { ...settings.timers, [timer]: seconds } });
 
-      <ul className="timers">
-        <li>
-          <label htmlFor="grace-period">{fr.settings.gracePeriod}</label>
-          {isHost ? (
-            <TimerInput
+  return (
+    <details className="more-settings">
+      <summary>
+        <span>{fr.settings.disclosure}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      </summary>
+      <div className="stack">
+        <label className="toggle">
+          <span>{fr.settings.hiddenRoles}</span>
+          <input
+            type="checkbox"
+            checked={settings.hiddenRoles}
+            disabled={!isHost}
+            onChange={(e) => onChange({ ...settings, hiddenRoles: e.target.checked })}
+          />
+        </label>
+        <p className="muted">{settings.hiddenRoles ? fr.settings.hiddenRolesOn : fr.settings.hiddenRolesOff}</p>
+
+        <ul className="timers">
+          <li>
+            <label htmlFor="grace-period">{fr.settings.gracePeriod}</label>
+            <Seconds
               id="grace-period"
+              editable={isHost}
               seconds={settings.gracePeriod}
               onCommit={(gracePeriod) => onChange({ ...settings, gracePeriod })}
             />
-          ) : (
-            <strong id="grace-period">
-              {settings.gracePeriod} {fr.settings.seconds}
-            </strong>
-          )}
-        </li>
-      </ul>
-      <p className="muted">{fr.settings.gracePeriodHint}</p>
+          </li>
+        </ul>
+        <p className="muted">{fr.settings.gracePeriodHint}</p>
 
-      <details>
-        <summary>
-          <h3>{fr.settings.timers}</h3>
-        </summary>
         <ul className="timers">
           {TIMERS.map((timer) => (
             <li key={timer}>
               <label htmlFor={`timer-${timer}`}>{fr.settings.timer[timer]}</label>
-              {isHost ? (
-                <TimerInput
-                  id={`timer-${timer}`}
-                  seconds={settings.timers[timer]}
-                  onCommit={(seconds) => setTimer(timer, seconds)}
-                />
-              ) : (
-                <strong id={`timer-${timer}`}>
-                  {settings.timers[timer]} {fr.settings.seconds}
-                </strong>
-              )}
+              <Seconds
+                id={`timer-${timer}`}
+                editable={isHost}
+                seconds={settings.timers[timer]}
+                onCommit={(seconds) => setTimer(timer, seconds)}
+              />
             </li>
           ))}
         </ul>
-      </details>
+      </div>
+    </details>
+  );
+}
 
-      {isHost ? (
-        <>
-          <button className="primary" disabled={view.startBlockedBy !== null} onClick={onStart}>
-            {fr.settings.start}
-          </button>
-          {view.startBlockedBy && (
-            <p className={view.startBlockedBy === "playersDisconnected" ? "error" : "muted"}>
-              {fr.rejection[view.startBlockedBy]}
-            </p>
-          )}
-        </>
-      ) : (
-        <p className="muted">{fr.settings.waitingForHost}</p>
+/** The Host's start button and why it is blocked, or the waiting line for everyone else. */
+export function StartFooter({ view, onStart }: { view: PlayerView; onStart: () => void }) {
+  if (view.you !== view.host) {
+    return (
+      <footer className="room-footer">
+        <p className="waiting">{fr.settings.waitingForHost}</p>
+      </footer>
+    );
+  }
+  return (
+    <footer className="room-footer">
+      <button className="primary" disabled={view.startBlockedBy !== null} onClick={onStart}>
+        {fr.settings.start}
+      </button>
+      {view.startBlockedBy && (
+        <p className={view.startBlockedBy === "playersDisconnected" ? "error" : "muted"}>
+          {fr.rejection[view.startBlockedBy]}
+        </p>
       )}
-    </section>
+    </footer>
+  );
+}
+
+function Seconds(props: { id: string; editable: boolean; seconds: number; onCommit: (seconds: number) => void }) {
+  if (props.editable) return <TimerInput id={props.id} seconds={props.seconds} onCommit={props.onCommit} />;
+  return (
+    <strong id={props.id}>
+      {props.seconds} {fr.settings.seconds}
+    </strong>
   );
 }
 
