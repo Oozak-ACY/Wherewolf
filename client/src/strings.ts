@@ -259,6 +259,7 @@ export const fr = {
   roleCard: {
     you: "Tu es",
     camp: "Camp",
+    goal: "Objectif",
     fellowWerewolves: "Les autres Loups-Garous",
     loneWerewolf: "Tu es le seul Loup-Garou.",
     partner: "Ton Amoureux",

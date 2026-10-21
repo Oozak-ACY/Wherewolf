@@ -91,6 +91,10 @@ export function RoleCardView(props: {
           <span className="camp-pill">{fr.camps[card.camp].name}</span>
         </p>
         <p className="power">{role.power}</p>
+        <p className="goal">
+          <span className="eyebrow">{fr.roleCard.goal}</span>
+          <span>{fr.camps[card.camp].goal}</span>
+        </p>
         {allies(card, view).map((box) => (
           <p key={box.names} className="allies">
             {box.title && <span className="eyebrow">{box.title}</span>}

@@ -729,6 +729,24 @@ dialog.reveal::backdrop {
   color: #e8dcc0;
 }
 
+/* Shrinks on short phones so the confirm button stays in view */
+.role-card .card-art {
+  width: auto;
+  height: clamp(260px, calc(100dvh - 480px), 422px);
+}
+
+.role-card .goal {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 330px;
+  color: var(--muted);
+}
+
+.role-card .goal > :last-child {
+  font-style: italic;
+}
+
 .card-art.placeholder {
   display: flex;
   align-items: center;
