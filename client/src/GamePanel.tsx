@@ -258,6 +258,11 @@ export function GamePanel(props: Props) {
               <Choice
                 mode={mode}
                 players={living.filter((p) => moment.tied.includes(p.id))}
+                detail={(id) => {
+                  const by = votersFor(moment.ballots, id);
+                  return by.length > 0 ? fr.game.pickedBy(by.map(name)) : null;
+                }}
+                count={(id) => votersFor(moment.ballots, id).length}
                 confirmLabel={fr.game.confirm.breakTie}
                 onChoose={props.onBreakTie}
               >
@@ -439,6 +444,11 @@ function WitchsChoice(props: {
       )}
     </>
   );
+}
+
+/** Who voted for `designated`. */
+function votersFor(ballots: Ballot[], designated: PlayerId): PlayerId[] {
+  return ballots.filter((b) => b.designated === designated).map((b) => b.voter);
 }
 
 /** Who voted for whom, once revealed. Nothing if nobody voted. */
