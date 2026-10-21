@@ -434,7 +434,7 @@ input::placeholder {
   padding: 1px 7px;
 }
 
-/* A Role card artwork, always in its 9:16 box so the painted frame is never cropped */
+/* A card artwork always in its 9:16 box so the painted frame is never cropped */
 .card-art {
   display: block;
   aspect-ratio: var(--ww-card-aspect);

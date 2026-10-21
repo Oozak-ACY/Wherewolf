@@ -5,11 +5,11 @@ import type { Role } from "./generated/Role";
 import type { RoleCard } from "./generated/RoleCard";
 import { fr } from "./strings";
 
-/**
- * The 9:16 stained glass artwork for a Role, or for the Mayor title, by a fixed
- * convention: `client/public/roles/<card>.webp` (e.g. `werewolf.webp`).
- */
-export function roleImageUrl(card: Role | "mayor"): string {
+/** A Role or the Mayor title painted as a 9:16 stained glass card */
+export type CardArt = Role | "mayor";
+
+/** The artwork served from `client/public/roles/<card>.webp` */
+export function cardImageUrl(card: CardArt): string {
   return `/roles/${card}.webp`;
 }
 
@@ -96,6 +96,6 @@ function RoleArt({ role }: { role: Role }) {
     );
   }
   return (
-    <img className="card-art reveal" src={roleImageUrl(role)} alt="" onError={() => setMissing(true)} />
+    <img className="card-art reveal" src={cardImageUrl(role)} alt="" onError={() => setMissing(true)} />
   );
 }

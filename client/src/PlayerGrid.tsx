@@ -1,6 +1,6 @@
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
-import { roleImageUrl } from "./RoleCardView";
+import { cardImageUrl } from "./RoleCardView";
 import { fr } from "./strings";
 
 /** Fewer, bigger tiles while the Lobby fills up; 12 still fit a portrait phone. */
@@ -41,7 +41,7 @@ export function TileLabel({ view, player }: { view: PlayerView; player: PlayerSu
       {player.id === view.host && <span className="badge">{fr.lobby.host}</span>}
       {player.id === view.mayor && (
         <span className="badge">
-          <img className="card-art" src={roleImageUrl("mayor")} alt="" />
+          <img className="card-art" src={cardImageUrl("mayor")} alt="" />
           {fr.lobby.mayor}
         </span>
       )}
