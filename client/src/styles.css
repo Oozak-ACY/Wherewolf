@@ -434,6 +434,44 @@ input::placeholder {
   padding: 1px 7px;
 }
 
+/* A Role card artwork, always in its 9:16 box so the painted frame is never cropped */
+.card-art {
+  display: block;
+  aspect-ratio: var(--ww-card-aspect);
+  object-fit: cover;
+  border-radius: var(--ww-radius-card);
+  box-shadow: var(--ww-shadow-card);
+}
+
+.card-art.reveal {
+  width: 236px;
+  max-width: 100%;
+  border-radius: 10px;
+  box-shadow: var(--ww-shadow-card-reveal);
+}
+
+.card-art.thumb {
+  width: 74px;
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px var(--ww-gold);
+}
+
+.card-art.off {
+  opacity: 0.45;
+}
+
+.badge .card-art {
+  width: 12px;
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+.badge:has(.card-art) {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 /* The back of a Role card, for a Player without a camera */
 .card-back {
   height: 100%;
@@ -630,17 +668,11 @@ input::placeholder {
   color: var(--ww-gold-glow);
 }
 
-.role-art {
-  width: 60%;
-  max-width: 236px;
-  aspect-ratio: var(--ww-card-aspect);
+.role-card .card-art {
   margin: 0 auto;
-  border-radius: 10px;
-  object-fit: cover;
-  box-shadow: var(--ww-shadow-card-reveal);
 }
 
-.role-art.placeholder {
+.card-art.placeholder {
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,13 +1,16 @@
 # Role card artwork
 
-Drop one image per Role here, named after the Role, and it replaces the placeholder with no code change:
+One stained glass card per Role, plus the Mayor title, named after it:
 
-| Role | File |
+| Card | File |
 |---|---|
-| Loup-Garou | `werewolf.png` |
-| Voyante | `seer.png` |
-| Sorcière | `witch.png` |
-| Chasseur | `hunter.png` |
-| Villageois | `villager.png` |
+| Loup-Garou | `werewolf.webp` |
+| Voyante | `seer.webp` |
+| Sorcière | `witch.webp` |
+| Chasseur | `hunter.webp` |
+| Cupidon | `cupid.webp` |
+| Voleur | `thief.webp` |
+| Villageois | `villager.webp` |
+| Maire | `mayor.webp` |
 
-Portrait images (about 3:4) look best. Until a file exists, the card shows the Role's initial.
+Each card is 9:16 with its frame painted into the art, so it is always shown in a 9:16 box and never cropped to another ratio. Until a file exists, the card shows the Role's initial.

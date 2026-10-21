@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { cardTurnsFaceUp } from "./RoleCardView";
+import { cardTurnsFaceUp, roleImageUrl } from "./RoleCardView";
 
 describe("the Role card turning face up by itself", () => {
   test("when the Roles are dealt", () => {
@@ -17,5 +17,15 @@ describe("the Role card turning face up by itself", () => {
 
   test("not back in the Lobby", () => {
     expect(cardTurnsFaceUp("seer", null)).toBe(false);
+  });
+});
+
+describe("the artwork of a card", () => {
+  test("is the stained glass webp named after the Role", () => {
+    expect(roleImageUrl("werewolf")).toBe("/roles/werewolf.webp");
+  });
+
+  test("of the Mayor title too", () => {
+    expect(roleImageUrl("mayor")).toBe("/roles/mayor.webp");
   });
 });

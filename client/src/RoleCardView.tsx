@@ -6,11 +6,11 @@ import type { RoleCard } from "./generated/RoleCard";
 import { fr } from "./strings";
 
 /**
- * The artwork for a Role, by a fixed convention: `client/public/roles/<role>.png`
- * (e.g. `werewolf.png`). Dropping in a file replaces the placeholder, no code change.
+ * The 9:16 stained glass artwork for a Role, or for the Mayor title, by a fixed
+ * convention: `client/public/roles/<card>.webp` (e.g. `werewolf.webp`).
  */
-export function roleImageUrl(role: Role): string {
-  return `/roles/${role}.png`;
+export function roleImageUrl(card: Role | "mayor"): string {
+  return `/roles/${card}.webp`;
 }
 
 /**
@@ -90,12 +90,12 @@ function RoleArt({ role }: { role: Role }) {
   const [missing, setMissing] = useState(false);
   if (missing) {
     return (
-      <div className="role-art placeholder" aria-hidden="true">
+      <div className="card-art reveal placeholder" aria-hidden="true">
         {fr.roles[role].name.charAt(0)}
       </div>
     );
   }
   return (
-    <img className="role-art" src={roleImageUrl(role)} alt="" onError={() => setMissing(true)} />
+    <img className="card-art reveal" src={roleImageUrl(role)} alt="" onError={() => setMissing(true)} />
   );
 }
