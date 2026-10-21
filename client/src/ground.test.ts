@@ -66,7 +66,7 @@ describe("the ground", () => {
     expect(ground(view(null, null), false)).toBe("parchment");
   });
 
-  test("is reveal during the role reveal", () => {
+  test("is reveal during the Role reveal", () => {
     expect(ground(view("villager", { type: "roleReveal", stillReading: 2, confirmed: false }), true)).toBe("reveal");
   });
 
@@ -115,7 +115,7 @@ describe("the ground", () => {
     );
   });
 
-  test("is parchment while waiting for the Narrator to open the role reveal", () => {
+  test("is parchment while waiting for the Narrator to open the Role reveal", () => {
     const roleReveal: Moment = { type: "roleReveal", stillReading: 5, confirmed: false };
 
     expect(ground(view("villager", roleReveal, { announcing: 1 }), true)).toBe("parchment");
@@ -123,7 +123,7 @@ describe("the ground", () => {
 });
 
 describe("the theme color", () => {
-  test("is a dark color on the dark grounds and a glass color by Day", () => {
+  test("is a dark color on the dark grounds and cobalt by Day", () => {
     expect(themeColor("parchment")).toBe("#1F3F6E");
     expect(themeColor("night")).toBe("#0A1220");
     expect(themeColor("reveal")).toBe("#1A1210");

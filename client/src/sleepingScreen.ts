@@ -1,3 +1,4 @@
+import type { Moment } from "./generated/Moment";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Role } from "./generated/Role";
 import { narratorText } from "./narratorScript";
@@ -26,6 +27,11 @@ const ACTING: Partial<Record<NonNullable<PlayerView["moment"]>["type"], (view: P
   werewolvesTurn: holds("werewolf"),
   witchsTurn: holds("witch"),
 };
+
+/** Whether `moment` is a Night Turn, in which some Players act while the others sleep. */
+export function isNightTurn(moment: Moment): boolean {
+  return moment.type in ACTING;
+}
 
 function holds(role: Role): (view: PlayerView) => boolean {
   return (view) => view.role?.role === role;
