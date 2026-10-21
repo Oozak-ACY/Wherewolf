@@ -12,6 +12,9 @@
     "generate-narrator-lines": "node scripts/generate-narrator-lines.ts"
   },
   "dependencies": {
+    "@fontsource/cinzel": "^5.3.0",
+    "@fontsource/eb-garamond": "^5.3.0",
+    "@fontsource/unifrakturmaguntia": "^5.3.0",
     "livekit-client": "^2.22.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

@@ -1,21 +1,109 @@
+/* Design tokens of the medieval stained-glass redesign */
 :root {
-  --bg: #14111f;
-  --surface: #221d33;
-  --text: #f1ecff;
-  --muted: #a39cbb;
-  --accent: #e0a940;
-  --accent-text: #1c1406;
-  --danger: #ff8a7a;
-  --danger-surface: #4a1f1f;
-  --tile-empty: #0b0913;
-  --card-back-top: #3b2a5c;
-  --card-back-bottom: #1d1530;
-  --card-back-line: rgb(224 169 64 / 0.07);
-  --card-back-edge: rgb(224 169 64 / 0.55);
-  --radius: 14px;
+  --ww-parchment: #efe4cb;
+  --ww-parchment-deep: #e6d7b5;
+  --ww-vellum: #fbf4e2;
+  --ww-border-parchment: #c9ae7c;
+  --ww-ink: #2b1d12;
+  --ww-ink-soft: #4a3826;
+  --ww-ink-muted: #5a4632;
+
+  --ww-oxblood: #8a2a1f;
+  --ww-oxblood-dark: #5e1a12;
+  --ww-cobalt: #1f3f6e;
+  --ww-forest: #2f5a3a;
+  --ww-gold: #b88a2e;
+  --ww-gold-light: #d9b45a;
+  --ww-gold-glow: #f0d58a;
+
+  --ww-night: #101a2c;
+  --ww-night-deep: #0a1220;
+  --ww-night-tile: #16233a;
+  --ww-night-tile-selected: #24365a;
+  --ww-night-border: #2c3c58;
+  --ww-night-text: #ede4ce;
+  --ww-night-muted: #b5c2d6;
+
+  --ww-reveal: #1a1210;
+  --ww-reveal-text: #f3e8cf;
+  --ww-reveal-muted: #cdb98f;
+
+  --ww-disabled-badge: #9c8a6e;
+
+  --ww-font-blackletter: "UnifrakturMaguntia", serif;
+  --ww-font-display: "Cinzel", serif;
+  --ww-font-body: "EB Garamond", Georgia, serif;
+
+  --ww-gutter: 20px;
+  --ww-radius: 6px;
+  --ww-radius-card: 8px;
+  --ww-touch-min: 44px;
+  --ww-card-aspect: 9 / 16;
+
+  --ww-shadow-card: 0 6px 14px rgba(43, 29, 18, 0.3);
+  --ww-shadow-card-raised: 0 12px 26px rgba(43, 29, 18, 0.45);
+  --ww-shadow-card-reveal: 0 0 0 2px var(--ww-gold), 0 18px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* What every screen reads, set by its ground: parchment by default */
+:root,
+[data-ground="parchment"] {
+  --ground: var(--ww-parchment);
+  --surface: var(--ww-vellum);
+  --surface-selected: #f6e3c2;
+  --text: var(--ww-ink);
+  --muted: var(--ww-ink-muted);
+  --title: var(--ww-oxblood);
+  --line: var(--ww-border-parchment);
+  --chosen: var(--ww-oxblood);
+  --primary: var(--ww-oxblood);
+  --primary-edge: var(--ww-ink);
+  --primary-glass: var(--ww-gold-light);
+  --secondary-edge: var(--ww-ink);
+  --ghost-edge: var(--ww-ink);
+  --danger: var(--ww-oxblood);
+  color-scheme: light;
+}
+
+[data-ground="night"] {
+  --ground: var(--ww-night);
+  --surface: var(--ww-night-tile);
+  --surface-selected: var(--ww-night-tile-selected);
+  --text: var(--ww-night-text);
+  --muted: var(--ww-night-muted);
+  --title: var(--ww-gold-glow);
+  --line: var(--ww-night-border);
+  --chosen: var(--ww-gold-glow);
+  --primary: var(--ww-cobalt);
+  --primary-edge: var(--ww-gold-light);
+  --primary-glass: var(--ww-night-deep);
+  --secondary-edge: var(--ww-gold-light);
+  --ghost-edge: #5b6b86;
+  --danger: #f2a497;
   color-scheme: dark;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 17px;
+}
+
+[data-ground="reveal"] {
+  --ground: var(--ww-reveal);
+  --surface: #2a1e19;
+  --surface-selected: #3a2a22;
+  --text: var(--ww-reveal-text);
+  --muted: var(--ww-reveal-muted);
+  --title: var(--ww-gold-glow);
+  --line: #4a3a2c;
+  --chosen: var(--ww-gold-glow);
+  --primary: var(--ww-oxblood);
+  --primary-edge: var(--ww-gold-light);
+  --primary-glass: var(--ww-oxblood-dark);
+  --secondary-edge: var(--ww-gold-light);
+  --ghost-edge: var(--ww-reveal-muted);
+  --danger: #f2a497;
+  color-scheme: dark;
+}
+
+:root {
+  font-family: var(--ww-font-body);
+  font-size: 18px;
   line-height: 1.4;
 }
 
@@ -26,31 +114,47 @@
 body {
   margin: 0;
   min-height: 100dvh;
-  background: var(--bg);
+  background: var(--ground);
   color: var(--text);
 }
 
-/* Mobile-first, portrait: one column, full-width controls. */
+/* A 390px phone column with a 20px gutter, centred on wider screens */
 .screen {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+  padding: max(24px, env(safe-area-inset-top)) var(--ww-gutter) max(24px, env(safe-area-inset-bottom));
 }
 
 h1,
 h2 {
   margin: 0;
+  font-weight: 400;
 }
 
 h1 {
-  font-size: 1.8rem;
+  font-family: var(--ww-font-blackletter);
+  font-size: 40px;
+  line-height: 1.1;
+  color: var(--title);
 }
 
 h2 {
-  font-size: 1.1rem;
+  font-family: var(--ww-font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+form > label {
+  font-family: var(--ww-font-display);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .hero {
@@ -59,8 +163,11 @@ h2 {
 }
 
 .hero h1 {
-  font-size: 2.4rem;
-  color: var(--accent);
+  font-size: 64px;
+}
+
+.hero p {
+  font-style: italic;
 }
 
 .hero p,
@@ -83,21 +190,20 @@ h2 {
   flex: 1;
 }
 
-input,
+/* Buttons: an ink lead line outside, a gold glass line inside */
 button {
-  font: inherit;
+  font-family: var(--ww-font-display);
+  font-size: 15px;
+  font-weight: 700;
   min-height: 48px;
-  border-radius: var(--radius);
-  border: 1px solid #3a3350;
-  padding: 0 14px;
-  color: var(--text);
-  background: var(--surface);
   min-width: 0;
-}
-
-button {
+  padding: 0 18px;
+  border-radius: var(--ww-radius);
+  border: 2px solid var(--secondary-edge);
+  background: var(--ww-cobalt);
+  color: var(--ww-vellum);
+  box-shadow: inset 0 0 0 2px var(--ww-gold-light);
   cursor: pointer;
-  font-weight: 600;
 }
 
 button:disabled {
@@ -105,32 +211,89 @@ button:disabled {
   cursor: default;
 }
 
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--chosen);
+  outline-offset: 2px;
+}
+
 button.primary {
-  background: var(--accent);
-  color: var(--accent-text);
-  border-color: var(--accent);
+  min-height: 56px;
+  font-size: 17px;
+  letter-spacing: 0.08em;
+  background: var(--primary);
+  border-color: var(--primary-edge);
+  box-shadow: inset 0 0 0 2px var(--primary-glass);
 }
 
 button.quiet {
   background: transparent;
-  color: var(--muted);
+  border: 1px solid var(--ghost-edge);
+  box-shadow: none;
+  color: var(--text);
+  font-weight: 500;
+}
+
+button.icon {
+  width: 48px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border-color: var(--ww-gold-light);
+  box-shadow: none;
+  color: var(--text);
+}
+
+input {
+  font: inherit;
+  min-width: 0;
+  height: 52px;
+  padding: 0 14px;
+  border-radius: var(--ww-radius);
+  border: 2px solid var(--ww-ink);
+  background: var(--ww-vellum);
+  color: var(--ww-ink);
+}
+
+input::placeholder {
+  color: var(--ww-ink-muted);
+}
+
+#code {
+  font-family: var(--ww-font-display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+#code::placeholder {
+  font-family: var(--ww-font-body);
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .error {
-  color: var(--danger);
   margin: 0;
+  color: var(--danger);
+  font-weight: 600;
 }
 
 .banner {
   margin: 0;
   padding: 10px 14px;
-  border-radius: var(--radius);
-  background: #4a3a14;
+  border-radius: var(--ww-radius);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ww-gold);
+  background: var(--surface);
+  color: var(--text);
+  font-style: italic;
 }
 
 .card {
   background: var(--surface);
-  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  border-radius: var(--ww-radius-card);
   padding: 16px;
 }
 
@@ -143,10 +306,11 @@ button.quiet {
 }
 
 .code {
-  font-size: 2.4rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  color: var(--accent);
+  font-family: var(--ww-font-display);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--title);
 }
 
 .link {
@@ -156,12 +320,14 @@ button.quiet {
 }
 
 .badge {
-  font-size: 0.8rem;
+  font-family: var(--ww-font-display);
+  font-size: 0.7rem;
   font-weight: 700;
   padding: 2px 10px;
   border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-text);
+  border: 1px solid var(--ww-gold-light);
+  background: var(--ww-oxblood);
+  color: var(--ww-vellum);
 }
 
 .notice {
@@ -169,15 +335,16 @@ button.quiet {
   flex-direction: column;
   gap: 10px;
   padding: 14px;
-  border-radius: var(--radius);
-  background: var(--danger-surface);
+  border-radius: var(--ww-radius);
+  border: 2px solid var(--danger);
+  background: var(--surface);
 }
 
 .notice p {
   margin: 0;
 }
 
-/* The call: one tile per Player. Portrait phone first, 12 tiles on one screen. */
+/* The call: one tile per Player, 12 tiles on one portrait screen */
 .lobby {
   display: flex;
   flex-direction: column;
@@ -203,16 +370,17 @@ button.quiet {
 .tile {
   position: relative;
   aspect-ratio: var(--tile-ratio);
-  border-radius: 10px;
+  border-radius: var(--ww-radius-card);
   overflow: hidden;
-  background: var(--tile-empty);
+  background: var(--ww-night-deep);
+  color: var(--ww-night-text);
   outline: 3px solid transparent;
   outline-offset: -3px;
   transition: outline-color 150ms;
 }
 
 .tile.speaking {
-  outline-color: var(--accent);
+  outline-color: var(--ww-gold-glow);
 }
 
 .tile.offline {
@@ -241,12 +409,16 @@ button.quiet {
   gap: 2px 6px;
   padding: 18px 8px 6px;
   font-size: 0.8rem;
-  background: linear-gradient(transparent, rgb(0 0 0 / 0.75));
+  background: linear-gradient(transparent, rgb(10 18 32 / 0.85));
+}
+
+.tile-label .muted {
+  color: var(--ww-night-muted);
 }
 
 .tile-label .name {
   flex: 1;
-  /* Badges wrap below rather than squeeze the name out. */
+  /* Badges wrap below rather than squeeze the name out */
   min-width: 55%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -255,23 +427,20 @@ button.quiet {
 }
 
 .tile-label .badge {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   padding: 1px 7px;
 }
 
-/* The back of a Role card, for a Player without a camera. */
+/* The back of a Role card, for a Player without a camera */
 .card-back {
   height: 100%;
   display: grid;
   place-items: center;
-  color: var(--accent);
-  background:
-    repeating-linear-gradient(45deg, var(--card-back-line) 0 2px, transparent 2px 12px),
-    repeating-linear-gradient(-45deg, var(--card-back-line) 0 2px, transparent 2px 12px),
-    linear-gradient(160deg, var(--card-back-top), var(--card-back-bottom));
-  border: 2px solid var(--card-back-edge);
-  border-radius: 10px;
-  box-shadow: inset 0 0 0 4px var(--card-back-bottom), inset 0 0 0 5px var(--card-back-edge);
+  color: var(--ww-gold-light);
+  background: var(--ww-night);
+  border: 2px solid var(--ww-gold);
+  border-radius: var(--ww-radius-card);
+  box-shadow: inset 0 0 0 4px var(--ww-night-deep), inset 0 0 0 5px var(--ww-gold);
 }
 
 .card-back .emblem {
@@ -280,7 +449,7 @@ button.quiet {
   opacity: 0.85;
 }
 
-/* How this Player talks: within thumb reach at the bottom of a portrait phone. */
+/* How this Player talks, within thumb reach at the bottom */
 .mic-bar {
   position: sticky;
   bottom: 0;
@@ -289,14 +458,15 @@ button.quiet {
   align-items: center;
   gap: 12px;
   padding: 10px 0 max(10px, env(safe-area-inset-bottom));
-  background: var(--bg);
+  border-top: 2px solid var(--ww-gold);
+  background: var(--ground);
 }
 
 .mic-button {
   flex: 1;
   min-height: 64px;
-  font-size: 1.1rem;
-  /* Holding it must not select text, open a callout or menu, scroll or zoom. */
+  font-size: 17px;
+  /* Holding it must not select text, open a callout or menu, scroll or zoom */
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -304,11 +474,9 @@ button.quiet {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Wants to talk; dimmed while the Narrator keeps the mic muted. */
+/* Wants to talk, dimmed while the Narrator keeps the mic muted */
 .mic-button[data-wants="true"] {
-  background: var(--accent);
-  color: var(--accent-text);
-  border-color: var(--accent);
+  background: var(--ww-oxblood);
 }
 
 .mic-button[data-wants="true"][data-live="false"] {
@@ -319,57 +487,16 @@ button.quiet {
   flex-direction: column;
   justify-content: center;
   gap: 4px;
-  font-size: 0.8rem;
-  color: var(--muted);
+  font-size: 0.7rem;
   white-space: nowrap;
 }
 
-/* Wider screens: the call takes the space, the invite sits beside it. */
-@media (min-width: 900px) {
-  .screen:has(.lobby) {
-    max-width: 1280px;
-  }
-
-  .lobby {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    align-items: start;
-    gap: 24px;
-  }
-
-  .lobby > aside {
-    grid-row: 1 / span 2;
-  }
-
-  .mic-bar {
-    grid-column: 1;
-  }
-
-  .call-grid {
-    gap: 8px;
-    --tile-ratio: 4 / 3;
-  }
-
-  .call-grid[data-size="medium"] {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    --tile-ratio: 4 / 3;
-  }
-
-  .call-grid[data-size="large"] {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    --tile-ratio: 4 / 3;
-  }
-
-  .tile-label {
-    font-size: 0.9rem;
-  }
-}
-
-/* Settings: the Role set and the timers, editable by the Host only. */
+/* Settings: the Role set and the timers, editable by the Host only */
 .settings h3 {
   display: inline;
   margin: 0;
   font-size: 1rem;
+  font-weight: 600;
 }
 
 .settings p {
@@ -392,7 +519,7 @@ button.quiet {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .stepper {
@@ -404,12 +531,19 @@ button.quiet {
 .stepper strong {
   min-width: 1.5em;
   text-align: center;
+  font-family: var(--ww-font-display);
 }
 
 .stepper button {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  min-height: 0;
+  height: 44px;
   padding: 0;
+  border-color: var(--ww-ink);
+  background: var(--ww-vellum);
+  box-shadow: none;
+  color: var(--ww-ink);
+  font-size: 20px;
 }
 
 .timers {
@@ -425,30 +559,32 @@ button.quiet {
 
 .timer-input input {
   width: 5.5em;
+  height: 44px;
   text-align: right;
 }
 
 .settings summary {
   cursor: pointer;
+  font-family: var(--ww-font-display);
 }
 
-/* Hidden Roles: a switch for the Host, read-only for everyone else. */
+/* Hidden Roles: a switch for the Host, read-only for everyone else */
 .toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .toggle input {
   width: 24px;
   height: 24px;
   margin: 0;
-  accent-color: var(--accent);
+  accent-color: var(--ww-oxblood);
 }
 
-/* The private Role card, over everything. */
+/* The private Role card, over everything, on the reveal ground */
 .overlay {
   position: fixed;
   inset: 0;
@@ -456,8 +592,9 @@ button.quiet {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
-  background: rgb(8 6 14 / 0.88);
+  padding: max(16px, env(safe-area-inset-top)) var(--ww-gutter) max(16px, env(safe-area-inset-bottom));
+  background: var(--ww-reveal);
+  color: var(--ww-reveal-text);
   overflow-y: auto;
 }
 
@@ -466,11 +603,7 @@ button.quiet {
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  max-width: 380px;
-  padding: 20px;
-  border-radius: var(--radius);
-  border: 2px solid var(--card-back-edge);
-  background: linear-gradient(160deg, var(--card-back-top), var(--card-back-bottom));
+  max-width: 390px;
   text-align: center;
 }
 
@@ -479,28 +612,35 @@ button.quiet {
   margin: 0;
 }
 
+.role-card > .muted {
+  font-family: var(--ww-font-display);
+  letter-spacing: 0.32em;
+  color: var(--ww-reveal-muted);
+}
+
 .role-card h1 {
-  color: var(--accent);
+  font-size: 48px;
+  color: var(--ww-gold-glow);
 }
 
 .role-art {
   width: 60%;
-  max-width: 200px;
-  aspect-ratio: 3 / 4;
+  max-width: 236px;
+  aspect-ratio: var(--ww-card-aspect);
   margin: 0 auto;
   border-radius: 10px;
   object-fit: cover;
+  box-shadow: var(--ww-shadow-card-reveal);
 }
 
 .role-art.placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--ww-font-blackletter);
   font-size: 4rem;
-  font-weight: 800;
-  color: var(--accent);
-  background: var(--tile-empty);
-  border: 1px solid var(--card-back-edge);
+  color: var(--ww-gold-glow);
+  background: var(--ww-oxblood-dark);
 }
 
 .role-card dl {
@@ -511,23 +651,25 @@ button.quiet {
 }
 
 .role-card dt {
-  color: var(--muted);
+  color: var(--ww-reveal-muted);
 }
 
 .role-card dd {
   margin: 0;
 }
 
-.role-card.camp-werewolves .fellows {
-  color: var(--danger);
-  font-weight: 700;
+.role-card .fellows {
+  padding: 10px 14px;
+  border: 1px solid var(--ww-gold);
+  border-radius: var(--ww-radius);
+  font-weight: 600;
 }
 
-/* The Game: the Narrator's line, its countdown, and this Player's action. */
+/* The Game: the Narrator's line, its countdown, and this Player's action */
 .game .narrator {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 19px;
+  font-style: italic;
   line-height: 1.3;
 }
 
@@ -536,10 +678,11 @@ button.quiet {
 }
 
 .countdown {
+  font-family: var(--ww-font-display);
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
+  color: var(--title);
 }
 
 .choices,
@@ -554,21 +697,34 @@ button.quiet {
 
 .choices button {
   width: 100%;
+  min-height: 56px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  padding: 8px 14px;
   text-align: left;
+  font-family: var(--ww-font-body);
+  font-size: 19px;
+  font-weight: 600;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  box-shadow: none;
+  color: var(--text);
 }
 
 .choices .muted {
   font-size: 0.8rem;
   font-weight: 400;
+  font-style: italic;
 }
 
-button.chosen {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 2px var(--accent);
+button.chosen,
+.choices button.chosen {
+  background: var(--surface-selected);
+  border-color: var(--chosen);
+  box-shadow: inset 0 0 0 1px var(--ww-gold-light);
+  color: var(--text);
 }
 
 .tile.dead {
@@ -577,11 +733,11 @@ button.chosen {
 }
 
 .tile-label .badge.role {
-  background: var(--surface);
-  color: var(--text);
+  background: var(--ww-night-tile);
+  color: var(--ww-night-text);
 }
 
-/* The join QR code, over everything: black on white so any camera reads it. */
+/* The join QR code, over everything: black on white so any camera reads it */
 .qr-screen {
   position: fixed;
   inset: 0;
@@ -595,6 +751,7 @@ button.chosen {
   padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   border: 0;
   border-radius: 0;
+  box-shadow: none;
   background: #fff;
   color: #333;
   font-weight: 400;
@@ -605,7 +762,7 @@ button.chosen {
   height: auto;
 }
 
-/* A sleeping phone at Night: near-black over the whole screen, dim text. */
+/* A sleeping phone at Night, the same for every Role, or waiting for the Narrator by Day */
 .sleeping {
   position: fixed;
   inset: 0;
@@ -614,9 +771,9 @@ button.chosen {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
-  background: #000;
-  color: #4a4558;
+  padding: max(24px, env(safe-area-inset-top)) var(--ww-gutter) max(24px, env(safe-area-inset-bottom));
+  background: var(--ground);
+  color: var(--muted);
   text-align: center;
 }
 
@@ -626,22 +783,18 @@ button.chosen {
 }
 
 .sleeping .narrator {
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 19px;
+  font-style: italic;
+  color: var(--text);
 }
 
 .sleeping .moon {
   width: 48px;
   height: 48px;
-  color: #2a2638;
+  color: var(--ww-gold-light);
 }
 
-.sleeping .banner {
-  background: #241c0a;
-  color: #8a7a55;
-}
-
-/* The Host's mixer: a dim corner button, over the sleeping screen too. */
+/* The Host's mixer: a corner button, over the sleeping screen too */
 .mixer-toggle {
   position: fixed;
   top: max(8px, env(safe-area-inset-top));
@@ -651,8 +804,9 @@ button.chosen {
   min-height: 44px;
   padding: 10px;
   border: none;
+  box-shadow: none;
   background: transparent;
-  color: #4a4558;
+  color: var(--muted);
 }
 
 .mixer-toggle svg {
@@ -671,11 +825,12 @@ button.chosen {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border: 1px solid #3a3350;
+  box-shadow: var(--ww-shadow-card-raised);
 }
 
 .mixer h3 {
   margin: 0;
+  font-family: var(--ww-font-display);
 }
 
 .mixer .fader {
@@ -689,9 +844,9 @@ button.chosen {
 }
 
 .mixer input[type="range"] {
-  min-height: 32px;
+  height: 32px;
   padding: 0;
   border: none;
   background: transparent;
-  accent-color: var(--accent);
+  accent-color: var(--ww-gold);
 }

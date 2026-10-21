@@ -14,12 +14,14 @@ import { cardTurnsFaceUp, RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
 import { SettingsPanel } from "./SettingsPanel";
+import { ground } from "./ground";
 import { sleepingScreen, waitingScreen } from "./sleepingScreen";
 import { SleepingView } from "./SleepingView";
 import { fr } from "./strings";
 import { preloadTableAudio, unlockTableAudio } from "./tableAudio";
 import { useLobby } from "./useLobby";
 import { useNarrator } from "./useNarrator";
+import { useGround } from "./useGround";
 import { useWakeLock } from "./useWakeLock";
 
 function usePath(): [string, (path: string) => void] {
@@ -266,6 +268,7 @@ function Lobby(props: {
   // Game is Paused, and it repeats the current line once it is back.
   useNarrator(view, view.code, speaksAloud(view) && !props.reconnecting, props.seatings, props.onAnnounced);
   useWakeLock(view.moment !== null);
+  useGround(ground(view, cardOpen));
 
   // Asleep at Night, a phone shows only what every sleeping phone shows.
   // While the Narrator announces the coming Moment, every phone waits for the Narrator.
