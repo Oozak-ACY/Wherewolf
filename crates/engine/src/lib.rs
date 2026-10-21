@@ -452,6 +452,9 @@ pub struct PlayerView {
     /// the Table device has said its lines. Until then nothing runs in it,
     /// nobody acts in it, and the phones wait for the Narrator.
     pub announcing: Option<MomentId>,
+    /// Which Night it is, or was last: the Day that follows a Night shares
+    /// its number. 0 in the Lobby and during the Role reveal.
+    pub night: u32,
 }
 
 impl PlayerView {
@@ -2520,6 +2523,7 @@ impl Engine {
                         && self.require_debate_leader(&s.token).is_ok(),
                     paused,
                     announcing: self.announcing(),
+                    night: self.game.as_ref().map_or(0, |g| g.night),
                 };
                 (s.token.clone(), view)
             })

@@ -318,3 +318,51 @@ fn the_victory_is_announced_too() {
     table.announce();
     table.act("P1", Command::PlayAgain);
 }
+
+impl Table {
+    /// Lets the Game run, announcing and timing out each Moment, until `reached`.
+    fn run_until(&mut self, reached: impl Fn(&Moment) -> bool) {
+        for _ in 0..100 {
+            if reached(self.moment()) {
+                return;
+            }
+            if self.announcing().is_some() {
+                self.announce();
+            } else {
+                self.time_runs_out();
+            }
+        }
+        panic!("never reached, stuck at {:?}", self.moment());
+    }
+
+    /// Which Night it is, as every phone is told.
+    fn night(&self) -> u32 {
+        let night = self.view("P1").night;
+        for name in NAMES {
+            assert_eq!(self.view(name).night, night, "{name}");
+        }
+        night
+    }
+}
+
+#[test]
+fn no_night_has_fallen_during_the_role_reveal() {
+    let table = Table::started();
+
+    assert_eq!(table.night(), 0);
+}
+
+#[test]
+fn every_phone_counts_the_nights_and_the_day_after_each_shares_its_number() {
+    let mut table = Table::nightfall();
+    assert_eq!(table.night(), 1);
+
+    table.run_until(|m| matches!(m, Moment::Discussion));
+    assert_eq!(table.night(), 1);
+
+    table.run_until(|m| matches!(m, Moment::SeersTurn { .. }));
+    assert_eq!(table.night(), 2);
+
+    table.run_until(|m| matches!(m, Moment::Discussion));
+    assert_eq!(table.night(), 2);
+}

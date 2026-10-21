@@ -60,9 +60,8 @@ export const fr = {
   },
 
   narratorBar: {
-    day: "Jour",
-    night: "Nuit",
-    narrator: "Le Narrateur",
+    label: (phase: "day" | "night", night: number) =>
+      night > 0 ? `${phase === "night" ? "Nuit" : "Jour"} ${night} · Le Narrateur` : "Le Narrateur",
   },
 
   mixer: {

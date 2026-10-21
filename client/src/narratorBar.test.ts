@@ -48,6 +48,7 @@ function view(role: Role | null, moment: Moment | null, changes: Partial<PlayerV
     mayEndDebate: false,
     paused: false,
     announcing: null,
+    night: 1,
     ...changes,
   };
 }
@@ -56,6 +57,21 @@ const seersTurn: Moment = { type: "seersTurn", inspection: null, passed: false }
 const vote: Moment = { type: "vote", voted: [], yourBallot: null };
 
 describe("the Narrator bar", () => {
+  test("names the Night by its number", () => {
+    expect(narratorBar(view("villager", seersTurn, { night: 2 }))?.label).toBe("Nuit 2 · Le Narrateur");
+  });
+
+  test("names the Day after the Night it follows", () => {
+    expect(narratorBar(view("villager", vote, { night: 1 }))?.label).toBe("Jour 1 · Le Narrateur");
+    expect(narratorBar(view("villager", vote, { night: 2 }))?.label).toBe("Jour 2 · Le Narrateur");
+  });
+
+  test("names only the Narrator during the Role reveal, before any Night", () => {
+    const roleReveal: Moment = { type: "roleReveal", stillReading: 5, confirmed: false };
+
+    expect(narratorBar(view("villager", roleReveal, { night: 0 }))?.label).toBe("Le Narrateur");
+  });
+
   test("is not shown in the Lobby", () => {
     expect(narratorBar(view(null, null))).toBeNull();
   });

@@ -14,9 +14,7 @@ export function NarratorBar(props: { bar: Bar; endsAt: number | null; paused: bo
     <header className="narrator-bar" data-phase={bar.phase}>
       {bar.phase === "night" ? <MoonIcon /> : <SunIcon />}
       <div className="narrator-text">
-        <span className="narrator-label">
-          {fr.narratorBar[bar.phase]} · {fr.narratorBar.narrator}
-        </span>
+        <span className="narrator-label">{bar.label}</span>
         {/* No aria-live: a screen reader would speak the line out loud at the table. */}
         <span className="narrator-line">{bar.line}</span>
       </div>

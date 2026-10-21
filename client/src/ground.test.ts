@@ -47,6 +47,7 @@ function view(role: Role | null, moment: Moment | null, changes: Partial<PlayerV
     mayEndDebate: false,
     paused: false,
     announcing: null,
+    night: 1,
     ...changes,
   };
 }

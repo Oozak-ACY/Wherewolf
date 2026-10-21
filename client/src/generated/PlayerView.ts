@@ -87,4 +87,9 @@ paused: boolean,
  * the Table device has said its lines. Until then nothing runs in it,
  * nobody acts in it, and the phones wait for the Narrator.
  */
-announcing: MomentId | null, };
+announcing: MomentId | null, 
+/**
+ * Which Night it is, or was last: the Day that follows a Night shares
+ * its number. 0 in the Lobby and during the Role reveal.
+ */
+night: number, };

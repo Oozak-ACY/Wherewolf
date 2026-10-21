@@ -65,6 +65,7 @@ function view(role: Role | null, moment: Moment, changes: Partial<PlayerView> = 
     mayEndDebate: false,
     paused: false,
     announcing: null,
+    night: 1,
     ...changes,
   };
 }
