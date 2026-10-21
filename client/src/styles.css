@@ -61,6 +61,7 @@
   --primary-glass: var(--ww-gold-light);
   --secondary-edge: var(--ww-ink);
   --ghost-edge: var(--ww-ink);
+  --ghost-width: 2px;
   --danger: var(--ww-oxblood);
   color-scheme: light;
 }
@@ -79,6 +80,7 @@
   --primary-glass: var(--ww-night-deep);
   --secondary-edge: var(--ww-gold-light);
   --ghost-edge: #5b6b86;
+  --ghost-width: 1px;
   --danger: #f2a497;
   color-scheme: dark;
 }
@@ -97,6 +99,7 @@
   --primary-glass: var(--ww-oxblood-dark);
   --secondary-edge: var(--ww-gold-light);
   --ghost-edge: var(--ww-reveal-muted);
+  --ghost-width: 1px;
   --danger: #f2a497;
   color-scheme: dark;
 }
@@ -228,7 +231,7 @@ button.primary {
 
 button.quiet {
   background: transparent;
-  border: 1px solid var(--ghost-edge);
+  border: var(--ghost-width) solid var(--ghost-edge);
   box-shadow: none;
   color: var(--text);
   font-weight: 500;
@@ -427,7 +430,7 @@ input::placeholder {
 }
 
 .tile-label .badge {
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   padding: 1px 7px;
 }
 
@@ -480,7 +483,11 @@ input::placeholder {
 }
 
 .mic-button[data-wants="true"][data-live="false"] {
-  opacity: 0.6;
+  background: var(--surface);
+  border-style: dashed;
+  border-color: var(--chosen);
+  box-shadow: none;
+  color: var(--text);
 }
 
 .mic-mode {
@@ -663,6 +670,10 @@ input::placeholder {
   border: 1px solid var(--ww-gold);
   border-radius: var(--ww-radius);
   font-weight: 600;
+}
+
+.role-card.camp-werewolves .fellows {
+  color: var(--danger);
 }
 
 /* The Game: the Narrator's line, its countdown, and this Player's action */
