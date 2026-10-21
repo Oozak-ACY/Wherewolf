@@ -19,12 +19,14 @@ export const TIMER_MAX_SECONDS = 1800;
 
 export const fr = {
   appName: "Wherewolf",
-  tagline: "Les Loups-Garous, entre amis, à distance.",
+  kicker: "Les Loups-Garous",
+  tagline: "Une table, des amis, un téléphone chacun. Le Narrateur mène la partie.",
 
   home: {
     create: "Créer un salon",
     creating: "Création…",
     createFailed: "Impossible de créer le salon. Le serveur se réveille peut-être : réessaie dans une minute.",
+    or: "ou",
     joinWithCode: "Rejoindre avec un code",
     codePlaceholder: "Code du salon",
     go: "Y aller",

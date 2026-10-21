@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { ConnectionLost, Paused } from "./Banners";
 import { GamePanel } from "./GamePanel";
 import { joinLink, lobbyCodeFromPath } from "./joinLink";
@@ -12,7 +12,7 @@ import { NarratorBar } from "./NarratorBar";
 import { narratorBar } from "./narratorBar";
 import { PlayerGrid } from "./PlayerGrid";
 import { QrCodeView } from "./QrCodeView";
-import { cardTurnsFaceUp, RoleCardView } from "./RoleCardView";
+import { cardImageUrl, cardTurnsFaceUp, RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
 import { SettingsPanel } from "./SettingsPanel";
@@ -77,33 +77,71 @@ function Home({ onOpenLobby }: { onOpenLobby: (code: string) => void }) {
   };
 
   return (
-    <>
-      <header className="hero">
+    <Frame>
+      <CardFan />
+      <p className="tagline">{fr.tagline}</p>
+      <div className="frame-actions">
+        <button className="primary" onClick={create} disabled={creating} aria-busy={creating}>
+          {creating ? fr.home.creating : fr.home.create}
+        </button>
+        {failed && <Alert>{fr.home.createFailed}</Alert>}
+        <p className="divider">{fr.home.or}</p>
+        <form className="stack" onSubmit={goTo}>
+          <label htmlFor="code">{fr.home.joinWithCode}</label>
+          <div className="code-row">
+            <input
+              id="code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder={fr.home.codePlaceholder}
+              autoCapitalize="characters"
+              autoComplete="off"
+              maxLength={8}
+            />
+            <button type="submit" disabled={!code.trim()}>
+              {fr.home.go}
+            </button>
+          </div>
+        </form>
+      </div>
+    </Frame>
+  );
+}
+
+/** The double frame of the screens before a Lobby, under the wordmark */
+function Frame({ children }: { children: ReactNode }) {
+  return (
+    <div className="frame">
+      <header className="wordmark">
+        <p>{fr.kicker}</p>
         <h1>{fr.appName}</h1>
-        <p>{fr.tagline}</p>
       </header>
-      <button className="primary" onClick={create} disabled={creating}>
-        {creating ? fr.home.creating : fr.home.create}
-      </button>
-      {failed && <p className="error">{fr.home.createFailed}</p>}
-      <form className="stack" onSubmit={goTo}>
-        <label htmlFor="code">{fr.home.joinWithCode}</label>
-        <div className="row">
-          <input
-            id="code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder={fr.home.codePlaceholder}
-            autoCapitalize="characters"
-            autoComplete="off"
-            maxLength={8}
-          />
-          <button type="submit" disabled={!code.trim()}>
-            {fr.home.go}
-          </button>
-        </div>
-      </form>
-    </>
+      {children}
+    </div>
+  );
+}
+
+/** The Seer and the Villager fanned behind the Werewolf */
+function CardFan() {
+  return (
+    <div className="card-fan" aria-hidden="true">
+      <img className="card-art" src={cardImageUrl("seer")} alt="" />
+      <img className="card-art" src={cardImageUrl("villager")} alt="" />
+      <img className="card-art" src={cardImageUrl("werewolf")} alt="" />
+    </div>
+  );
+}
+
+function Alert({ children }: { children: ReactNode }) {
+  return (
+    <p className="banner alert" role="alert">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7.5v5.5" />
+        <circle cx="12" cy="16.5" r="1" fill="currentColor" />
+      </svg>
+      <span>{children}</span>
+    </p>
   );
 }
 
@@ -112,10 +150,15 @@ function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
 
   if (lobby.status === "notFound") {
     return (
-      <>
-        <p className="error">{fr.join.lobbyNotFound}</p>
-        <button onClick={onExit}>{fr.join.backHome}</button>
-      </>
+      <Frame>
+        <CardFan />
+        <div className="frame-actions">
+          <Alert>{fr.join.lobbyNotFound}</Alert>
+          <button className="primary" onClick={onExit}>
+            {fr.join.backHome}
+          </button>
+        </div>
+      </Frame>
     );
   }
 
@@ -192,23 +235,26 @@ function JoinForm(props: {
   };
 
   return (
-    <form className="stack" onSubmit={submit}>
-      <h1>{fr.join.title(props.code)}</h1>
-      <label htmlFor="name">{fr.join.nameLabel}</label>
-      <input
-        id="name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder={fr.join.namePlaceholder}
-        autoComplete="given-name"
-        maxLength={20}
-        autoFocus
-      />
-      <button className="primary" type="submit" disabled={!name.trim() || props.connecting}>
-        {props.connecting ? fr.join.connecting : fr.join.submit}
-      </button>
-      {props.error && <p className="error">{props.error}</p>}
-    </form>
+    <Frame>
+      <CardFan />
+      <h2 className="frame-title">{fr.join.title(props.code)}</h2>
+      <form className="stack frame-actions" onSubmit={submit}>
+        <label htmlFor="name">{fr.join.nameLabel}</label>
+        <input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={fr.join.namePlaceholder}
+          autoComplete="given-name"
+          maxLength={20}
+          autoFocus
+        />
+        <button className="primary" type="submit" disabled={!name.trim() || props.connecting} aria-busy={props.connecting}>
+          {props.connecting ? fr.join.connecting : fr.join.submit}
+        </button>
+        {props.error && <Alert>{props.error}</Alert>}
+      </form>
+    </Frame>
   );
 }
 

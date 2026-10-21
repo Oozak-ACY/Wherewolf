@@ -161,22 +161,147 @@ form > label {
   color: var(--muted);
 }
 
-.hero {
-  text-align: center;
-  padding: 32px 0 8px;
-}
-
-.hero h1 {
-  font-size: 64px;
-}
-
-.hero p {
-  font-style: italic;
-}
-
-.hero p,
 .muted {
   color: var(--muted);
+}
+
+/* The double frame before a Lobby: a gold border, an ink outline 4px outside it */
+.screen:has(> .frame) {
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
+}
+
+.frame {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 28px 22px 22px;
+  border: 2px solid var(--ww-gold);
+  outline: 1px solid var(--ww-ink);
+  outline-offset: 4px;
+  margin: 5px;
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.wordmark p {
+  margin: 0;
+  font-family: var(--ww-font-display);
+  font-size: 12px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wordmark h1 {
+  font-size: 64px;
+  line-height: 1;
+}
+
+/* The Seer at -11deg and the Villager at +11deg behind the Werewolf */
+.card-fan {
+  position: relative;
+  flex: none;
+  width: min(300px, 100%);
+  aspect-ratio: 300 / 270;
+}
+
+.card-fan .card-art {
+  position: absolute;
+  top: 12.6%;
+  width: 40%;
+  box-shadow: 0 8px 18px rgba(43, 29, 18, 0.35);
+}
+
+.card-fan .card-art:nth-child(1) {
+  left: 2%;
+  transform: rotate(-11deg);
+}
+
+.card-fan .card-art:nth-child(2) {
+  right: 2%;
+  transform: rotate(11deg);
+}
+
+.card-fan .card-art:nth-child(3) {
+  top: 0;
+  left: 26.67%;
+  width: 46.67%;
+  border-radius: 9px;
+  box-shadow: var(--ww-shadow-card-raised);
+}
+
+.tagline {
+  margin: 0;
+  max-width: 290px;
+  text-align: center;
+  font-size: 19px;
+  font-style: italic;
+  line-height: 1.35;
+  color: var(--ww-ink-soft);
+}
+
+.frame-title {
+  font-size: 22px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--title);
+}
+
+/* The frame's actions sit at the bottom, within thumb reach */
+.frame-actions {
+  width: 100%;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.frame-actions label {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: none;
+  color: var(--ww-ink-soft);
+}
+
+.divider {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--ww-font-display);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--ww-gold);
+}
+
+.code-row {
+  display: flex;
+  gap: 10px;
+}
+
+.code-row input {
+  flex: 1;
+  font-size: 18px;
+}
+
+.code-row button {
+  min-height: 52px;
 }
 
 .stack {
