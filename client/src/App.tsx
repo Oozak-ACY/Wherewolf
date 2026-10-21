@@ -1,13 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { ConnectionLost, Paused } from "./Banners";
 import { GamePanel } from "./GamePanel";
 import { joinLink, lobbyCodeFromPath } from "./joinLink";
-import { MixerControl } from "./MixerControl";
 import type { MomentId } from "./generated/MomentId";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
 import type { Settings } from "./generated/Settings";
 import { speaksAloud, unlockSpeech } from "./narrator";
+import { NarratorBar } from "./NarratorBar";
+import { narratorBar } from "./narratorBar";
 import { PlayerGrid } from "./PlayerGrid";
 import { QrCodeView } from "./QrCodeView";
 import { cardTurnsFaceUp, RoleCardView } from "./RoleCardView";
@@ -281,7 +283,8 @@ function Lobby(props: {
   ) : (
     <div className="lobby">
       <section className="stack">
-        {props.reconnecting && <p className="banner">{fr.join.connectionLost}</p>}
+        {props.reconnecting && <ConnectionLost />}
+        {view.paused && <Paused host={view.players.find((p) => p.id === view.host)?.name ?? "?"} />}
         {props.rejection && <p className="error">{fr.rejection[props.rejection]}</p>}
         <h2>{fr.lobby.players(view.players.length)}</h2>
         <PlayerGrid view={view} />
@@ -297,30 +300,26 @@ function Lobby(props: {
           />
         )}
         {view.moment ? (
-          <>
-            <GamePanel
-              view={view}
-              moment={view.moment}
-              endsAt={props.endsAt}
-              onConfirmRole={props.onConfirmRole}
-              onEndDebate={props.onEndDebate}
-              onChooseLovers={props.onChooseLovers}
-              onConfirmPartner={props.onConfirmPartner}
-              onRob={props.onRob}
-              onInspect={props.onInspect}
-              onPickVictim={props.onPickVictim}
-              onHeal={props.onHeal}
-              onPass={props.onPass}
-              onPoison={props.onPoison}
-              onVote={props.onVote}
-              onShoot={props.onShoot}
-              onElect={props.onElect}
-              onBreakTie={props.onBreakTie}
-              onNameSuccessor={props.onNameSuccessor}
-              onPlayAgain={props.onPlayAgain}
-            />
-            {view.role && <button onClick={() => setCardOpen(true)}>{fr.game.myCard}</button>}
-          </>
+          <GamePanel
+            view={view}
+            moment={view.moment}
+            onConfirmRole={props.onConfirmRole}
+            onEndDebate={props.onEndDebate}
+            onChooseLovers={props.onChooseLovers}
+            onConfirmPartner={props.onConfirmPartner}
+            onRob={props.onRob}
+            onInspect={props.onInspect}
+            onPickVictim={props.onPickVictim}
+            onHeal={props.onHeal}
+            onPass={props.onPass}
+            onPoison={props.onPoison}
+            onVote={props.onVote}
+            onShoot={props.onShoot}
+            onElect={props.onElect}
+            onBreakTie={props.onBreakTie}
+            onNameSuccessor={props.onNameSuccessor}
+            onPlayAgain={props.onPlayAgain}
+          />
         ) : (
           <SettingsPanel view={view} onChange={props.onSettingsChange} onStart={props.onStart} />
         )}
@@ -345,12 +344,13 @@ function Lobby(props: {
     </div>
   );
 
+  // First, so the mixer stays open from one screen to the next.
+  const bar = narratorBar(view);
   return (
     <>
-      {/* The Table device's faders, on the Host's phone during the Game only:
-          the one thing that sets their screen apart at Night. First, so the
-          panel stays open from one screen to the next. */}
-      {speaksAloud(view) && view.moment !== null && <MixerControl />}
+      {bar && (
+        <NarratorBar bar={bar} endsAt={props.endsAt} paused={view.paused} onOpenCard={() => setCardOpen(true)} />
+      )}
       {content}
     </>
   );

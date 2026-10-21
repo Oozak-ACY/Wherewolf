@@ -1,18 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Ballot } from "./generated/Ballot";
 import type { Moment } from "./generated/Moment";
 import type { Pick } from "./generated/Pick";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
-import { narratorText } from "./narratorScript";
 import { partnerOf } from "./RoleCardView";
 import { fr } from "./strings";
 
 type Props = {
   view: PlayerView;
   moment: Moment;
-  endsAt: number | null;
   onConfirmRole: () => void;
   onEndDebate: () => void;
   onChooseLovers: (lovers: PlayerId[]) => void;
@@ -32,7 +30,7 @@ type Props = {
 };
 
 /**
- * The Game as this Player may see it: the Narrator's line, then what they can
+ * The Game as this Player may see it, under the Narrator bar: what they can
  * do. At Night, only the acting Role and the Spectators get here; every other
  * phone shows the sleeping screen instead.
  */
@@ -45,11 +43,6 @@ export function GamePanel(props: Props) {
 
   return (
     <section className="card stack game">
-      <p className="narrator" aria-live="polite">
-        {narratorText(view)}
-      </p>
-      {view.paused && <p className="banner">{fr.game.paused(name(view.host))}</p>}
-      {props.endsAt !== null && <Countdown endsAt={props.endsAt} paused={view.paused} />}
       {view.spectating && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}
       {/* A Spectator knows the Lovers from the moment Cupid names them, and
           everyone does on the victory screen. */}
@@ -409,23 +402,5 @@ function ChoiceList(props: {
         );
       })}
     </ul>
-  );
-}
-
-/** Time left until `endsAt`, as m:ss. Still while the Game is Paused. */
-function Countdown({ endsAt, paused }: { endsAt: number; paused: boolean }) {
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    setNow(Date.now());
-    if (paused) return;
-    const tick = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(tick);
-  }, [endsAt, paused]);
-  const seconds = Math.max(0, Math.ceil((endsAt - now) / 1000));
-  const text = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-  return (
-    <p className="countdown" role="timer">
-      {text}
-    </p>
   );
 }

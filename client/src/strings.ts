@@ -59,6 +59,12 @@ export const fr = {
     leave: "Quitter le salon",
   },
 
+  narratorBar: {
+    day: "Jour",
+    night: "Nuit",
+    narrator: "Le Narrateur",
+  },
+
   mixer: {
     open: "Volumes",
     title: "Volumes de la table",
@@ -104,7 +110,7 @@ export const fr = {
   },
 
   game: {
-    myCard: "Voir ma carte",
+    myCard: "Ma carte",
     confirmRole: "J'ai vu mon rôle",
     stillReading: (reading: number) =>
       reading === 1 ? "1 joueur lit encore son rôle." : `${reading} joueurs lisent encore leur rôle.`,
