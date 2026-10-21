@@ -651,47 +651,82 @@ input::placeholder {
   accent-color: var(--ww-oxblood);
 }
 
-/* The private Role card, over everything, on the reveal ground */
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: max(16px, env(safe-area-inset-top)) var(--ww-gutter) max(16px, env(safe-area-inset-bottom));
-  background: var(--ww-reveal);
-  color: var(--ww-reveal-text);
+/* The private Role card, a modal dialog filling the screen on the reveal ground */
+dialog.reveal {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: max(22px, env(safe-area-inset-top)) var(--ww-gutter) max(20px, env(safe-area-inset-bottom));
+  border: none;
+  background: var(--ground);
+  color: var(--text);
   overflow-y: auto;
+}
+
+dialog.reveal::backdrop {
+  background: var(--ww-reveal);
 }
 
 .role-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 14px;
   width: 100%;
-  max-width: 390px;
+  max-width: 440px;
+  min-height: 100%;
+  margin: 0 auto;
   text-align: center;
 }
 
-.role-card p,
-.role-card dl {
+.role-card p {
   margin: 0;
 }
 
-.role-card > .muted {
+.role-card .eyebrow {
   font-family: var(--ww-font-display);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.role-card > .eyebrow {
+  font-size: 13px;
   letter-spacing: 0.32em;
-  color: var(--ww-reveal-muted);
 }
 
 .role-card h1 {
-  font-size: 48px;
-  color: var(--ww-gold-glow);
+  margin: 0;
+  font-size: 46px;
+  line-height: 1;
+  color: var(--title);
 }
 
-.role-card .card-art {
-  margin: 0 auto;
+.role-card .camp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.camp-pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--ww-oxblood);
+  border: 1px solid var(--ww-gold-light);
+  font-family: var(--ww-font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ww-vellum);
+}
+
+.role-card .power {
+  max-width: 330px;
+  font-size: 18px;
+  line-height: 1.35;
+  color: #e8dcc0;
 }
 
 .card-art.placeholder {
@@ -704,30 +739,22 @@ input::placeholder {
   background: var(--ww-oxblood-dark);
 }
 
-.role-card dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 12px;
-  text-align: left;
-}
-
-.role-card dt {
-  color: var(--ww-reveal-muted);
-}
-
-.role-card dd {
-  margin: 0;
-}
-
-.role-card .fellows {
+.role-card .allies {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: 10px 14px;
-  border: 1px solid var(--ww-gold);
+  border: 1px solid var(--ww-ink-muted);
   border-radius: var(--ww-radius);
+  text-align: left;
+  font-size: 18px;
   font-weight: 600;
 }
 
-.role-card.camp-werewolves .fellows {
-  color: var(--danger);
+.role-card button.primary {
+  align-self: stretch;
+  margin-top: auto;
 }
 
 /* The Game: what this Player can do */

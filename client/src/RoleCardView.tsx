@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Role } from "./generated/Role";
@@ -30,9 +30,29 @@ export function cardTurnsFaceUp(before: Role | null, now: Role | null): boolean 
   return now !== null && now !== before;
 }
 
+/** A bordered box of the reveal naming this Player's allies. */
+export type Allies = { title: string; names: string };
+
+/** Who this Player knows is on their side: the other Werewolves, and their partner if they are a Lover. */
+export function allies(view: PlayerView): Allies[] {
+  const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? "?";
+  const boxes: Allies[] = [];
+  if (view.role?.role === "werewolf") {
+    const pack = view.role.fellowWerewolves.map(name);
+    boxes.push({
+      title: fr.roleCard.fellowWerewolves,
+      names: pack.length > 0 ? pack.join(", ") : fr.roleCard.loneWerewolf,
+    });
+  }
+  const partner = partnerOf(view);
+  if (partner !== undefined) boxes.push({ title: fr.roleCard.partner, names: name(partner) });
+  return boxes;
+}
+
 /**
- * A Player's own Role card, shown privately on their phone. During the Role
- * reveal, closing it the first time confirms the Player has seen their Role.
+ * A Player's own Role card, shown privately on their phone in a modal
+ * dialog. During the Role reveal, closing it the first time confirms the
+ * Player has seen their Role.
  */
 export function RoleCardView(props: {
   card: RoleCard;
@@ -41,47 +61,54 @@ export function RoleCardView(props: {
   onClose: () => void;
 }) {
   const { card, view } = props;
+  const dialog = useRef<HTMLDialogElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const confirming =
     view.moment?.type === "roleReveal" && !view.moment.confirmed && !view.spectating;
   const role = fr.roles[card.role];
-  const camp = fr.camps[card.camp];
-  const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? "?";
-  const fellows = card.fellowWerewolves.map(name);
-  const partner = partnerOf(view);
+
+  useEffect(() => {
+    dialog.current?.showModal();
+    button.current?.focus();
+  }, []);
 
   return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="role-name">
-      <article className={`role-card camp-${card.camp}`}>
-        <p className="muted">{fr.roleCard.you}</p>
-        <h1 id="role-name">{role.name}</h1>
+    <dialog
+      ref={dialog}
+      className="reveal"
+      data-ground="reveal"
+      aria-labelledby="role-name"
+      // The Role reveal ends only on the confirm button
+      onCancel={(e) => confirming && e.preventDefault()}
+      onClose={props.onClose}
+    >
+      <article className="role-card">
+        <p className="eyebrow">{fr.roleCard.you}</p>
         <RoleArt role={card.role} />
-        <p>{role.power}</p>
-        <dl>
-          <dt>{fr.roleCard.camp}</dt>
-          <dd>{camp.name}</dd>
-          <dt>{fr.roleCard.goal}</dt>
-          <dd>{camp.goal}</dd>
-        </dl>
-        {card.role === "werewolf" && (
-          <p className="fellows">
-            {fellows.length > 0
-              ? `${fr.roleCard.fellowWerewolves} : ${fellows.join(", ")}`
-              : fr.roleCard.loneWerewolf}
+        <h1 id="role-name">{role.name}</h1>
+        <p className="camp">
+          <span className="eyebrow">{fr.roleCard.camp}</span>
+          <span className="camp-pill">{fr.camps[card.camp].name}</span>
+        </p>
+        <p className="power">{role.power}</p>
+        {allies(view).map((box) => (
+          <p key={box.title} className="allies">
+            <span className="eyebrow">{box.title}</span>
+            <span>{box.names}</span>
           </p>
-        )}
-        {partner !== undefined && <p className="fellows">{fr.game.partner(name(partner))}</p>}
+        ))}
         <button
+          ref={button}
           className="primary"
           onClick={() => {
             if (confirming) props.onConfirm();
-            props.onClose();
+            dialog.current?.close();
           }}
-          autoFocus
         >
           {confirming ? fr.game.confirmRole : fr.roleCard.close}
         </button>
       </article>
-    </div>
+    </dialog>
   );
 }
 
