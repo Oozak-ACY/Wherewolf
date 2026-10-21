@@ -165,7 +165,7 @@ form > label {
   color: var(--muted);
 }
 
-/* The double frame before a Lobby: a gold border, an ink outline 4px outside it */
+/* The double frame before joining a Lobby with a gold border and an ink outline 4px outside it */
 .screen:has(> .frame) {
   padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
 }
@@ -204,7 +204,7 @@ form > label {
   line-height: 1;
 }
 
-/* The Seer at -11deg and the Villager at +11deg behind the Werewolf */
+/* The Seer and the Villager tilted 11deg either side behind the Werewolf */
 .card-fan {
   position: relative;
   flex: none;
@@ -254,7 +254,7 @@ form > label {
   color: var(--title);
 }
 
-/* The frame's actions sit at the bottom, within thumb reach */
+/* The frame actions sit at the bottom within thumb reach */
 .frame-actions {
   width: 100%;
   margin-top: auto;
@@ -338,6 +338,12 @@ button {
 button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* A busy button stays bright while it waits on the server */
+button[aria-busy="true"] {
+  opacity: 1;
+  cursor: progress;
 }
 
 button:focus-visible,

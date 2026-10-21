@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { ConnectionLost, Paused } from "./Banners";
+import { Alert, ConnectionLost, Paused } from "./Banners";
 import { GamePanel } from "./GamePanel";
 import { joinLink, lobbyCodeFromPath } from "./joinLink";
 import type { MomentId } from "./generated/MomentId";
@@ -78,7 +78,6 @@ function Home({ onOpenLobby }: { onOpenLobby: (code: string) => void }) {
 
   return (
     <Frame>
-      <CardFan />
       <p className="tagline">{fr.tagline}</p>
       <div className="frame-actions">
         <button className="primary" onClick={create} disabled={creating} aria-busy={creating}>
@@ -108,7 +107,7 @@ function Home({ onOpenLobby }: { onOpenLobby: (code: string) => void }) {
   );
 }
 
-/** The double frame of the screens before a Lobby, under the wordmark */
+/** The double frame of the screens before joining a Lobby, under the wordmark and the cards */
 function Frame({ children }: { children: ReactNode }) {
   return (
     <div className="frame">
@@ -116,6 +115,7 @@ function Frame({ children }: { children: ReactNode }) {
         <p>{fr.kicker}</p>
         <h1>{fr.appName}</h1>
       </header>
+      <CardFan />
       {children}
     </div>
   );
@@ -132,26 +132,12 @@ function CardFan() {
   );
 }
 
-function Alert({ children }: { children: ReactNode }) {
-  return (
-    <p className="banner alert" role="alert">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7.5v5.5" />
-        <circle cx="12" cy="16.5" r="1" fill="currentColor" />
-      </svg>
-      <span>{children}</span>
-    </p>
-  );
-}
-
 function LobbyScreen({ code, onExit }: { code: string; onExit: () => void }) {
   const lobby = useLobby(code);
 
   if (lobby.status === "notFound") {
     return (
       <Frame>
-        <CardFan />
         <div className="frame-actions">
           <Alert>{fr.join.lobbyNotFound}</Alert>
           <button className="primary" onClick={onExit}>
@@ -236,7 +222,6 @@ function JoinForm(props: {
 
   return (
     <Frame>
-      <CardFan />
       <h2 className="frame-title">{fr.join.title(props.code)}</h2>
       <form className="stack frame-actions" onSubmit={submit}>
         <label htmlFor="name">{fr.join.nameLabel}</label>

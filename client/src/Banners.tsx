@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { fr } from "./strings";
 
 /** This phone has lost the server and is trying again. */
@@ -22,6 +23,20 @@ export function Paused({ hostName }: { hostName: string }) {
         <rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" />
       </svg>
       <span>{fr.game.paused(hostName)}</span>
+    </p>
+  );
+}
+
+/** A failure the Player can act on, read out as soon as it shows */
+export function Alert({ children }: { children: ReactNode }) {
+  return (
+    <p className="banner alert" role="alert">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7.5v5.5" />
+        <circle cx="12" cy="16.5" r="1" fill="currentColor" />
+      </svg>
+      <span>{children}</span>
     </p>
   );
 }
