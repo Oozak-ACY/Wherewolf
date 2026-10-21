@@ -28,3 +28,40 @@ const THEME_COLORS: Record<Ground, string> = {
 export function themeColor(ground: Ground): string {
   return THEME_COLORS[ground];
 }
+
+/**
+ * How this Player's pick rows send their choice: `tap` sends on each tap and
+ * stays changeable, `confirm` only selects until a confirm step, for the
+ * irreversible choices. `null` when this Player has no choice to make.
+ */
+export type Picking = "tap" | "confirm";
+
+export function picking(view: PlayerView): Picking | null {
+  const { moment } = view;
+  if (!moment || view.announcing !== null || view.spectating) return null;
+  const alive = view.players.find((p) => p.id === view.you)?.alive ?? false;
+  const role = view.role?.role;
+  switch (moment.type) {
+    case "cupidsTurn":
+      return alive && role === "cupid" ? "confirm" : null;
+    case "thiefsTurn":
+      return alive && role === "thief" ? "confirm" : null;
+    case "seersTurn":
+      return alive && role === "seer" && !moment.inspection && !moment.passed ? "confirm" : null;
+    case "witchsTurn":
+      return alive && view.role?.potions?.poison && moment.witch && !moment.witch.passed ? "confirm" : null;
+    case "werewolvesTurn":
+      return alive && moment.picks ? "tap" : null;
+    case "election":
+    case "vote":
+      return alive ? "tap" : null;
+    case "tieBreak":
+      return alive && view.mayor === view.you ? "confirm" : null;
+    case "huntersShot":
+      return moment.hunter === view.you ? "confirm" : null;
+    case "succession":
+      return moment.mayor === view.you ? "confirm" : null;
+    default:
+      return null;
+  }
+}

@@ -4,7 +4,7 @@ import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Role } from "./generated/Role";
 import type { Settings } from "./generated/Settings";
-import { ground, themeColor } from "./ground";
+import { ground, picking, themeColor } from "./ground";
 
 const [ALICE, BOB, CHLOE] = [1, 2, 3];
 const players: PlayerSummary[] = ["Alice", "Bob", "Chloé", "David", "Emma"].map((name, i) => ({
@@ -129,4 +129,76 @@ describe("the theme color", () => {
     expect(themeColor("night")).toBe("#0A1220");
     expect(themeColor("reveal")).toBe("#1A1210");
   });
+});
+
+describe("the pick rows", () => {
+  const confirmed: [string, Role | null, Moment, Partial<PlayerView>][] = [
+    ["Cupid", "cupid", { type: "cupidsTurn" }, {}],
+    ["the Thief", "thief", { type: "thiefsTurn" }, {}],
+    ["the Seer", "seer", { type: "seersTurn", inspection: null, passed: false }, {}],
+    [
+      "the Witch's poison",
+      "witch",
+      { type: "witchsTurn", witch: { victim: BOB, healed: false, poisoned: null, passed: false } },
+      {},
+    ],
+    ["the Hunter", "hunter", { type: "huntersShot", hunter: CHLOE }, {}],
+    ["the Mayor's successor", "villager", { type: "succession", mayor: CHLOE }, { mayor: CHLOE }],
+    ["the Mayor's tie-break", "villager", { type: "tieBreak", ballots: [], tied: [ALICE, BOB] }, { mayor: CHLOE }],
+  ];
+
+  for (const [who, role, moment, changes] of confirmed) {
+    test(`wait for a confirm step for ${who}`, () => {
+      expect(picking(view(role, moment, changes))).toBe("confirm");
+    });
+  }
+
+  const tapped: [string, Moment][] = [
+    ["the Werewolves", { type: "werewolvesTurn", picks: [] }],
+    ["the Election", { type: "election", voted: [], yourBallot: null }],
+    ["the Vote", { type: "vote", voted: [], yourBallot: null }],
+  ];
+
+  for (const [who, moment] of tapped) {
+    test(`send on tap for ${who}`, () => {
+      expect(picking(view("werewolf", moment))).toBe("tap");
+    });
+  }
+
+  const none: [string, PlayerView][] = [
+    ["in the Lobby", view(null, null)],
+    ["in the debate", view("villager", { type: "discussion" })],
+    ["to a Spectator", view(null, { type: "vote", voted: [], yourBallot: null })],
+    ["to another Role in a Night Turn", view("villager", { type: "thiefsTurn" })],
+    ["to the Seer once she has seen", view("seer", { type: "seersTurn", inspection: { player: BOB, role: "witch" }, passed: false })],
+    ["to the Seer once she has passed", view("seer", { type: "seersTurn", inspection: null, passed: true })],
+    [
+      "to the Witch without her poison",
+      view(
+        "witch",
+        { type: "witchsTurn", witch: { victim: BOB, healed: false, poisoned: null, passed: false } },
+        { role: { role: "witch", camp: "village", fellowWerewolves: [], potions: { healing: true, poison: false } } },
+      ),
+    ],
+    [
+      "to the Witch once she has passed",
+      view("witch", { type: "witchsTurn", witch: { victim: BOB, healed: false, poisoned: null, passed: true } }),
+    ],
+    ["to anyone but the Hunter", view("villager", { type: "huntersShot", hunter: BOB })],
+    ["to anyone but the Mayor at a tie-break", view("villager", { type: "tieBreak", ballots: [], tied: [ALICE, BOB] }, { mayor: BOB })],
+    ["to anyone but the dying Mayor", view("villager", { type: "succession", mayor: BOB }, { mayor: BOB })],
+    ["while the Narrator announces the Moment", view("villager", { type: "vote", voted: [], yourBallot: null }, { announcing: 4 })],
+    [
+      "to a dead Player",
+      view("villager", { type: "vote", voted: [], yourBallot: null }, {
+        players: players.map((p) => (p.id === CHLOE ? { ...p, alive: false } : p)),
+      }),
+    ],
+  ];
+
+  for (const [when, seen] of none) {
+    test(`are not offered ${when}`, () => {
+      expect(picking(seen)).toBeNull();
+    });
+  }
 });
