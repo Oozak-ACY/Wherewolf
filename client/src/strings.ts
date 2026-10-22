@@ -48,6 +48,7 @@ export const fr = {
     copy: "Copier le lien",
     copied: "Lien copié !",
     share: "Partager le lien",
+    shareHint: "Envoie ce lien à tes amis :",
     shareTitle: "Rejoins ma partie de Loups-Garous",
     showQrCode: "Afficher le QR code",
     qrCodeLabel: "QR code pour rejoindre le salon",

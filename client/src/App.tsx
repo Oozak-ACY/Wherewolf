@@ -298,7 +298,7 @@ function Lobby(props: {
     <>
       {props.reconnecting && <ConnectionLost />}
       {paused !== null && <Paused hostName={paused} />}
-      {props.rejection && <p className="error">{fr.rejection[props.rejection]}</p>}
+      {props.rejection && <Alert>{fr.rejection[props.rejection]}</Alert>}
     </>
   );
   const card = view.role && cardOpen && (
@@ -320,6 +320,7 @@ function Lobby(props: {
     <>
       {card}
       <NightTurnView
+        key={view.moment.type}
         view={view}
         moment={view.moment}
         turn={turn}
@@ -339,6 +340,7 @@ function Lobby(props: {
     <>
       {card}
       <DayView
+        key={view.moment.type}
         view={view}
         moment={view.moment}
         banners={banners}
