@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Alert, ConnectionLost, Paused } from "./Banners";
-import { GamePanel } from "./GamePanel";
+import { DayView } from "./DayView";
 import { lobbyCodeFromPath } from "./joinLink";
 import { LobbyView } from "./LobbyView";
 import type { MomentId } from "./generated/MomentId";
@@ -13,7 +13,6 @@ import { NarratorBar } from "./NarratorBar";
 import { narratorBar } from "./narratorBar";
 import { nightTurn } from "./nightTurn";
 import { NightTurnView } from "./NightTurnView";
-import { PlayerGrid } from "./PlayerGrid";
 import { cardImageUrl, cardTurnsFaceUp, RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
@@ -337,33 +336,24 @@ function Lobby(props: {
       />
     </>
   ) : (
-    <div className="lobby">
-      <section className="stack">
-        {banners}
-        <h2>{fr.lobby.players(view.players.length)}</h2>
-        <PlayerGrid view={view} />
-      </section>
-
-      <aside className="stack">
-        {card}
-        <GamePanel
-          view={view}
-          moment={view.moment}
-          onConfirmRole={props.onConfirmRole}
-          onEndDebate={props.onEndDebate}
-          onPass={props.onPass}
-          onVote={props.onVote}
-          onShoot={props.onShoot}
-          onElect={props.onElect}
-          onBreakTie={props.onBreakTie}
-          onNameSuccessor={props.onNameSuccessor}
-          onPlayAgain={props.onPlayAgain}
-        />
-        <button className="quiet" onClick={props.onLeave}>
-          {fr.lobby.leave}
-        </button>
-      </aside>
-    </div>
+    <>
+      {card}
+      <DayView
+        view={view}
+        moment={view.moment}
+        banners={banners}
+        onConfirmRole={props.onConfirmRole}
+        onEndDebate={props.onEndDebate}
+        onPass={props.onPass}
+        onVote={props.onVote}
+        onShoot={props.onShoot}
+        onElect={props.onElect}
+        onBreakTie={props.onBreakTie}
+        onNameSuccessor={props.onNameSuccessor}
+        onPlayAgain={props.onPlayAgain}
+        onLeave={props.onLeave}
+      />
+    </>
   );
 
   const bar = narratorBar(view);

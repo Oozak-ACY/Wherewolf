@@ -50,38 +50,51 @@ export function Choice(props: {
   );
 }
 
-/** One full-width pick row per Player, with who picked them and how many, and `mark` once pressed. */
+/**
+ * One full-width pick row per Player, with who picked them and how many, and
+ * `mark` once pressed. Read only without `onTap`, for those watching a choice.
+ */
 export function PickRows(props: {
   players: PlayerSummary[];
-  pressed: (id: PlayerId) => boolean;
+  pressed?: (id: PlayerId) => boolean;
   detail?: (id: PlayerId) => string | null;
   count?: (id: PlayerId) => number;
   mark?: ReactNode;
-  onTap: (id: PlayerId) => void;
+  onTap?: (id: PlayerId) => void;
 }) {
   return (
     <ul className="choices">
       {props.players.map((p) => {
         const detail = props.detail?.(p.id);
         const count = props.count?.(p.id);
-        const pressed = props.pressed(p.id);
+        const pressed = props.pressed?.(p.id) ?? false;
+        const { onTap } = props;
+        const row = (
+          <>
+            <span className="avatar" aria-hidden="true">
+              {initial(p.name)}
+            </span>
+            <span className="pick-name">
+              <span>{p.name}</span>
+              {detail && <span className="muted">{detail}</span>}
+            </span>
+            {pressed && props.mark}
+            {count !== undefined && (
+              <span className="pick-count" data-zero={count === 0}>
+                {count}
+              </span>
+            )}
+          </>
+        );
         return (
           <li key={p.id}>
-            <button className="pick-row" aria-pressed={pressed} onClick={() => props.onTap(p.id)}>
-              <span className="avatar" aria-hidden="true">
-                {initial(p.name)}
-              </span>
-              <span className="pick-name">
-                <span>{p.name}</span>
-                {detail && <span className="muted">{detail}</span>}
-              </span>
-              {pressed && props.mark}
-              {count !== undefined && (
-                <span className="pick-count" data-zero={count === 0}>
-                  {count}
-                </span>
-              )}
-            </button>
+            {onTap ? (
+              <button className="pick-row" aria-pressed={pressed} onClick={() => onTap(p.id)}>
+                {row}
+              </button>
+            ) : (
+              <span className="pick-row">{row}</span>
+            )}
           </li>
         );
       })}

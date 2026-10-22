@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Choice, Footer, PickRows } from "./Choice";
-import { GameNotes } from "./GamePanel";
+import { GameNotes } from "./DayView";
 import type { Moment } from "./generated/Moment";
 import type { Pick } from "./generated/Pick";
 import type { PlayerId } from "./generated/PlayerId";
