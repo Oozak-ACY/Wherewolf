@@ -172,8 +172,6 @@ export const fr = {
     abstainedBy: (names: string) => `Abstention : ${names}`,
     shotTitle: "Le dernier tir",
     successionTitle: "Le nouveau Maire",
-    ballot: (voter: string, designated: string | null) =>
-      designated ? `${voter} → ${designated}` : `${voter} : abstention`,
     spectating:
       "Tu es spectateur : tu vois toute la partie, chaque rôle et chaque tour de nuit. Reste silencieux à la table, et tu ne peux plus agir ni voter.",
     shootPick: "Tu es mort : choisis le joueur que tu emportes avec toi.",

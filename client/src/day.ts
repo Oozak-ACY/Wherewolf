@@ -46,6 +46,7 @@ export function mayorNote(view: PlayerView): string | null {
   return view.mayor === view.you ? fr.game.mayorTieYou : fr.game.mayorTie(nameOf(view, view.mayor));
 }
 
-function nameOf(view: PlayerView, id: PlayerId): string {
+/** The name of Player `id`. */
+export function nameOf(view: PlayerView, id: PlayerId): string {
   return view.players.find((p) => p.id === id)?.name ?? "?";
 }

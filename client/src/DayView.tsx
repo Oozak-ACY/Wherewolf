@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 import { Choice, Footer, PickRows } from "./Choice";
-import { abstainers, listTag, mayorNote, nameList, votersFor, yourVote } from "./day";
+import { abstainers, listTag, mayorNote, nameList, nameOf, votersFor, yourVote } from "./day";
 import type { Ballot } from "./generated/Ballot";
 import type { Moment } from "./generated/Moment";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
 import { picking } from "./ground";
-import { initial } from "./lobby";
+import { initial, isHost } from "./lobby";
 import { cardImageUrl, partnerOf } from "./RoleCardView";
 import { fr } from "./strings";
 
@@ -34,7 +34,7 @@ type Props = {
  */
 export function DayView(props: Props) {
   const { view, moment } = props;
-  const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? "?";
+  const name = (id: PlayerId) => nameOf(view, id);
   const living = view.players.filter((p) => p.alive);
   const mode = picking(view);
   const players = <PlayerList view={view} />;
@@ -197,7 +197,7 @@ export function DayView(props: Props) {
         <>
           {head(fr.game.everyRole)}
           {players}
-          {view.you === view.host ? (
+          {isHost(view) ? (
             <Footer>
               <button className="primary" onClick={props.onPlayAgain}>
                 {fr.game.playAgain}
@@ -288,7 +288,7 @@ function PlayerRow({ view, player }: { view: PlayerView; player: PlayerSummary }
       </span>
       {player.id === view.mayor && (
         <span className="badge">
-          <img className="card-art" src={cardImageUrl("mayor")} alt="" />
+          <MayorCard />
           {fr.lobby.mayor}
         </span>
       )}
@@ -303,15 +303,19 @@ function MayorNote({ view }: { view: PlayerView }) {
   if (!note) return null;
   return (
     <p className="mayor-note">
-      <img className="card-art" src={cardImageUrl("mayor")} alt="" />
+      <MayorCard />
       <span>{note}</span>
     </p>
   );
 }
 
+function MayorCard() {
+  return <img className="card-art" src={cardImageUrl("mayor")} alt="" />;
+}
+
 /** What a Player knows beyond their own Role: that they are a Spectator, the Lovers, the Theft. */
 export function GameNotes({ view, moment }: { view: PlayerView; moment: Moment }) {
-  const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? "?";
+  const name = (id: PlayerId) => nameOf(view, id);
   const partner = partnerOf(view);
   return (
     <>

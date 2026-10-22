@@ -15,6 +15,7 @@
   --ww-gold: #b88a2e;
   --ww-gold-light: #d9b45a;
   --ww-gold-glow: #f0d58a;
+  --ww-gold-dark: #8a6a2a;
 
   --ww-night: #101a2c;
   --ww-night-deep: #0a1220;
@@ -1288,7 +1289,7 @@ button.chosen {
   box-shadow: 0 0 12px rgb(240 213 138 / 0.35);
 }
 
-/* The screen's main actions, stuck to the bottom within thumb reach and after whatever follows them */
+/* The screen's main actions, stuck to the bottom within thumb reach */
 .footer {
   position: sticky;
   bottom: 0;
@@ -1461,7 +1462,7 @@ button.chosen {
   color: var(--text);
 }
 
-/* A Night Turn with the card and title of who acts over its pick rows and footer, and the Day after the same pattern */
+/* A Night Turn or the Day over its rows and footer */
 .night-turn,
 .day {
   flex: 1;
@@ -1592,7 +1593,7 @@ button.chosen {
   gap: 10px;
   margin-top: 6px;
   padding: 10px 14px;
-  border: 1px dashed #8a6a2a;
+  border: 1px dashed var(--ww-gold-dark);
   border-radius: var(--ww-radius);
   font-size: 16px;
   line-height: 1.3;
