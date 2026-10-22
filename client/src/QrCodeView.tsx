@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { qrCode } from "./qrCode";
 import { fr } from "./strings";
 
-/** The join link as a QR code on a parchment sheet over the Host's screen; one tap anywhere closes it. */
+/** The join link as a QR code on a parchment sheet over the Host's screen that one tap anywhere closes */
 export function QrCodeView(props: { link: string; code: string; onClose: () => void }) {
   const { link, code, onClose } = props;
   const qr = useMemo(() => qrCode(link), [link]);

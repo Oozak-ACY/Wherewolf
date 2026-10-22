@@ -4,7 +4,7 @@ import type { CardArt } from "./RoleCardView";
 import { isNightTurn, sleepingScreen, waitingScreen } from "./sleepingScreen";
 import { fr } from "./strings";
 
-/** What tops every Night Turn's screen: the card of who acts and its title. */
+/** What tops every Night Turn's screen with the card of who acts and its title */
 export type NightTurn = { card: CardArt; title: string };
 
 const TURNS: Partial<Record<Moment["type"], NightTurn>> = {
@@ -17,8 +17,8 @@ const TURNS: Partial<Record<Moment["type"], NightTurn>> = {
 };
 
 /**
- * The Night Turn this phone shows awake, to the acting Player or a
- * Spectator. `null` outside the Night, and on a sleeping or waiting phone.
+ * The Night Turn this phone shows awake to the acting Player or a Spectator
+ * `null` outside the Night and on a sleeping or waiting phone
  */
 export function nightTurn(view: PlayerView): NightTurn | null {
   const { moment } = view;

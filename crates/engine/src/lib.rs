@@ -452,8 +452,9 @@ pub struct PlayerView {
     /// the Table device has said its lines. Until then nothing runs in it,
     /// nobody acts in it, and the phones wait for the Narrator.
     pub announcing: Option<MomentId>,
-    /// Which Night it is, or was last: the Day that follows a Night shares
-    /// its number. 0 in the Lobby and during the Role reveal.
+    /// Which Night it is or was last and the Day that follows a Night shares
+    /// its number
+    /// 0 in the Lobby and during the Role reveal
     pub night: u32,
 }
 

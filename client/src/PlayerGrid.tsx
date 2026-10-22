@@ -22,10 +22,10 @@ export function PlayerGrid({ view }: { view: PlayerView }) {
   );
 }
 
-/** How a tile looks for who the Player is now: offline, eliminated. */
+/** How a tile looks for who the Player is now such as Disconnected or eliminated */
 export function tileClasses(player: PlayerSummary): string[] {
   const classes = ["tile"];
-  if (!player.connected) classes.push("offline");
+  if (!player.connected) classes.push("disconnected");
   if (!player.alive) classes.push("dead");
   return classes;
 }
@@ -47,7 +47,7 @@ export function TileLabel({ view, player }: { view: PlayerView; player: PlayerSu
       )}
       {player.revealedRole && <span className="badge role">{fr.roles[player.revealedRole].name}</span>}
       {!player.alive && !player.revealedRole && <span className="muted">{fr.game.spectator}</span>}
-      {!player.connected && <span className="muted">{fr.lobby.offline}</span>}
+      {!player.connected && <span className="muted">{fr.lobby.disconnected}</span>}
     </div>
   );
 }

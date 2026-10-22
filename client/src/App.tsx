@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Alert, ConnectionLost, Paused } from "./Banners";
+import { Alert, Disconnected, Paused } from "./Banners";
 import { DayView } from "./DayView";
 import { lobbyCodeFromPath } from "./joinLink";
 import { LobbyView } from "./LobbyView";
@@ -107,7 +107,7 @@ function Home({ onOpenLobby }: { onOpenLobby: (code: string) => void }) {
   );
 }
 
-/** The double frame of the screens before joining a Lobby, under the wordmark and the cards */
+/** The double frame of the screens before joining a Lobby under the wordmark and the cards */
 function Frame({ children }: { children: ReactNode }) {
   return (
     <div className="frame">
@@ -296,7 +296,7 @@ function Lobby(props: {
   const turn = nightTurn(view);
   const banners = (
     <>
-      {props.reconnecting && <ConnectionLost />}
+      {props.reconnecting && <Disconnected />}
       {paused !== null && <Paused hostName={paused} />}
       {props.rejection && <Alert>{fr.rejection[props.rejection]}</Alert>}
     </>
@@ -361,7 +361,7 @@ function Lobby(props: {
   const bar = narratorBar(view);
   return (
     <>
-      {/* First, so the mixer stays open from one screen to the next. */}
+      {/* First so the mixer stays open from one screen to the next */}
       {bar && (
         <NarratorBar bar={bar} endsAt={props.endsAt} paused={view.paused} onOpenCard={() => setCardOpen(true)} />
       )}

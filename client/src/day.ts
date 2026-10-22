@@ -5,19 +5,19 @@ import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
 import { fr } from "./strings";
 
-/** Who the Player is to the Game, under their name in the Day's Player list. */
+/** Who the Player is to the Game under their name in the Day's Player list */
 export function listTag(view: PlayerView, player: PlayerSummary): string {
   const parts: string[] = [];
   if (player.id === view.host) parts.push(fr.lobby.host);
   if (player.id === view.you) parts.push(fr.lobby.you);
   if (player.revealedRole) parts.push(fr.roles[player.revealedRole].name);
   if (!player.alive) parts.push(fr.game.spectator);
-  if (!player.connected) parts.push(fr.lobby.offline);
+  if (!player.connected) parts.push(fr.lobby.disconnected);
   return parts.join(" · ");
 }
 
-/** Who the Player was in the Game, under their name at its end. */
-export function endTag(view: PlayerView, player: PlayerSummary): string {
+/** Who the Player was in the Game under their name on the victory screen */
+export function victoryTag(view: PlayerView, player: PlayerSummary): string {
   const parts: string[] = [];
   if (player.id === view.you) parts.push(fr.lobby.you);
   if (player.revealedRole) parts.push(fr.roles[player.revealedRole].name);
@@ -25,29 +25,29 @@ export function endTag(view: PlayerView, player: PlayerSummary): string {
   return parts.join(" · ");
 }
 
-/** The title of the end of the Game, and the winning Camp's pill. No pill for a draw. */
+/** The title of the victory screen and the winning Camp's pill with no pill for a draw */
 export function outcome(winner: Camp | null): { title: string; pill: string | null } {
   if (winner === null) return { title: fr.game.draw, pill: null };
   return { title: fr.game.wins[winner], pill: fr.camps[winner].name };
 }
 
-/** Who voted for `designated`, in the order they voted. */
+/** Who voted for `designated` in the order they voted */
 export function votersFor(ballots: Ballot[], designated: PlayerId): PlayerId[] {
   return ballots.filter((b) => b.designated === designated).map((b) => b.voter);
 }
 
-/** Who abstained. */
+/** Who abstained */
 export function abstainers(ballots: Ballot[]): PlayerId[] {
   return ballots.filter((b) => b.designated === null).map((b) => b.voter);
 }
 
-/** The names of `ids`, this Player's own marked as theirs. `null` for nobody. */
+/** The names of `ids` with this Player's own marked as theirs and `null` for nobody */
 export function nameList(view: PlayerView, ids: PlayerId[]): string | null {
   if (ids.length === 0) return null;
   return ids.map((id) => (id === view.you ? `${nameOf(view, id)} (${fr.lobby.you})` : nameOf(view, id))).join(", ");
 }
 
-/** This Player's own vote in the Election or the Vote so far. `null` before they vote. */
+/** This Player's own vote in the Election or the Vote so far and `null` before they vote */
 export function yourVote(view: PlayerView): string | null {
   const { moment } = view;
   if (moment?.type !== "election" && moment?.type !== "vote") return null;
@@ -57,13 +57,13 @@ export function yourVote(view: PlayerView): string | null {
   return fr.game.yourVote(nameOf(view, ballot.designated));
 }
 
-/** How a tied Vote is settled, with the Mayor named. `null` without a Mayor. */
+/** How a tied Vote is settled with the Mayor named and `null` without a Mayor */
 export function mayorNote(view: PlayerView): string | null {
   if (view.mayor === null) return null;
   return view.mayor === view.you ? fr.game.mayorTieYou : fr.game.mayorTie(nameOf(view, view.mayor));
 }
 
-/** The name of Player `id`. */
+/** The name of Player `id` */
 export function nameOf(view: PlayerView, id: PlayerId): string {
   return view.players.find((p) => p.id === id)?.name ?? "?";
 }

@@ -4,21 +4,21 @@ import { narratorText, type Phase } from "./narratorScript";
 import { isNightTurn, sleepingScreen, waitingScreen } from "./sleepingScreen";
 import { fr } from "./strings";
 
-/** What the Narrator bar atop every in-Game screen shows. */
+/** What the Narrator bar atop every in-Game screen shows */
 export type NarratorBar = {
-  /** The Night during its Turns, the Day for everything else, the Role reveal included. */
+  /** The Night during its Turns and the Day for everything else including the Role reveal */
   phase: Phase;
-  /** The Phase and its number, "Jour 2" following the second Night. */
+  /** The Phase and its number with Jour 2 following the second Night */
   label: string;
-  /** The Narrator's current line, the same on every phone. */
+  /** The Narrator's current line the same on every phone */
   line: string;
-  /** Whether the bar opens the Player's card: never on a phone that hides it. */
+  /** Whether the bar opens the Player's card and never on a phone that hides it */
   card: boolean;
-  /** Whether the bar opens the mixer: on the Table device only. */
+  /** Whether the bar opens the mixer on the Table device only */
   mixer: boolean;
 };
 
-/** The Narrator bar of this phone's screen. `null` in the Lobby. */
+/** The Narrator bar of this phone's screen and `null` in the Lobby */
 export function narratorBar(view: PlayerView): NarratorBar | null {
   if (!view.moment) return null;
   const phase = isNightTurn(view.moment) ? "night" : "day";

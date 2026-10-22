@@ -89,7 +89,8 @@ paused: boolean,
  */
 announcing: MomentId | null, 
 /**
- * Which Night it is, or was last: the Day that follows a Night shares
- * its number. 0 in the Lobby and during the Role reveal.
+ * Which Night it is or was last and the Day that follows a Night shares
+ * its number
+ * 0 in the Lobby and during the Role reveal
  */
 night: number, };

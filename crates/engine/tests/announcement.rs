@@ -320,7 +320,7 @@ fn the_victory_is_announced_too() {
 }
 
 impl Table {
-    /// Lets the Game run, announcing and timing out each Moment, until `reached`.
+    /// Lets the Game run announcing and timing out each Moment until `reached`
     fn run_until(&mut self, reached: impl Fn(&Moment) -> bool) {
         for _ in 0..100 {
             if reached(self.moment()) {
@@ -332,10 +332,10 @@ impl Table {
                 self.time_runs_out();
             }
         }
-        panic!("never reached, stuck at {:?}", self.moment());
+        panic!("never reached and stuck at {:?}", self.moment());
     }
 
-    /// Which Night it is, as every phone is told.
+    /// Which Night it is as every phone is told
     fn night(&self) -> u32 {
         let night = self.view("P1").night;
         for name in NAMES {

@@ -16,7 +16,7 @@ import {
   TIMER_MIN_SECONDS,
 } from "./strings";
 
-/** The most of each Role a Game may hold, when there is a limit. */
+/** The most of each Role a Game may hold when there is a limit */
 const MAX_COUNTS: Partial<Record<Role, number>> = { witch: MAX_WITCHES, cupid: MAX_CUPIDS, thief: MAX_THIEVES };
 const TIMERS = Object.keys(fr.settings.timer) as (keyof Timers)[];
 
@@ -25,7 +25,7 @@ type Props = {
   onChange: (settings: Settings) => void;
 };
 
-/** The Roles in play as a sideways row of cards; only the Host gets the steppers. */
+/** The Roles in play as a sideways row of cards with steppers for the Host only */
 export function RoleCards({ view, onChange }: Props) {
   const { settings } = view;
   const total = roleTotal(settings.roles);
@@ -82,7 +82,7 @@ export function RoleCards({ view, onChange }: Props) {
   );
 }
 
-/** The timers, Hidden Roles and the Grace period, folded under one row; editable by the Host only. */
+/** The timers and Hidden Roles and the Grace period folded under one row and editable by the Host only */
 export function MoreSettings({ view, onChange }: Props) {
   const editable = isHost(view);
   const { settings } = view;
@@ -140,7 +140,7 @@ export function MoreSettings({ view, onChange }: Props) {
   );
 }
 
-/** The Host's start button and why it is blocked, or the waiting line for everyone else. */
+/** The Host's start button and why it is blocked or the waiting line for everyone else */
 export function StartFooter({ view, onStart }: { view: PlayerView; onStart: () => void }) {
   if (!isHost(view)) {
     return (
@@ -163,7 +163,7 @@ export function StartFooter({ view, onStart }: { view: PlayerView; onStart: () =
   );
 }
 
-/** A timer in seconds, typed by the Host and read by everyone else. */
+/** A timer in seconds typed by the Host and read by everyone else */
 function TimerValue(props: { id: string; editable: boolean; seconds: number; onCommit: (seconds: number) => void }) {
   if (props.editable) return <TimerInput id={props.id} seconds={props.seconds} onCommit={props.onCommit} />;
   return (
@@ -173,14 +173,14 @@ function TimerValue(props: { id: string; editable: boolean; seconds: number; onC
   );
 }
 
-/** A number of seconds, sent once the Host is done typing it. */
+/** A number of seconds sent once the Host is done typing it */
 function TimerInput(props: { id: string; seconds: number; onCommit: (seconds: number) => void }) {
   const [draft, setDraft] = useState(String(props.seconds));
   useEffect(() => setDraft(String(props.seconds)), [props.seconds]);
 
   const commit = () => {
     const seconds = Math.round(Number(draft));
-    // An empty or out-of-bounds value would be refused and left on screen: undo it.
+    // An empty or out-of-bounds value would be refused and left on screen so undo it
     const valid = draft.trim() !== "" && seconds >= TIMER_MIN_SECONDS && seconds <= TIMER_MAX_SECONDS;
     if (valid && seconds !== props.seconds) props.onCommit(seconds);
     else setDraft(String(props.seconds));

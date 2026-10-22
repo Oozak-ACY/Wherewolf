@@ -30,10 +30,10 @@ export function cardTurnsFaceUp(before: Role | null, now: Role | null): boolean 
   return now !== null && now !== before;
 }
 
-/** One box of allies on the reveal, untitled for a lone Werewolf */
+/** One box of allies on the reveal untitled for a lone Werewolf */
 export type AlliesBox = { title: string | null; names: string };
 
-/** Who this Player knows is on their side, the other Werewolves then their partner */
+/** Who this Player knows is on their side with the other Werewolves then their partner */
 export function allies(card: RoleCard, view: PlayerView): AlliesBox[] {
   const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? "?";
   const boxes: AlliesBox[] = [];
@@ -51,9 +51,9 @@ export function allies(card: RoleCard, view: PlayerView): AlliesBox[] {
 }
 
 /**
- * A Player's own Role card, shown privately on their phone in a modal
- * dialog. During the Role reveal, closing it the first time confirms the
- * Player has seen their Role.
+ * A Player's own Role card shown privately on their phone in a modal dialog
+ * During the Role reveal closing it the first time confirms the Player has
+ * seen their Role
  */
 export function RoleCardView(props: {
   card: RoleCard;
@@ -78,7 +78,7 @@ export function RoleCardView(props: {
       ref={dialog}
       className="reveal"
       aria-labelledby="role-name"
-      // The Role reveal ends only on the confirm button, even when Escape cannot be prevented
+      // The Role reveal ends only on the confirm button even when Escape cannot be prevented
       onCancel={(e) => confirming && e.preventDefault()}
       onClose={() => (confirming && dialog.current?.isConnected ? dialog.current.showModal() : props.onClose())}
     >

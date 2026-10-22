@@ -39,7 +39,7 @@ export const fr = {
     submit: "Rejoindre",
     connecting: "Connexion…",
     lobbyNotFound: "Ce salon n'existe pas (ou plus). Vérifie le code.",
-    connectionLost: "Connexion perdue. Nouvelle tentative…",
+    disconnected: "Connexion perdue. Nouvelle tentative…",
     backHome: "Retour à l'accueil",
   },
 
@@ -59,7 +59,7 @@ export const fr = {
     ready: "prêt",
     host: "Hôte",
     mayor: "Maire",
-    offline: "déconnecté",
+    disconnected: "déconnecté",
     leave: "Quitter le salon",
   },
 
@@ -185,10 +185,11 @@ export const fr = {
     successorPick: "Tu es mort : désigne le nouveau Maire.",
     mayorNaming: (mayor: string) => `${mayor} désigne son successeur…`,
     hunterAiming: (hunter: string) => `${hunter}, le Chasseur, vise…`,
-    // The confirm step of each irreversible choice, naming the chosen Player
+    // The confirm step of each irreversible choice naming the chosen Player
     confirm: {
       rob: (name: string) => `Voler ${name}`,
       inspect: (name: string) => `Inspecter ${name}`,
+      heal: (name: string) => `Sauver ${name}`,
       poison: (name: string) => `Empoisonner ${name}`,
       breakTie: (name: string) => `Éliminer ${name}`,
       shoot: (name: string) => `Tirer sur ${name}`,

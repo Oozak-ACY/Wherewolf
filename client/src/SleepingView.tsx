@@ -1,21 +1,21 @@
-import { ConnectionLost, Paused } from "./Banners";
+import { Disconnected, Paused } from "./Banners";
 import { CardBack } from "./PlayerGrid";
 import type { SleepingScreen } from "./sleepingScreen";
 import { fr } from "./strings";
 
 /**
- * A sleeping phone at Night, under the Narrator bar: silent, and the same
- * for every Role. It shows nothing but the screen and this phone's own
- * connection, in the layout of an acting phone with a card back for the
- * Role. Outside the Night (`night` off), the same screen waits for the
- * Narrator on parchment, without the card or the call to sleep.
+ * A sleeping phone at Night under the Narrator bar silent and the same for
+ * every Role
+ * It shows nothing but the screen and this phone's own connection in the
+ * layout of an acting phone with a card back for the Role
+ * Outside the Night with `night` off the same screen waits for the Narrator
+ * on parchment without the card or the call to sleep
  */
 export function SleepingView(props: { screen: SleepingScreen; night: boolean; reconnecting: boolean }) {
   const { screen } = props;
   return (
-    // No aria-live: a screen reader would speak the line out loud at the table.
     <section className="sleeping">
-      {props.reconnecting && <ConnectionLost />}
+      {props.reconnecting && <Disconnected />}
       {screen.pausedBy !== null && <Paused hostName={screen.pausedBy} />}
       {props.night ? (
         <header className="turn-head">
@@ -27,7 +27,7 @@ export function SleepingView(props: { screen: SleepingScreen; night: boolean; re
         </header>
       ) : (
         <div className="sleeping-body">
-          <p className="narrator">{screen.line}</p>
+          <p className="narrator" aria-live="polite">{screen.line}</p>
         </div>
       )}
     </section>

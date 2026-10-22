@@ -2,14 +2,16 @@ import type { PlayerView } from "./generated/PlayerView";
 import { isNightTurn, sleepingScreen, waitingScreen } from "./sleepingScreen";
 
 /**
- * The background a screen sits on, one per mood: parchment for public
- * screens and the Day, night for the Night, reveal for the private Role card.
+ * The background a screen sits on with one per mood
+ * Parchment for public screens and the Day and night for the Night and
+ * reveal for the private Role card
  */
 export type Ground = "parchment" | "night" | "reveal";
 
 /**
- * The ground of the screen this phone shows, `cardOpen` being whether the
- * Player has their Role card open. A sleeping or waiting phone hides the card.
+ * The ground of the screen this phone shows with `cardOpen` telling whether
+ * the Player has their Role card open
+ * A sleeping or waiting phone hides the card
  */
 export function ground(view: PlayerView, cardOpen: boolean): Ground {
   if (sleepingScreen(view)) return "night";
@@ -24,18 +26,18 @@ const THEME_COLORS: Record<Ground, string> = {
   reveal: "#1A1210",
 };
 
-/** The browser's `theme-color` on this ground. */
+/** The browser's `theme-color` on this ground */
 export function themeColor(ground: Ground): string {
   return THEME_COLORS[ground];
 }
 
-/** How pick rows send a choice: on each tap, or once a confirm step follows the selection. */
+/** How pick rows send a choice either on each tap or once a confirm step follows the selection */
 export type Picking = "tap" | "confirm";
 
 /**
- * How this Player's pick rows send their choice: a confirm step for the
- * irreversible choices, a tap for those that stay changeable. `null` when
- * this Player has no choice to make.
+ * How this Player's pick rows send their choice with a confirm step for the
+ * irreversible choices and a tap for those that stay changeable
+ * `null` when this Player has no Player to pick
  */
 export function picking(view: PlayerView): Picking | null {
   const { moment } = view;

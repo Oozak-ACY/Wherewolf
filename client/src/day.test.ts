@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { abstainers, endTag, listTag, mayorNote, nameList, outcome, votersFor, yourVote } from "./day";
+import { abstainers, victoryTag, listTag, mayorNote, nameList, outcome, votersFor, yourVote } from "./day";
 import type { Ballot } from "./generated/Ballot";
 import type { Moment } from "./generated/Moment";
 import type { PlayerSummary } from "./generated/PlayerSummary";
@@ -14,7 +14,7 @@ const players: PlayerSummary[] = ["Alice", "Bob", "Chloé", "David"].map((name, 
   revealedRole: null,
 }));
 
-/** The view of Chloé by Day, at `moment`. */
+/** The view of Chloé by Day at `moment` */
 function view(moment: Moment, changes: Partial<PlayerView> = {}): PlayerView {
   return { you: CHLOE, host: ALICE, players, moment, mayor: null, ...changes } as PlayerView;
 }
@@ -136,14 +136,14 @@ describe("the tag under a name at the end of the Game", () => {
   const victory: Moment = { type: "victory", winner: "village" };
 
   test("gives the Role of a Player still alive", () => {
-    expect(endTag(view(victory), { ...players[1]!, revealedRole: "seer" })).toBe("Voyante · en vie");
+    expect(victoryTag(view(victory), { ...players[1]!, revealedRole: "seer" })).toBe("Voyante · en vie");
   });
 
   test("gives the Role of a dead Player", () => {
-    expect(endTag(view(victory), { ...players[1]!, alive: false, revealedRole: "werewolf" })).toBe("Loup-Garou · mort");
+    expect(victoryTag(view(victory), { ...players[1]!, alive: false, revealedRole: "werewolf" })).toBe("Loup-Garou · mort");
   });
 
   test("names the Player themselves", () => {
-    expect(endTag(view(victory), { ...players[2]!, revealedRole: "villager" })).toBe("toi · Villageois · en vie");
+    expect(victoryTag(view(victory), { ...players[2]!, revealedRole: "villager" })).toBe("toi · Villageois · en vie");
   });
 });

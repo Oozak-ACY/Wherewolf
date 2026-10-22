@@ -21,7 +21,7 @@ const settings = {
   hiddenRoles: false,
 } as unknown as Settings;
 
-/** The view of `you`, holding `role`, at `moment`. */
+/** The view of `you` holding `role` at `moment` */
 function view(role: Role | null, moment: Moment | null, changes: Partial<PlayerView> = {}): PlayerView {
   return {
     code: "ABCD",
