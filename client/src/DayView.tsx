@@ -23,7 +23,6 @@ type Props = {
   onBreakTie: (player: PlayerId) => void;
   onNameSuccessor: (player: PlayerId) => void;
   onPlayAgain: () => void;
-  onLeave: () => void;
 };
 
 /**
@@ -235,9 +234,6 @@ export function DayView(props: Props) {
       {props.banners}
       {content}
       <GameNotes view={view} moment={moment} />
-      <button className="quiet" onClick={props.onLeave}>
-        {fr.lobby.leave}
-      </button>
     </section>
   );
 }

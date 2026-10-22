@@ -1,15 +1,21 @@
 import { useEffect, useState } from "react";
-import { MixerSheet } from "./MixerSheet";
+import { OptionsSheet } from "./OptionsSheet";
 import type { NarratorBar as Bar } from "./narratorBar";
 import { fr } from "./strings";
 
 /**
  * Atop every in-Game screen the Phase and the Narrator's line and the time
- * left with the Player's card and the mixer on the Table device
+ * left with the Player's card and the options menu
  */
-export function NarratorBar(props: { bar: Bar; endsAt: number | null; paused: boolean; onOpenCard: () => void }) {
+export function NarratorBar(props: {
+  bar: Bar;
+  endsAt: number | null;
+  paused: boolean;
+  onOpenCard: () => void;
+  onLeave: () => void;
+}) {
   const { bar } = props;
-  const [mixerOpen, setMixerOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   return (
     <header className="narrator-bar" data-phase={bar.phase}>
       {bar.phase === "night" ? <MoonIcon /> : <SunIcon />}
@@ -23,12 +29,12 @@ export function NarratorBar(props: { bar: Bar; endsAt: number | null; paused: bo
           <CardBackIcon />
         </button>
       )}
-      {bar.mixer && (
-        <button className="icon" onClick={() => setMixerOpen(true)} aria-label={fr.mixer.open}>
-          <VolumeIcon />
-        </button>
+      <button className="icon" onClick={() => setOptionsOpen(true)} aria-label={fr.options.open}>
+        <OptionsIcon />
+      </button>
+      {optionsOpen && (
+        <OptionsSheet mixer={bar.mixer} onLeave={props.onLeave} onClose={() => setOptionsOpen(false)} />
       )}
-      {mixerOpen && <MixerSheet onClose={() => setMixerOpen(false)} />}
     </header>
   );
 }
@@ -79,11 +85,12 @@ function CardBackIcon() {
   );
 }
 
-function VolumeIcon() {
+function OptionsIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" strokeLinejoin="round" />
-      <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+      <circle cx="12" cy="5" r="2.25" />
+      <circle cx="12" cy="12" r="2.25" />
+      <circle cx="12" cy="19" r="2.25" />
     </svg>
   );
 }

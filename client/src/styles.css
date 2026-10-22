@@ -1397,7 +1397,7 @@ button.chosen {
   color: var(--ww-gold-glow);
 }
 
-/* The Host's mixer as a parchment sheet rising from the bottom */
+/* The options menu as a parchment sheet rising from the bottom */
 .sheet {
   width: 100%;
   max-width: 480px;
@@ -1424,6 +1424,28 @@ button.chosen {
 
 .sheet h2 {
   color: var(--title);
+}
+
+.sheet p {
+  margin: 0;
+}
+
+.sheet-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ww-gold-light);
+}
+
+.sheet h3 {
+  margin: 0;
+  font-family: var(--ww-font-display);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .sheet .fader {

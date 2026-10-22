@@ -14,7 +14,7 @@ export type NarratorBar = {
   line: string;
   /** Whether the bar opens the Player's card and never on a phone that hides it */
   card: boolean;
-  /** Whether the bar opens the mixer on the Table device only */
+  /** Whether the options menu holds the mixer on the Table device only */
   mixer: boolean;
 };
 

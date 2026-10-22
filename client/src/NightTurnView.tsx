@@ -25,7 +25,6 @@ type Props = {
   onHeal: () => void;
   onPass: () => void;
   onPoison: (player: PlayerId) => void;
-  onLeave: () => void;
 };
 
 /**
@@ -190,9 +189,6 @@ export function NightTurnView(props: Props) {
       {/* Only a Spectator has notes at Night and they have no footer */}
       <GameNotes view={view} moment={moment} />
       {view.spectating && <PlayerList view={view} />}
-      <button className="quiet" onClick={props.onLeave}>
-        {fr.lobby.leave}
-      </button>
     </section>
   );
 }

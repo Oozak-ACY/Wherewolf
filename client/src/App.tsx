@@ -340,7 +340,6 @@ function Lobby(props: {
         onHeal={props.onHeal}
         onPass={props.onPass}
         onPoison={props.onPoison}
-        onLeave={props.onLeave}
       />
     </>
   ) : (
@@ -359,7 +358,6 @@ function Lobby(props: {
         onBreakTie={props.onBreakTie}
         onNameSuccessor={props.onNameSuccessor}
         onPlayAgain={props.onPlayAgain}
-        onLeave={props.onLeave}
       />
     </>
   );
@@ -367,9 +365,15 @@ function Lobby(props: {
   const bar = narratorBar(view);
   return (
     <>
-      {/* First so the mixer stays open from one screen to the next */}
+      {/* First so the options menu stays open from one screen to the next */}
       {bar && (
-        <NarratorBar bar={bar} endsAt={props.endsAt} paused={view.paused} onOpenCard={() => setCardFace("up")} />
+        <NarratorBar
+          bar={bar}
+          endsAt={props.endsAt}
+          paused={view.paused}
+          onOpenCard={() => setCardFace("up")}
+          onLeave={props.onLeave}
+        />
       )}
       {content}
     </>

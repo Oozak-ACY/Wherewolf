@@ -136,7 +136,7 @@ describe("the Narrator bar", () => {
     expect(narratorBar(view(null, vote))?.card).toBe(false);
   });
 
-  test("opens the mixer on the Table device only", () => {
+  test("holds the mixer in the options menu on the Table device only", () => {
     expect(narratorBar(view("villager", vote, { you: ALICE }))?.mixer).toBe(true);
     expect(narratorBar(view("villager", seersTurn, { you: ALICE }))?.mixer).toBe(true);
     expect(narratorBar(view("villager", vote))?.mixer).toBe(false);

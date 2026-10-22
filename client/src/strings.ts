@@ -68,14 +68,22 @@ export const fr = {
       night > 0 ? `${phase === "night" ? "Nuit" : "Jour"} ${night} · Le Narrateur` : "Le Narrateur",
   },
 
+  options: {
+    open: "Options",
+    title: "Options",
+    close: "Fermer",
+    leaveTitle: "Quitter la partie ?",
+    leaveHint: "Ta place et ton rôle te sont gardés : rouvre le lien sur ce téléphone pour revenir.",
+    leaveConfirm: "Quitter",
+    leaveCancel: "Annuler",
+  },
+
   mixer: {
-    open: "Volumes",
     title: "Volumes de la table",
     narrator: "Narrateur",
     ambiance: "Musique et ambiance",
     effects: "Effets sonores",
     test: "Son de test",
-    close: "Fermer",
   },
 
   settings: {
