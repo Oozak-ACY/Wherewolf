@@ -113,6 +113,7 @@ export const fr = {
 
   game: {
     myCard: "Ma carte",
+    revealRole: "Révéler mon rôle",
     confirmRole: "J'ai vu mon rôle",
     stillReading: (reading: number) =>
       reading === 1 ? "1 joueur lit encore son rôle." : `${reading} joueurs lisent encore leur rôle.`,

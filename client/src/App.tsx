@@ -13,7 +13,7 @@ import { NarratorBar } from "./NarratorBar";
 import { narratorBar } from "./narratorBar";
 import { nightTurn } from "./nightTurn";
 import { NightTurnView } from "./NightTurnView";
-import { cardImageUrl, cardTurnsFaceUp, RoleCardView } from "./RoleCardView";
+import { cardImageUrl, cardOpensByItself, type Face, RoleCardView } from "./RoleCardView";
 import { rememberedName } from "./seat";
 import { createLobby } from "./server";
 import { ground } from "./ground";
@@ -274,19 +274,19 @@ function Lobby(props: {
   const { view } = props;
   const held = view.role?.role ?? null;
   const started = held !== null;
-  // The card turns face up by itself when the Roles are dealt, and when the Theft changes it.
-  const [cardOpen, setCardOpen] = useState(started);
+  // The card opens by itself face down when the Roles are dealt, and when the Theft changes it.
+  const [cardFace, setCardFace] = useState<Face | null>(started ? "down" : null);
   const [shownRole, setShownRole] = useState(held);
   if (held !== shownRole) {
     setShownRole(held);
-    if (cardTurnsFaceUp(shownRole, held)) setCardOpen(true);
+    if (cardOpensByItself(shownRole, held)) setCardFace("down");
   }
 
   // Silent while this phone has lost the server: for the Table device, the
   // Game is Paused, and it repeats the current line once it is back.
   useNarrator(view, view.code, speaksAloud(view) && !props.reconnecting, props.seatings, props.onAnnounced);
   useWakeLock(view.moment !== null);
-  useGround(ground(view, cardOpen));
+  useGround(ground(view, cardFace !== null));
 
   // Asleep at Night, a phone shows only what every sleeping phone shows.
   // While the Narrator announces the coming Moment, every phone waits for the Narrator.
@@ -301,8 +301,15 @@ function Lobby(props: {
       {props.rejection && <Alert>{fr.rejection[props.rejection]}</Alert>}
     </>
   );
-  const card = view.role && cardOpen && (
-    <RoleCardView card={view.role} view={view} onConfirm={props.onConfirmRole} onClose={() => setCardOpen(false)} />
+  const card = view.role && cardFace && (
+    <RoleCardView
+      card={view.role}
+      view={view}
+      face={cardFace}
+      onReveal={() => setCardFace("up")}
+      onConfirm={props.onConfirmRole}
+      onClose={() => setCardFace(null)}
+    />
   );
   const content = asleep ? (
     <SleepingView screen={asleep} night reconnecting={props.reconnecting} />
@@ -344,7 +351,6 @@ function Lobby(props: {
         view={view}
         moment={view.moment}
         banners={banners}
-        onConfirmRole={props.onConfirmRole}
         onEndDebate={props.onEndDebate}
         onPass={props.onPass}
         onVote={props.onVote}
@@ -363,7 +369,7 @@ function Lobby(props: {
     <>
       {/* First so the mixer stays open from one screen to the next */}
       {bar && (
-        <NarratorBar bar={bar} endsAt={props.endsAt} paused={view.paused} onOpenCard={() => setCardOpen(true)} />
+        <NarratorBar bar={bar} endsAt={props.endsAt} paused={view.paused} onOpenCard={() => setCardFace("up")} />
       )}
       {content}
     </>

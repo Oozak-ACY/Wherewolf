@@ -1,26 +1,115 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
+import type { Moment } from "./generated/Moment";
 import type { PlayerView } from "./generated/PlayerView";
 import type { Role } from "./generated/Role";
 import type { RoleCard } from "./generated/RoleCard";
-import { allies, cardTurnsFaceUp, cardImageUrl } from "./RoleCardView";
+import { allies, cardAction, cardImageUrl, cardOpensByItself, type Face, RoleCardView } from "./RoleCardView";
 import { fr } from "./strings";
 
-describe("the Role card turning face up by itself", () => {
+describe("the Role card opening by itself", () => {
   test("when the Roles are dealt", () => {
-    expect(cardTurnsFaceUp(null, "seer")).toBe(true);
+    expect(cardOpensByItself(null, "seer")).toBe(true);
   });
 
   test("not while the card stays the same", () => {
-    expect(cardTurnsFaceUp("seer", "seer")).toBe(false);
+    expect(cardOpensByItself("seer", "seer")).toBe(false);
   });
 
   test("after the Theft, for the Thief holding the robbed Role and for the robbed Player holding a Villager card", () => {
-    expect(cardTurnsFaceUp("thief", "seer")).toBe(true);
-    expect(cardTurnsFaceUp("seer", "villager")).toBe(true);
+    expect(cardOpensByItself("thief", "seer")).toBe(true);
+    expect(cardOpensByItself("seer", "villager")).toBe(true);
   });
 
   test("not back in the Lobby", () => {
-    expect(cardTurnsFaceUp("seer", null)).toBe(false);
+    expect(cardOpensByItself("seer", null)).toBe(false);
+  });
+});
+
+describe("the Role card face down then face up", () => {
+  const werewolf: RoleCard = { role: "werewolf", camp: "werewolves", fellowWerewolves: [2], potions: null };
+  const players = ["Alice", "Bob", "Chloé"].map((name, i) => ({
+    id: i + 1,
+    name,
+    connected: true,
+    alive: true,
+    revealedRole: null,
+  }));
+  const roleReveal = (confirmed: boolean) =>
+    ({ type: "roleReveal", confirmed, stillReading: 3 }) as unknown as Moment;
+  const theft = { type: "thief" } as unknown as Moment;
+
+  function view(moment: Moment, extra: Partial<PlayerView> = {}): PlayerView {
+    return { you: 1, players, role: werewolf, lovers: [3, 1], moment, spectating: false, ...extra } as PlayerView;
+  }
+
+  function render(face: Face, v: PlayerView): string {
+    return renderToStaticMarkup(
+      createElement(RoleCardView, {
+        card: werewolf,
+        view: v,
+        face,
+        onReveal: () => {},
+        onConfirm: () => {},
+        onClose: () => {},
+      }),
+    ).replaceAll("&#x27;", "'");
+  }
+
+  test("face down when the Roles are dealt, shows nothing of the Role and only reveals it", () => {
+    const v = view(roleReveal(false));
+    const html = render("down", v);
+    for (const text of [
+      fr.roles.werewolf.name,
+      fr.roles.werewolf.power,
+      fr.camps.werewolves.name,
+      fr.camps.werewolves.goal,
+      fr.roleCard.fellowWerewolves,
+      "Bob",
+      fr.roleCard.partner,
+      "Chloé",
+      "/roles/werewolf.webp",
+    ]) {
+      expect(html).not.toContain(text);
+    }
+    expect(html).toContain(fr.game.revealRole);
+    expect(html).not.toContain(fr.game.confirmRole);
+    expect(cardAction("down", v)).toBe("reveal");
+  });
+
+  test("face up during the Role reveal, shows the whole card and confirms the Role", () => {
+    const v = view(roleReveal(false));
+    const html = render("up", v);
+    for (const text of [fr.roles.werewolf.name, fr.roles.werewolf.power, fr.camps.werewolves.name, "Bob", "Chloé"]) {
+      expect(html).toContain(text);
+    }
+    expect(html).toContain(fr.game.confirmRole);
+    expect(html).not.toContain(fr.game.revealRole);
+    expect(cardAction("up", v)).toBe("confirm");
+  });
+
+  test("after the Theft, opens face down then only closes once revealed", () => {
+    const v = view(theft);
+    expect(cardAction("down", v)).toBe("reveal");
+    expect(cardAction("up", v)).toBe("close");
+    expect(render("up", v)).toContain(fr.roleCard.close);
+  });
+
+  test("reopened from Ma carte, shows the whole card straight away", () => {
+    const html = render("up", view(theft));
+    expect(html).toContain(fr.roles.werewolf.name);
+    expect(html).not.toContain(fr.game.revealRole);
+  });
+
+  test("closes once this Player has confirmed their Role", () => {
+    expect(cardAction("up", view(roleReveal(true)))).toBe("close");
+  });
+
+  test("never confirms for a Spectator", () => {
+    const v = view(roleReveal(false), { spectating: true });
+    expect(cardAction("up", v)).toBe("close");
+    expect(render("up", v)).not.toContain(fr.game.confirmRole);
   });
 });
 

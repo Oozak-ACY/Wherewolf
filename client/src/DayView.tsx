@@ -15,7 +15,6 @@ type Props = {
   view: PlayerView;
   moment: Moment;
   banners: ReactNode;
-  onConfirmRole: () => void;
   onEndDebate: () => void;
   onPass: () => void;
   onVote: (designated: PlayerId | null) => void;
@@ -48,16 +47,7 @@ export function DayView(props: Props) {
       content = (
         <>
           <p className="muted">{fr.game.stillReading(moment.stillReading)}</p>
-          {!view.spectating &&
-            (moment.confirmed ? (
-              <p className="muted">{fr.game.roleConfirmed}</p>
-            ) : (
-              <Footer>
-                <button className="primary" onClick={props.onConfirmRole}>
-                  {fr.game.confirmRole}
-                </button>
-              </Footer>
-            ))}
+          {!view.spectating && moment.confirmed && <p className="muted">{fr.game.roleConfirmed}</p>}
         </>
       );
       break;

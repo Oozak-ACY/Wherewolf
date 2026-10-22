@@ -1167,6 +1167,10 @@ dialog.reveal::backdrop {
   height: clamp(260px, calc(100dvh - 480px), 422px);
 }
 
+.role-card .card-back {
+  margin-block: auto;
+}
+
 .role-card .goal {
   display: flex;
   flex-direction: column;
