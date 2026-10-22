@@ -1609,7 +1609,7 @@ button.chosen {
   color: var(--title);
 }
 
-.victory-row .card-art {
+.victory-row > .card-art {
   flex: none;
   width: 36px;
   border-radius: 4px;

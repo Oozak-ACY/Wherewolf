@@ -189,6 +189,7 @@ export const fr = {
     confirm: {
       rob: (name: string) => `Voler ${name}`,
       inspect: (name: string) => `Inspecter ${name}`,
+      action: "Confirmer",
       heal: (name: string) => `Sauver ${name}`,
       poison: (name: string) => `Empoisonner ${name}`,
       breakTie: (name: string) => `Éliminer ${name}`,
