@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Choice, Footer, PickRows } from "./Choice";
-import { abstainers, listTag, mayorNote, nameList, nameOf, votersFor, yourVote } from "./day";
+import { abstainers, endTag, listTag, mayorNote, nameList, nameOf, outcome, votersFor, yourVote } from "./day";
 import type { Ballot } from "./generated/Ballot";
 import type { Moment } from "./generated/Moment";
 import type { PlayerId } from "./generated/PlayerId";
@@ -192,23 +192,38 @@ export function DayView(props: Props) {
       );
       break;
 
-    case "victory":
+    case "victory": {
+      const { title, camp } = outcome(moment.winner);
       content = (
         <>
-          {head(fr.game.everyRole)}
-          {players}
-          {isHost(view) ? (
-            <Footer>
+          <header className="day-head victory-head">
+            <h1>{title}</h1>
+            {camp && (
+              <p className="camp">
+                <span className="eyebrow">{fr.game.winningCamp}</span>
+                <span className="camp-pill">{camp}</span>
+              </p>
+            )}
+          </header>
+          <h2>{fr.game.everyRole}</h2>
+          <ul className="choices">
+            {view.players.map((p) => (
+              <EndRow key={p.id} view={view} player={p} />
+            ))}
+          </ul>
+          <Footer>
+            {isHost(view) ? (
               <button className="primary" onClick={props.onPlayAgain}>
                 {fr.game.playAgain}
               </button>
-            </Footer>
-          ) : (
-            <p className="muted">{fr.game.waitingForHostToPlayAgain}</p>
-          )}
+            ) : (
+              <p className="muted">{fr.game.waitingForHostToPlayAgain}</p>
+            )}
+          </Footer>
         </>
       );
       break;
+    }
 
     default:
       content = (
@@ -293,6 +308,25 @@ function PlayerRow({ view, player }: { view: PlayerView; player: PlayerSummary }
         </span>
       )}
       {player.revealedRole && <img className="card-art mini" src={cardImageUrl(player.revealedRole)} alt="" />}
+    </li>
+  );
+}
+
+/** A Player at the end of the Game: their Role card, name, Role and whether they survived. */
+function EndRow({ view, player }: { view: PlayerView; player: PlayerSummary }) {
+  return (
+    <li className="list-row end-row" data-dead={!player.alive}>
+      {player.revealedRole && <img className="card-art" src={cardImageUrl(player.revealedRole)} alt="" />}
+      <span className="pick-name">
+        <span>{player.name}</span>
+        <span className="muted">{endTag(view, player)}</span>
+      </span>
+      {player.id === view.mayor && (
+        <span className="badge">
+          <MayorCard />
+          {fr.lobby.mayor}
+        </span>
+      )}
     </li>
   );
 }

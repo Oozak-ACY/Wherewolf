@@ -1586,6 +1586,40 @@ button.chosen {
   box-shadow: 0 0 0 1px var(--ww-gold);
 }
 
+/* The end of the Game: the winning Camp, then every Player with their Role card */
+.victory-head {
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 4px;
+  text-align: center;
+}
+
+.victory-head .camp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.victory-head .eyebrow {
+  font-family: var(--ww-font-display);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day > h2 {
+  margin-top: 8px;
+  color: var(--title);
+}
+
+.end-row .card-art {
+  flex: none;
+  width: 36px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--ww-gold);
+}
+
 /* The tie-break explained beside the Mayor's card */
 .mayor-note {
   display: flex;

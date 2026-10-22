@@ -1,4 +1,5 @@
 import type { Ballot } from "./generated/Ballot";
+import type { Camp } from "./generated/Camp";
 import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { PlayerView } from "./generated/PlayerView";
@@ -12,6 +13,21 @@ export function listTag(view: PlayerView, player: PlayerSummary): string {
   if (!player.alive) parts.push(fr.game.spectator);
   if (!player.connected) parts.push(fr.lobby.offline);
   return parts.join(" · ");
+}
+
+/** Who the Player was in the Game, under their name at its end. */
+export function endTag(view: PlayerView, player: PlayerSummary): string {
+  const parts: string[] = [];
+  if (player.id === view.you) parts.push(fr.lobby.you);
+  if (player.revealedRole) parts.push(fr.roles[player.revealedRole].name);
+  parts.push(player.alive ? fr.game.alive : fr.game.dead);
+  return parts.join(" · ");
+}
+
+/** The title of the end of the Game, and the winning Camp's pill. No pill for a draw. */
+export function outcome(winner: Camp | null): { title: string; camp: string | null } {
+  if (winner === null) return { title: fr.game.draw, camp: null };
+  return { title: fr.game.wins[winner], camp: fr.camps[winner].name };
 }
 
 /** Who voted for `designated`, in the order they voted. */
