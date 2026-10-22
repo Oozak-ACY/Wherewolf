@@ -8,6 +8,7 @@ import { fr } from "./strings";
 /** Who the Player is to the Game, under their name in the Day's Player list. */
 export function listTag(view: PlayerView, player: PlayerSummary): string {
   const parts: string[] = [];
+  if (player.id === view.host) parts.push(fr.lobby.host);
   if (player.id === view.you) parts.push(fr.lobby.you);
   if (player.revealedRole) parts.push(fr.roles[player.revealedRole].name);
   if (!player.alive) parts.push(fr.game.spectator);

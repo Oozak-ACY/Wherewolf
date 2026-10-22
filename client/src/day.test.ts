@@ -36,6 +36,10 @@ describe("the tag under a name in the Day's Player list", () => {
     expect(listTag(view(discussion), players[2]!)).toBe("toi");
   });
 
+  test("names the Host, whose phone carries the Narrator", () => {
+    expect(listTag(view(discussion), players[0]!)).toBe("Hôte");
+  });
+
   test("names a Spectator with their revealed Role", () => {
     const dead = { ...players[1]!, alive: false, revealedRole: "seer" as const };
     expect(listTag(view(discussion), dead)).toBe("Voyante · spectateur");

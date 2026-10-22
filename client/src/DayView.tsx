@@ -280,7 +280,7 @@ function Abstentions({ view, ballots }: { view: PlayerView; ballots: Ballot[] })
 }
 
 /** Every Player, read only: the dead greyed, the Mayor badged and each Role this Player may see. */
-function PlayerList({ view }: { view: PlayerView }) {
+export function PlayerList({ view }: { view: PlayerView }) {
   return (
     <ul className="choices">
       {view.players.map((p) => (

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Choice, Footer, PickRows } from "./Choice";
-import { GameNotes } from "./DayView";
+import { GameNotes, PlayerList } from "./DayView";
 import type { Moment } from "./generated/Moment";
 import type { Pick } from "./generated/Pick";
 import type { PlayerId } from "./generated/PlayerId";
@@ -189,11 +189,10 @@ export function NightTurnView(props: Props) {
       {content}
       {/* Only a Spectator has notes at Night and they have no footer */}
       <GameNotes view={view} moment={moment} />
-      {view.spectating && (
-        <button className="quiet" onClick={props.onLeave}>
-          {fr.lobby.leave}
-        </button>
-      )}
+      {view.spectating && <PlayerList view={view} />}
+      <button className="quiet" onClick={props.onLeave}>
+        {fr.lobby.leave}
+      </button>
     </section>
   );
 }

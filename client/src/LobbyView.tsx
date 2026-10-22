@@ -96,6 +96,7 @@ export function LobbyView(props: {
         <MoreSettings view={view} onChange={props.onSettingsChange} />
 
         <section className="invite">
+          <p className="muted">{fr.lobby.shareHint}</p>
           <p className="link">{url}</p>
           <button className="quiet" onClick={copy}>
             {copied ? fr.lobby.copied : fr.lobby.copy}
