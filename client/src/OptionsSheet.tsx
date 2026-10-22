@@ -4,7 +4,7 @@ import { fr } from "./strings";
 import { playTableTest, setTableLevels, tableLevels } from "./tableAudio";
 
 /**
- * The options menu during the Game in a bottom sheet with leaving the salon
+ * The options menu during the Game in a bottom sheet with leaving the Game
  * for every Player after a confirmation and the mixer on the Table device
  */
 export function OptionsSheet(props: { mixer: boolean; onLeave: () => void; onClose: () => void }) {
