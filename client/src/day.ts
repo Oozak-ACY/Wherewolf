@@ -25,9 +25,9 @@ export function endTag(view: PlayerView, player: PlayerSummary): string {
 }
 
 /** The title of the end of the Game, and the winning Camp's pill. No pill for a draw. */
-export function outcome(winner: Camp | null): { title: string; camp: string | null } {
-  if (winner === null) return { title: fr.game.draw, camp: null };
-  return { title: fr.game.wins[winner], camp: fr.camps[winner].name };
+export function outcome(winner: Camp | null): { title: string; pill: string | null } {
+  if (winner === null) return { title: fr.game.draw, pill: null };
+  return { title: fr.game.wins[winner], pill: fr.camps[winner].name };
 }
 
 /** Who voted for `designated`, in the order they voted. */

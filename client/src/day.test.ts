@@ -118,13 +118,13 @@ describe("the note on how a tied Vote is settled", () => {
 
 describe("the outcome of the Game", () => {
   test("names the winning Camp with its pill", () => {
-    expect(outcome("village")).toEqual({ title: "Le Village triomphe", camp: "Village" });
-    expect(outcome("werewolves")).toEqual({ title: "Les Loups-Garous triomphent", camp: "Loups-Garous" });
-    expect(outcome("lovers")).toEqual({ title: "Les Amoureux triomphent", camp: "Amoureux" });
+    expect(outcome("village")).toEqual({ title: "Le Village triomphe", pill: "Village" });
+    expect(outcome("werewolves")).toEqual({ title: "Les Loups-Garous triomphent", pill: "Loups-Garous" });
+    expect(outcome("lovers")).toEqual({ title: "Les Amoureux triomphent", pill: "Amoureux" });
   });
 
   test("is a draw without a pill when nobody is left alive", () => {
-    expect(outcome(null)).toEqual({ title: "Personne n'a survécu", camp: null });
+    expect(outcome(null)).toEqual({ title: "Personne n'a survécu", pill: null });
   });
 });
 

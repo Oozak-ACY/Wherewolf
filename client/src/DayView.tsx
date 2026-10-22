@@ -193,19 +193,19 @@ export function DayView(props: Props) {
       break;
 
     case "victory": {
-      const { title, camp } = outcome(moment.winner);
+      const { title, pill } = outcome(moment.winner);
       content = (
         <>
           <header className="day-head victory-head">
             <h1>{title}</h1>
-            {camp && (
+            {pill && (
               <p className="camp">
                 <span className="eyebrow">{fr.game.winningCamp}</span>
-                <span className="camp-pill">{camp}</span>
+                <span className="camp-pill">{pill}</span>
               </p>
             )}
           </header>
-          <h2>{fr.game.everyRole}</h2>
+          <h2 className="victory-roles">{fr.game.everyRole}</h2>
           <ul className="choices">
             {view.players.map((p) => (
               <EndRow key={p.id} view={view} player={p} />
@@ -316,7 +316,13 @@ function PlayerRow({ view, player }: { view: PlayerView; player: PlayerSummary }
 function EndRow({ view, player }: { view: PlayerView; player: PlayerSummary }) {
   return (
     <li className="list-row end-row" data-dead={!player.alive}>
-      {player.revealedRole && <img className="card-art" src={cardImageUrl(player.revealedRole)} alt="" />}
+      {player.revealedRole ? (
+        <img className="card-art" src={cardImageUrl(player.revealedRole)} alt="" />
+      ) : (
+        <span className="avatar" aria-hidden="true">
+          {initial(player.name)}
+        </span>
+      )}
       <span className="pick-name">
         <span>{player.name}</span>
         <span className="muted">{endTag(view, player)}</span>

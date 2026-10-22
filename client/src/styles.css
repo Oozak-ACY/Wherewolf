@@ -1111,7 +1111,8 @@ dialog.reveal::backdrop {
   margin: 0;
 }
 
-.role-card .eyebrow {
+.role-card .eyebrow,
+.victory-head .eyebrow {
   font-family: var(--ww-font-display);
   font-size: 12px;
   letter-spacing: 0.18em;
@@ -1131,7 +1132,8 @@ dialog.reveal::backdrop {
   color: var(--title);
 }
 
-.role-card .camp {
+.role-card .camp,
+.victory-head .camp {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1594,21 +1596,7 @@ button.chosen {
   text-align: center;
 }
 
-.victory-head .camp {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.victory-head .eyebrow {
-  font-family: var(--ww-font-display);
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.day > h2 {
+.victory-roles {
   margin-top: 8px;
   color: var(--title);
 }
