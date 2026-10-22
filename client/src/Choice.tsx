@@ -3,6 +3,7 @@ import type { PlayerId } from "./generated/PlayerId";
 import type { PlayerSummary } from "./generated/PlayerSummary";
 import type { Picking } from "./ground";
 import { initial } from "./lobby";
+import { fr } from "./strings";
 
 /** A footer action besides the Players such as passing that is selected then confirmed like a Player */
 export type Action = { label: string; confirmLabel?: string; quiet?: boolean; onChoose: () => void };
@@ -41,7 +42,7 @@ export function Choice(props: {
     : picked
       ? { label: props.confirmLabel?.(picked.name) ?? picked.name, send: () => props.onChoose(picked.id) }
       : action
-        ? { label: action.confirmLabel ?? action.label, send: action.onChoose }
+        ? { label: action.confirmLabel ?? fr.game.confirm.action, send: action.onChoose }
         : null;
   return (
     <>
