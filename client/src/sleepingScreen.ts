@@ -28,7 +28,7 @@ const ACTING: Partial<Record<NonNullable<PlayerView["moment"]>["type"], (view: P
   witchsTurn: holds("witch"),
 };
 
-/** Whether `moment` is a Night Turn, in which some Players act while the others sleep. */
+/** Whether `moment` is a Night Turn in which some Players act while the others sleep */
 export function isNightTurn(moment: Moment): boolean {
   return moment.type in ACTING;
 }

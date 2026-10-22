@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Choice, Footer, PickRows } from "./Choice";
-import { abstainers, endTag, listTag, mayorNote, nameList, nameOf, outcome, votersFor, yourVote } from "./day";
+import { abstainers, victoryTag, listTag, mayorNote, nameList, nameOf, outcome, votersFor, yourVote } from "./day";
 import type { Ballot } from "./generated/Ballot";
 import type { Moment } from "./generated/Moment";
 import type { PlayerId } from "./generated/PlayerId";
@@ -28,9 +28,10 @@ type Props = {
 };
 
 /**
- * The Game by Day, under the Narrator bar, public to the whole table: the
- * title of what the village decides, how it stands, the pick rows or the
- * Player list and the footer. Night Turns have their own screen.
+ * The Game by Day under the Narrator bar and public to the whole table
+ * with the title of what the village decides and how it stands then the
+ * pick rows or the Player list and the footer
+ * Night Turns have their own screen
  */
 export function DayView(props: Props) {
   const { view, moment } = props;
@@ -128,11 +129,14 @@ export function DayView(props: Props) {
             ),
           )}
           {mode ? (
-            <Choice mode={mode} players={tied} {...tally} confirmLabel={fr.game.confirm.breakTie} onChoose={props.onBreakTie}>
-              <button className="quiet" onClick={props.onPass}>
-                {fr.game.tieBreakPass}
-              </button>
-            </Choice>
+            <Choice
+              mode={mode}
+              players={tied}
+              {...tally}
+              confirmLabel={fr.game.confirm.breakTie}
+              onChoose={props.onBreakTie}
+              actions={[{ label: fr.game.tieBreakPass, onChoose: props.onPass }]}
+            />
           ) : (
             <PickRows players={tied} {...tally} />
           )}
@@ -164,11 +168,13 @@ export function DayView(props: Props) {
             mode ? <p>{fr.game.shootPick}</p> : <p className="muted">{fr.game.hunterAiming(name(moment.hunter))}</p>,
           )}
           {mode ? (
-            <Choice mode={mode} players={living} confirmLabel={fr.game.confirm.shoot} onChoose={props.onShoot}>
-              <button className="quiet" onClick={props.onPass}>
-                {fr.game.shootPass}
-              </button>
-            </Choice>
+            <Choice
+              mode={mode}
+              players={living}
+              confirmLabel={fr.game.confirm.shoot}
+              onChoose={props.onShoot}
+              actions={[{ label: fr.game.shootPass, onChoose: props.onPass }]}
+            />
           ) : (
             players
           )}
@@ -208,7 +214,7 @@ export function DayView(props: Props) {
           <h2 className="victory-roles">{fr.game.everyRole}</h2>
           <ul className="choices">
             {view.players.map((p) => (
-              <EndRow key={p.id} view={view} player={p} />
+              <VictoryRow key={p.id} view={view} player={p} />
             ))}
           </ul>
           <Footer>
@@ -246,7 +252,7 @@ export function DayView(props: Props) {
   );
 }
 
-/** The title of what the village decides, with how it stands under it. */
+/** The title of what the village decides with how it stands under it */
 function head(title: string, below?: ReactNode) {
   return (
     <header className="day-head">
@@ -256,7 +262,7 @@ function head(title: string, below?: ReactNode) {
   );
 }
 
-/** This Player's own vote, next to how many have voted. */
+/** This Player's own vote next to how many have voted */
 function status(mine: string | null, count: string) {
   return (
     <div className="day-status">
@@ -266,7 +272,7 @@ function status(mine: string | null, count: string) {
   );
 }
 
-/** Who voted for each Player and how many, once the ballots are known. */
+/** Who voted for each Player and how many once the ballots are known */
 function tallyOf(view: PlayerView, ballots: Ballot[]) {
   return {
     detail: (id: PlayerId) => nameList(view, votersFor(ballots, id)),
@@ -279,7 +285,7 @@ function Abstentions({ view, ballots }: { view: PlayerView; ballots: Ballot[] })
   return names && <p className="muted">{fr.game.abstainedBy(names)}</p>;
 }
 
-/** Every Player, read only: the dead greyed, the Mayor badged and each Role this Player may see. */
+/** Every Player read only with the dead greyed and the Mayor badged and each Role this Player may see */
 export function PlayerList({ view }: { view: PlayerView }) {
   return (
     <ul className="choices">
@@ -312,10 +318,10 @@ function PlayerRow({ view, player }: { view: PlayerView; player: PlayerSummary }
   );
 }
 
-/** A Player at the end of the Game: their Role card, name, Role and whether they survived. */
-function EndRow({ view, player }: { view: PlayerView; player: PlayerSummary }) {
+/** A Player on the victory screen with their Role card and name and Role and whether they survived */
+function VictoryRow({ view, player }: { view: PlayerView; player: PlayerSummary }) {
   return (
-    <li className="list-row end-row" data-dead={!player.alive}>
+    <li className="list-row victory-row" data-dead={!player.alive}>
       {player.revealedRole ? (
         <img className="card-art" src={cardImageUrl(player.revealedRole)} alt="" />
       ) : (
@@ -325,7 +331,7 @@ function EndRow({ view, player }: { view: PlayerView; player: PlayerSummary }) {
       )}
       <span className="pick-name">
         <span>{player.name}</span>
-        <span className="muted">{endTag(view, player)}</span>
+        <span className="muted">{victoryTag(view, player)}</span>
       </span>
       {player.id === view.mayor && (
         <span className="badge">
@@ -337,7 +343,7 @@ function EndRow({ view, player }: { view: PlayerView; player: PlayerSummary }) {
   );
 }
 
-/** The dashed note with the Mayor's card on how a tied Vote is settled. */
+/** The dashed note with the Mayor's card on how a tied Vote is settled */
 function MayorNote({ view }: { view: PlayerView }) {
   const note = mayorNote(view);
   if (!note) return null;
@@ -353,19 +359,19 @@ function MayorCard() {
   return <img className="card-art" src={cardImageUrl("mayor")} alt="" />;
 }
 
-/** What a Player knows beyond their own Role: that they are a Spectator, the Lovers, the Theft. */
+/** What a Player knows beyond their own Role such as being a Spectator or the Lovers or the Theft */
 export function GameNotes({ view, moment }: { view: PlayerView; moment: Moment }) {
   const name = (id: PlayerId) => nameOf(view, id);
   const partner = partnerOf(view);
   return (
     <>
       {view.spectating && moment.type !== "victory" && <p className="muted">{fr.game.spectating}</p>}
-      {/* A Spectator knows the Lovers from the moment Cupid names them, and
-          everyone does on the victory screen. */}
+      {/* A Spectator knows the Lovers from the moment Cupid names them and
+          everyone does on the victory screen */}
       {(partner === undefined || moment.type === "victory") && view.lovers.length === 2 && (
         <p>{fr.game.lovers(name(view.lovers[0]!), name(view.lovers[1]!))}</p>
       )}
-      {/* Only a Spectator, or everyone on the victory screen, knows who the Thief robbed. */}
+      {/* Only a Spectator or everyone on the victory screen knows who the Thief robbed */}
       {view.theft && (
         <p>{fr.game.theft(name(view.theft.thief), view.theft.robbed === null ? null : name(view.theft.robbed))}</p>
       )}

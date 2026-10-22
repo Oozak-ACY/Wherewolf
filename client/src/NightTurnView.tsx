@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Choice, Footer, PickRows } from "./Choice";
+import { Choice, Footer, PickRows, type Action } from "./Choice";
 import { GameNotes, PlayerList } from "./DayView";
 import type { Moment } from "./generated/Moment";
 import type { Pick } from "./generated/Pick";
@@ -29,9 +29,10 @@ type Props = {
 };
 
 /**
- * A Night Turn as the acting Player or a Spectator sees it, under the
- * Narrator bar: the card and title of who acts, the prompt, the pick rows
- * and the footer. Every Turn shares this layout.
+ * A Night Turn as the acting Player or a Spectator sees it under the
+ * Narrator bar with the card and title of who acts then the prompt and the
+ * pick rows and the footer
+ * Every Turn shares this layout
  */
 export function NightTurnView(props: Props) {
   const { view, moment, turn } = props;
@@ -87,11 +88,13 @@ export function NightTurnView(props: Props) {
       content = mode ? (
         <>
           {head(<p>{fr.game.thiefPick}</p>)}
-          <Choice mode={mode} players={others} confirmLabel={fr.game.confirm.rob} onChoose={props.onRob}>
-            <button className="quiet" onClick={props.onPass}>
-              {fr.game.thiefPass}
-            </button>
-          </Choice>
+          <Choice
+            mode={mode}
+            players={others}
+            confirmLabel={fr.game.confirm.rob}
+            onChoose={props.onRob}
+            actions={[{ label: fr.game.thiefPass, onChoose: props.onPass }]}
+          />
         </>
       ) : (
         choosing(fr.game.thiefChoosing)
@@ -112,11 +115,8 @@ export function NightTurnView(props: Props) {
             mark={<EyeIcon />}
             confirmLabel={fr.game.confirm.inspect}
             onChoose={props.onInspect}
-          >
-            <button className="quiet" onClick={props.onPass}>
-              {fr.game.seerPass}
-            </button>
-          </Choice>
+            actions={[{ label: fr.game.seerPass, onChoose: props.onPass }]}
+          />
         </>
       ) : (
         choosing(fr.game.seerSawNothing)
@@ -197,14 +197,14 @@ export function NightTurnView(props: Props) {
   );
 }
 
-/** Cupid's choice of the two Lovers, any two living Players, sent once both are chosen. */
+/** Cupid's choice of any two living Players as the Lovers sent once both are chosen */
 function CupidsPick(props: {
   prompt: ReactNode;
   living: PlayerSummary[];
   onChooseLovers: (lovers: PlayerId[]) => void;
 }) {
   const [chosen, setChosen] = useState<PlayerId[]>([]);
-  // A third choice replaces the oldest one.
+  // A third choice replaces the oldest one
   const toggle = (id: PlayerId) =>
     setChosen((now) => (now.includes(id) ? now.filter((c) => c !== id) : [...now, id].slice(-2)));
   return (
@@ -220,7 +220,7 @@ function CupidsPick(props: {
   );
 }
 
-/** A living Werewolf's choice: a Victim, or nobody. Every Werewolf sees the others' picks. */
+/** A living Werewolf's choice of a Victim or nobody while every Werewolf sees the others' picks */
 function WerewolvesPick(props: {
   mode: Picking;
   picks: Pick[];
@@ -259,7 +259,7 @@ function WerewolvesPick(props: {
   );
 }
 
-/** The Witch's potions: the save in one tap, the poison picked then confirmed, or nothing more. */
+/** The Witch's save or poison or nothing more each picked then confirmed */
 function WitchsChoice(props: {
   mode: Picking | null;
   potions: Potions;
@@ -271,23 +271,23 @@ function WitchsChoice(props: {
   onPass: () => void;
 }) {
   const { potions, victim } = props;
-  const actions = (
+  const actions: Action[] = [];
+  if (potions.healing && victim !== null) {
+    const name = props.name(victim);
+    actions.push({ label: fr.game.heal(name), confirmLabel: fr.game.confirm.heal(name), quiet: false, onChoose: props.onHeal });
+  }
+  actions.push({ label: fr.game.pass, onChoose: props.onPass });
+  return (
     <>
-      {potions.healing && victim !== null && <button onClick={props.onHeal}>{fr.game.heal(props.name(victim))}</button>}
-      <button className="quiet" onClick={props.onPass}>
-        {fr.game.pass}
-      </button>
+      {props.mode && <p className="choice-label">{fr.game.poisonPick}</p>}
+      <Choice
+        mode="confirm"
+        players={props.mode ? props.living : []}
+        confirmLabel={fr.game.confirm.poison}
+        onChoose={props.onPoison}
+        actions={actions}
+      />
     </>
-  );
-  return props.mode ? (
-    <>
-      <p className="choice-label">{fr.game.poisonPick}</p>
-      <Choice mode={props.mode} players={props.living} confirmLabel={fr.game.confirm.poison} onChoose={props.onPoison}>
-        {actions}
-      </Choice>
-    </>
-  ) : (
-    <Footer>{actions}</Footer>
   );
 }
 

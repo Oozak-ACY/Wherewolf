@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { themeColor, type Ground } from "./ground";
 
 /**
- * Puts the page on `ground`: its background, and the browser's `theme-color`.
- * Back to parchment, the default, once the screen is gone.
+ * Puts the page on `ground` with its background and the browser's `theme-color`
+ * Back to the default parchment once the screen is gone
  */
 export function useGround(ground: Ground) {
   useEffect(() => {

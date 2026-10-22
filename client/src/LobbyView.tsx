@@ -7,7 +7,7 @@ import { QrCodeView } from "./QrCodeView";
 import { MoreSettings, RoleCards, StartFooter } from "./LobbySettings";
 import { fr } from "./strings";
 
-/** The Lobby before a Game: the code to invite the table, the Players, the Settings and the start. */
+/** The Lobby before a Game with the code to invite the table and the Players and the Settings and the start */
 export function LobbyView(props: {
   view: PlayerView;
   banners: ReactNode;
@@ -26,7 +26,7 @@ export function LobbyView(props: {
       await navigator.clipboard.writeText(url);
       setCopied(true);
     } catch {
-      // Clipboard refused (insecure context): the link stays visible to copy by hand.
+      // The clipboard is refused in an insecure context and the link stays visible to copy by hand
     }
   };
 

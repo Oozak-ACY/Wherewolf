@@ -4,8 +4,8 @@ import type { NarratorBar as Bar } from "./narratorBar";
 import { fr } from "./strings";
 
 /**
- * Atop every in-Game screen: the Phase, the Narrator's line and the time
- * left, with the Player's card and, on the Table device, the mixer.
+ * Atop every in-Game screen the Phase and the Narrator's line and the time
+ * left with the Player's card and the mixer on the Table device
  */
 export function NarratorBar(props: { bar: Bar; endsAt: number | null; paused: boolean; onOpenCard: () => void }) {
   const { bar } = props;
@@ -15,8 +15,7 @@ export function NarratorBar(props: { bar: Bar; endsAt: number | null; paused: bo
       {bar.phase === "night" ? <MoonIcon /> : <SunIcon />}
       <div className="narrator-text">
         <span className="narrator-label">{bar.label}</span>
-        {/* No aria-live: a screen reader would speak the line out loud at the table. */}
-        <span className="narrator-line">{bar.line}</span>
+        <span className="narrator-line" aria-live="polite">{bar.line}</span>
       </div>
       {props.endsAt !== null && <Countdown endsAt={props.endsAt} paused={props.paused} />}
       {bar.card && (
@@ -34,7 +33,7 @@ export function NarratorBar(props: { bar: Bar; endsAt: number | null; paused: bo
   );
 }
 
-/** Time left until `endsAt`, as m:ss. Still while the Game is Paused. */
+/** Time left until `endsAt` as m:ss and still while the Game is Paused */
 function Countdown({ endsAt, paused }: { endsAt: number; paused: boolean }) {
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
@@ -69,7 +68,7 @@ function MoonIcon() {
   );
 }
 
-/** A generic card back, never the Player's own art. */
+/** A generic card back and never the Player's own art */
 function CardBackIcon() {
   return (
     <svg viewBox="0 0 18 32" width="16" height="28" aria-hidden="true">

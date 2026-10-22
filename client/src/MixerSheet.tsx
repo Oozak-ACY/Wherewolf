@@ -4,9 +4,9 @@ import { fr } from "./strings";
 import { playTableTest, setTableLevels, tableLevels } from "./tableAudio";
 
 /**
- * The Host's mixer during the Game, in a bottom sheet: one fader per bus of
- * the Table device's mix, 0 to 150%, and a short test sound. Levels apply at
- * once and stay on this phone for the next Games.
+ * The Host's mixer during the Game in a bottom sheet with one fader from 0 to
+ * 150% per bus of the Table device's mix and a short test sound
+ * Levels apply at once and stay on this phone for the next Games
  */
 export function MixerSheet({ onClose }: { onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -27,7 +27,7 @@ export function MixerSheet({ onClose }: { onClose: () => void }) {
       data-ground="parchment"
       aria-labelledby="mixer-title"
       onClose={onClose}
-      // A tap on the backdrop lands on the dialog itself, outside its content.
+      // A tap on the backdrop lands on the dialog itself outside its content
       onClick={(e) => e.target === dialog.current && dialog.current.close()}
     >
       <div className="sheet-content">

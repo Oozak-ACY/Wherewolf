@@ -43,7 +43,7 @@ describe("the allies shown on the reveal", () => {
     revealedRole: null,
   }));
 
-  /** The card of Chloé, holding `role`, and her view with these `lovers`. */
+  /** The card of Chloé holding `role` and her view with these `lovers` */
   function reveal(role: Role, fellowWerewolves: number[], lovers: number[] = []): [RoleCard, PlayerView] {
     const card: RoleCard = { role, camp: role === "werewolf" ? "werewolves" : "village", fellowWerewolves, potions: null };
     return [card, { you: 3, players, role: card, lovers } as unknown as PlayerView];

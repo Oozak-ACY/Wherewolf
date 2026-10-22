@@ -20,7 +20,7 @@ const settings = {
   hiddenRoles: false,
 } as unknown as Settings;
 
-/** The view of `you`, holding `role`, at `moment`. */
+/** The view of `you` holding `role` at `moment` */
 function view(role: Role | null, moment: Moment, changes: Partial<PlayerView> = {}): PlayerView {
   return {
     code: "ABCD",
@@ -52,7 +52,7 @@ function view(role: Role | null, moment: Moment, changes: Partial<PlayerView> = 
   };
 }
 
-/** Each Night Turn, the Player acting in it, and the card and title atop its screen. */
+/** Each Night Turn with the Player acting in it and the card and title atop its screen */
 const turns: [Moment, Role, Partial<PlayerView>, { card: string; title: string }][] = [
   [{ type: "cupidsTurn" }, "cupid", {}, { card: "cupid", title: "Cupidon" }],
   [{ type: "loversTurn", confirmed: false }, "villager", { lovers: [CHLOE, BOB] }, { card: "cupid", title: "Amoureux" }],

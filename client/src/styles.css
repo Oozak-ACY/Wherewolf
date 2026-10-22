@@ -46,7 +46,7 @@
   --ww-shadow-card-reveal: 0 0 0 2px var(--ww-gold), 0 18px 40px rgba(0, 0, 0, 0.6);
 }
 
-/* What every screen reads, set by its ground: parchment by default */
+/* What every screen reads set by its ground with parchment by default */
 :root,
 [data-ground="parchment"] {
   --ground: var(--ww-parchment);
@@ -122,7 +122,7 @@ body {
   color: var(--text);
 }
 
-/* A 390px phone column with a 20px gutter, centred on wider screens */
+/* A 390px phone column with a 20px gutter centred on wider screens */
 .screen {
   min-height: 100dvh;
   display: flex;
@@ -320,7 +320,7 @@ form > label {
   flex: 1;
 }
 
-/* Buttons: an ink lead line outside, a gold glass line inside */
+/* Buttons with an ink lead line outside and a gold glass line inside */
 button {
   font-family: var(--ww-font-display);
   font-size: 15px;
@@ -415,7 +415,7 @@ input::placeholder {
   font-weight: 600;
 }
 
-/* A notice about the Game itself, a lead line round a gold glass edge */
+/* A notice about the Game itself with a lead line round a gold glass edge */
 .banner {
   margin: 0;
   display: flex;
@@ -458,7 +458,7 @@ input::placeholder {
   color: var(--ww-vellum);
 }
 
-/* The call: one tile per Player, 12 tiles on one portrait screen */
+/* The call with one tile per Player and 12 tiles on one portrait screen */
 .call-grid {
   list-style: none;
   margin: 0;
@@ -491,7 +491,7 @@ input::placeholder {
   outline-color: var(--ww-gold-glow);
 }
 
-.tile.offline {
+.tile.disconnected {
   opacity: 0.45;
 }
 
@@ -577,7 +577,7 @@ input::placeholder {
   gap: 5px;
 }
 
-/* The back of a Role card, for a Player without a camera */
+/* The back of a Role card for a Player without a camera */
 .card-back {
   height: 100%;
   display: grid;
@@ -595,7 +595,7 @@ input::placeholder {
   opacity: 0.85;
 }
 
-/* How this Player talks, within thumb reach at the bottom */
+/* How this Player talks within thumb reach at the bottom */
 .mic-bar {
   position: sticky;
   bottom: 0;
@@ -612,7 +612,7 @@ input::placeholder {
   flex: 1;
   min-height: 64px;
   font-size: 17px;
-  /* Holding it must not select text, open a callout or menu, scroll or zoom */
+  /* Holding it must not select text or open a callout or menu or scroll or zoom */
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -620,7 +620,7 @@ input::placeholder {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Wants to talk, dimmed while the Narrator keeps the mic muted */
+/* Wants to talk and dimmed while the Narrator keeps the mic muted */
 .mic-button[data-wants="true"] {
   background: var(--ww-oxblood);
 }
@@ -641,7 +641,7 @@ input::placeholder {
   white-space: nowrap;
 }
 
-/* The Lobby before a Game: a cobalt header, the Players and the Settings, a sticky start */
+/* The Lobby before a Game with a cobalt header then the Players and the Settings and a sticky start */
 .screen:has(> .lobby-screen) {
   padding: 0;
   gap: 0;
@@ -803,7 +803,7 @@ input::placeholder {
   fill: var(--ww-gold);
 }
 
-/* The Role total, forest green only once it matches the Players */
+/* The Role total in forest green only once it matches the Players */
 .section-head > .role-total {
   font-style: normal;
   font-weight: 600;
@@ -887,7 +887,7 @@ input::placeholder {
   font-weight: 400;
 }
 
-/* Timers, Hidden Roles and the Grace period, folded under one row */
+/* Timers and Hidden Roles and the Grace period folded under one row */
 .more-settings summary {
   min-height: 48px;
   padding: 0 14px;
@@ -1017,7 +1017,7 @@ input::placeholder {
   color: var(--muted);
 }
 
-/* The join QR code on a parchment sheet: black on white so any camera reads it */
+/* The join QR code on a parchment sheet in black on white so any camera reads it */
 dialog.qr-screen {
   width: 100%;
   max-width: none;
@@ -1081,7 +1081,7 @@ dialog.qr-screen::backdrop {
   color: var(--ww-ink-soft);
 }
 
-/* The private Role card, a modal dialog filling the screen on the reveal ground */
+/* The private Role card as a modal dialog filling the screen on the reveal ground */
 dialog.reveal {
   width: 100%;
   max-width: none;
@@ -1217,7 +1217,7 @@ dialog.reveal::backdrop {
   gap: 6px;
 }
 
-/* A pick row: oxblood border and gold inset by Day, gold glow at Night */
+/* A pick row pressed with an oxblood border and gold inset by Day and a gold border at Night */
 .pick-row {
   width: 100%;
   min-height: 56px;
@@ -1269,12 +1269,16 @@ dialog.reveal::backdrop {
 
 .pick-count {
   flex: none;
-  min-width: 28px;
-  padding: 2px 8px;
-  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 16px;
   font-family: var(--ww-font-display);
-  font-size: 14px;
-  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
   background: var(--ww-oxblood);
   color: var(--ww-vellum);
 }
@@ -1292,10 +1296,10 @@ button.chosen {
 }
 
 [data-ground="night"] .pick-row[aria-pressed="true"] {
-  box-shadow: 0 0 12px rgb(240 213 138 / 0.35);
+  box-shadow: none;
 }
 
-/* The screen's main actions, stuck to the bottom within thumb reach */
+/* The screen's main actions stuck to the bottom within thumb reach */
 .footer {
   position: sticky;
   bottom: 0;
@@ -1320,7 +1324,7 @@ button.chosen {
   color: var(--ww-night-text);
 }
 
-/* The Narrator bar, atop every in-Game screen: oxblood by Day, night-deep by Night */
+/* The Narrator bar atop every in-Game screen in oxblood by Day and night-deep by Night */
 .narrator-bar {
   position: sticky;
   top: 0;
@@ -1389,7 +1393,7 @@ button.chosen {
   color: var(--ww-gold-glow);
 }
 
-/* The Host's mixer, a parchment sheet rising from the bottom */
+/* The Host's mixer as a parchment sheet rising from the bottom */
 .sheet {
   width: 100%;
   max-width: 480px;
@@ -1436,7 +1440,7 @@ button.chosen {
   accent-color: var(--ww-oxblood);
 }
 
-/* A sleeping phone at Night, the same for every Role, or waiting for the Narrator by Day */
+/* A sleeping phone at Night the same for every Role or waiting for the Narrator by Day */
 .sleeping {
   flex: 1;
   display: flex;
@@ -1592,7 +1596,7 @@ button.chosen {
   box-shadow: 0 0 0 1px var(--ww-gold);
 }
 
-/* The end of the Game: the winning Camp, then every Player with their Role card */
+/* The victory screen with the winning Camp then every Player with their Role card */
 .victory-head {
   align-items: center;
   gap: 10px;
@@ -1605,7 +1609,7 @@ button.chosen {
   color: var(--title);
 }
 
-.end-row .card-art {
+.victory-row .card-art {
   flex: none;
   width: 36px;
   border-radius: 4px;
