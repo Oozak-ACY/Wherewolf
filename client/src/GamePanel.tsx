@@ -77,7 +77,7 @@ export function GamePanel(props: Props) {
 
       {moment.type === "discussion" && view.mayEndDebate && (
         <button className="primary" onClick={props.onEndDebate}>
-          {view.mayor === null ? fr.game.endDebateToElection : fr.game.endDebateToVote}
+          {fr.game.endDebateToVote}
         </button>
       )}
 

@@ -235,10 +235,10 @@ impl Table {
     }
 
     /// From the first Night's Werewolves' Turn, the Werewolves kill
-    /// `victim` and the first Day runs up to the Election.
+    /// `victim` and the first Day opens on the Election.
     fn first_day_until_election(&mut self, victim: &str) {
         self.werewolves_kill(victim);
-        self.time_runs_out();
+        // The dawn.
         self.time_runs_out();
     }
 
@@ -255,6 +255,8 @@ impl Table {
     fn first_vote_with_mayor(&mut self, mayor: &str) {
         self.first_day_until_election(&self.villager(0));
         self.everyone_elects(mayor);
+        // The Election's result, the debate.
+        self.time_runs_out();
         self.time_runs_out();
     }
 
@@ -278,17 +280,15 @@ impl Table {
     }
 }
 #[test]
-fn the_living_elect_the_mayor_between_the_first_discussion_and_the_vote() {
+fn the_living_elect_the_mayor_at_the_first_dawn_before_the_discussion() {
     let mut table = Table::start();
     let candidate = table.villager(1);
     table.werewolves_kill(&table.villager(0));
-    table.time_runs_out();
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
-    assert_eq!(table.mayor(), None);
 
     table.time_runs_out();
 
     assert!(matches!(table.moment(&candidate), Moment::Election { .. }));
+    assert_eq!(table.mayor(), None);
     table.everyone_elects(&candidate);
     let Moment::ElectionResult {
         ballots,
@@ -307,6 +307,8 @@ fn the_living_elect_the_mayor_between_the_first_discussion_and_the_vote() {
     }));
     assert_eq!(table.mayor(), Some(table.id(&candidate)));
 
+    table.time_runs_out();
+    assert_eq!(table.moment_for_all(), Moment::Discussion);
     table.time_runs_out();
     assert!(matches!(table.moment_for_all(), Moment::Vote { .. }));
 }
@@ -360,6 +362,8 @@ fn only_the_first_day_has_an_election() {
     let mut table = Table::start();
     table.first_day_until_election(&table.villager(0));
     table.everyone_elects(&table.villager(1));
+    // The Election's result, the debate, the Vote nobody votes in, its result.
+    table.time_runs_out();
     table.time_runs_out();
     table.time_runs_out();
     table.time_runs_out();

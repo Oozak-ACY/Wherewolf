@@ -1,5 +1,6 @@
-//! Ending the Day's debate early: the Host on the first Day, the Mayor once
-//! elected, scripted only through the engine's public commands and outputs.
+//! The Day's order (the Election first on the first Day) and ending the
+//! debate early, which only the Mayor may do, scripted only through the
+//! engine's public commands and outputs.
 
 mod common;
 
@@ -54,8 +55,12 @@ struct Table {
 
 impl Table {
     fn start() -> Self {
+        Self::start_with(ROLES)
+    }
+
+    fn start_with(roles: RoleCounts) -> Self {
         let mut engine = Engine::new(LobbyCode::new("LOUPS"), Seeded(11));
-        let names: Vec<String> = (1..=ROLES.total()).map(|n| format!("P{n}")).collect();
+        let names: Vec<String> = (1..=roles.total()).map(|n| format!("P{n}")).collect();
         let mut outputs = None;
         for name in &names {
             outputs = Some(engine.handle(&seat(name), join(name)).unwrap());
@@ -66,7 +71,7 @@ impl Table {
             .unwrap()
             .settings
             .clone();
-        settings.roles = ROLES;
+        settings.roles = roles;
         engine
             .handle(&seat(HOST), Command::UpdateSettings { settings })
             .unwrap();
@@ -192,11 +197,29 @@ impl Table {
         }
     }
 
+    /// During the Election, every living Player votes for `mayor`.
+    fn everyone_elects(&mut self, mayor: &str) {
+        let candidate = self.id(mayor);
+        for voter in self.living() {
+            self.act(&voter, Command::Elect { candidate });
+        }
+    }
+
     /// From the first Night: the Werewolves kill `victim`, and the first
-    /// Day's debate begins.
-    fn first_debate(&mut self, victim: &str) {
+    /// Day's Election begins.
+    fn first_election(&mut self, victim: &str) {
         self.werewolves_kill(victim);
         // The dawn.
+        self.time_runs_out();
+        assert!(matches!(self.moment(), Moment::Election { voted, .. } if voted.is_empty()));
+    }
+
+    /// From the first Night: the Werewolves kill a Villager, `mayor` is
+    /// elected, and the first Day's debate begins.
+    fn first_debate(&mut self, mayor: &str) {
+        self.first_election(&self.villager(0));
+        self.everyone_elects(mayor);
+        // The Election's result.
         self.time_runs_out();
         assert_eq!(self.moment(), &Moment::Discussion);
     }
@@ -204,14 +227,8 @@ impl Table {
     /// From the first Night: `mayor` is elected on the first Day, nobody is
     /// eliminated by the Vote, and the second Day's debate begins.
     fn second_debate(&mut self, mayor: &str) {
-        self.first_debate(&self.villager(0));
-        // The debate runs out: the Election.
-        self.time_runs_out();
-        let candidate = self.id(mayor);
-        for voter in self.living() {
-            self.act(&voter, Command::Elect { candidate });
-        }
-        // The Election's result, the Vote nobody votes in, its result.
+        self.first_debate(mayor);
+        // The debate, the Vote nobody votes in, its result.
         self.time_runs_out();
         self.time_runs_out();
         self.time_runs_out();
@@ -223,21 +240,48 @@ impl Table {
 }
 
 #[test]
-fn the_host_ends_the_first_days_debate_and_the_election_begins() {
+fn the_first_day_elects_the_mayor_then_debates_then_votes() {
     let mut table = Table::start();
-    table.first_debate(&table.villager(0));
+    let mayor = table.villager(2);
+    table.first_election(&table.villager(0));
+    assert_eq!(table.view(HOST).mayor, None);
+
+    table.everyone_elects(&mayor);
+    assert!(matches!(table.moment(), Moment::ElectionResult { .. }));
+    table.time_runs_out();
+    assert_eq!(table.moment(), &Moment::Discussion);
+    assert_eq!(table.view(HOST).mayor, Some(table.id(&mayor)));
+    table.time_runs_out();
+
+    assert!(matches!(table.moment(), Moment::Vote { voted, .. } if voted.is_empty()));
+}
+
+#[test]
+fn a_later_day_debates_then_votes_without_an_election() {
+    let mut table = Table::start();
+    table.second_debate(&table.villager(2));
+
+    table.time_runs_out();
+
+    assert!(matches!(table.moment(), Moment::Vote { .. }));
+}
+
+#[test]
+fn the_mayor_ends_the_first_days_debate_and_the_vote_begins() {
+    let mut table = Table::start();
+    let mayor = table.villager(2);
+    table.first_debate(&mayor);
     let debate = table.outputs.timer().unwrap().moment;
 
-    table.act(HOST, Command::EndDebate);
+    table.act(&mayor, Command::EndDebate);
 
-    assert!(matches!(table.moment(), Moment::Election { voted, .. } if voted.is_empty()));
-    assert_eq!(table.view(HOST).mayor, None);
+    assert!(matches!(table.moment(), Moment::Vote { voted, .. } if voted.is_empty()));
     // The debate's timer no longer ends anything.
     assert_eq!(table.engine.deadline_passed(debate), Err(Rejection::NotNow));
 }
 
 #[test]
-fn once_elected_the_mayor_ends_the_debate_and_the_vote_begins() {
+fn the_mayor_ends_a_later_debate_and_the_vote_begins() {
     let mut table = Table::start();
     let mayor = table.villager(2);
     table.second_debate(&mayor);
@@ -248,21 +292,10 @@ fn once_elected_the_mayor_ends_the_debate_and_the_vote_begins() {
 }
 
 #[test]
-fn before_the_election_only_the_host_ends_the_debate() {
-    let mut table = Table::start();
-    table.first_debate(&table.villager(0));
-
-    assert_eq!(
-        table.refused(&table.villager(1), Command::EndDebate),
-        Rejection::NotYourTurn
-    );
-}
-
-#[test]
-fn once_a_mayor_is_elected_the_host_no_longer_ends_the_debate() {
+fn the_host_who_is_not_mayor_cannot_end_the_debate() {
     let mut table = Table::start();
     let mayor = table.villager(2);
-    table.second_debate(&mayor);
+    table.first_debate(&mayor);
 
     assert_eq!(
         table.refused(HOST, Command::EndDebate),
@@ -277,23 +310,20 @@ fn once_a_mayor_is_elected_the_host_no_longer_ends_the_debate() {
 #[test]
 fn the_debate_cannot_be_ended_outside_the_debate() {
     let mut table = Table::start();
+    let mayor = table.villager(2);
     // The Night.
     assert_eq!(table.refused(HOST, Command::EndDebate), Rejection::NotNow);
-    table.first_debate(&table.villager(0));
-    table.act(HOST, Command::EndDebate);
+    table.first_election(&table.villager(0));
     // The Election.
     assert_eq!(table.refused(HOST, Command::EndDebate), Rejection::NotNow);
-    assert_eq!(
-        table.refused(&table.villager(1), Command::EndDebate),
-        Rejection::NotNow
-    );
+    assert_eq!(table.refused(&mayor, Command::EndDebate), Rejection::NotNow);
 }
 
 #[test]
 fn a_spectator_cannot_end_the_debate() {
     let mut table = Table::start();
     let victim = table.villager(0);
-    table.first_debate(&victim);
+    table.first_debate(&table.villager(2));
 
     assert_eq!(
         table.refused(&victim, Command::EndDebate),
@@ -302,32 +332,54 @@ fn a_spectator_cannot_end_the_debate() {
 }
 
 #[test]
-fn a_host_killed_on_the_first_night_still_ends_the_debate() {
+fn a_host_killed_on_the_first_night_cannot_end_the_debate() {
     let mut table = Table::start();
     assert_eq!(table.players[0].1, Role::Villager, "the Host can be killed");
-    table.first_debate(HOST);
+    table.werewolves_kill(HOST);
+    table.time_runs_out();
+    let mayor = table.villager(2);
+    table.everyone_elects(&mayor);
+    table.time_runs_out();
+    assert_eq!(table.moment(), &Moment::Discussion);
     assert!(!table.alive(HOST));
-    assert_eq!(table.may_end_debate(), vec![HOST.to_string()]);
 
-    table.act(HOST, Command::EndDebate);
-
-    assert!(matches!(table.moment(), Moment::Election { .. }));
+    assert_eq!(table.may_end_debate(), vec![mayor]);
+    assert_eq!(
+        table.refused(HOST, Command::EndDebate),
+        Rejection::Spectating
+    );
 }
 
 #[test]
-fn only_the_player_who_may_end_the_debate_sees_the_button() {
+fn only_the_mayor_sees_the_button_that_ends_the_debate() {
     let mut table = Table::start();
+    let mayor = table.villager(2);
     assert!(table.may_end_debate().is_empty(), "nobody, at Night");
-    table.first_debate(&table.villager(0));
-    assert_eq!(table.may_end_debate(), vec![HOST.to_string()]);
-    table.act(HOST, Command::EndDebate);
+    table.first_election(&table.villager(0));
     assert!(
         table.may_end_debate().is_empty(),
         "nobody, during the Election"
     );
+    table.everyone_elects(&mayor);
+    table.time_runs_out();
+    assert_eq!(table.may_end_debate(), vec![mayor.clone()]);
+    table.act(&mayor, Command::EndDebate);
+    assert!(table.may_end_debate().is_empty(), "nobody, during the Vote");
+}
 
-    let mut table = Table::start();
-    let mayor = table.villager(2);
-    table.second_debate(&mayor);
-    assert_eq!(table.may_end_debate(), vec![mayor]);
+/// Two Werewolves and three Villagers: one Villager killed on the first
+/// Night leaves the Werewolves as many as the others.
+#[test]
+fn a_game_decided_at_the_first_dawn_never_opens_the_election() {
+    let roles = RoleCounts {
+        villager: 3,
+        ..ROLES
+    };
+    let mut table = Table::start_with(roles);
+
+    table.werewolves_kill(&table.villager(0));
+    table.time_runs_out();
+
+    assert!(matches!(table.moment(), Moment::Victory { .. }));
+    assert_eq!(table.view(HOST).mayor, None);
 }

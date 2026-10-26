@@ -306,21 +306,23 @@ fn after_dawn_the_village_discusses_then_votes() {
     table.time_runs_out();
     assert_eq!(table.outputs.timer().unwrap().seconds, 10);
 
+    // The first Day elects the Mayor before the debate.
+    table.time_runs_out();
+    assert!(matches!(table.moment("P3"), Moment::Election { .. }));
+    table.time_runs_out();
+    assert!(matches!(table.moment("P3"), Moment::ElectionResult { .. }));
     table.time_runs_out();
     assert_eq!(table.moment("P3"), &Moment::Discussion);
     assert_eq!(table.outputs.timer().unwrap().seconds, 300);
 
-    // The first Day elects the Mayor before the Vote.
-    table.time_runs_out();
-    assert!(matches!(table.moment("P3"), Moment::Election { .. }));
-    table.time_runs_out();
     table.time_runs_out();
     assert!(matches!(table.moment("P3"), Moment::Vote { .. }));
     assert_eq!(table.outputs.timer().unwrap().seconds, 60);
 }
 
 impl Table {
-    /// Skips a quiet Night (no Victim) and the discussion.
+    /// Skips a quiet Night (no Victim), the Election if any, and the
+    /// discussion.
     fn skip_to_the_vote(&mut self) {
         while !matches!(self.moment("P1"), Moment::Vote { .. }) {
             self.time_runs_out();

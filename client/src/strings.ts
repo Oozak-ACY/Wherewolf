@@ -109,7 +109,6 @@ export const fr = {
     stillReading: (reading: number) =>
       reading === 1 ? "1 joueur lit encore son rôle." : `${reading} joueurs lisent encore leur rôle.`,
     roleConfirmed: "La nuit tombera quand tout le monde aura vu son rôle.",
-    endDebateToElection: "Passer à l'élection du maire",
     endDebateToVote: "Passer au vote",
     spectator: "spectateur",
     cupidPick: "Choisis les deux Amoureux. Tu peux te choisir.",

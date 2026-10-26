@@ -206,7 +206,7 @@ fn by_day_the_living_see_each_other_and_never_the_spectators() {
     let living = table.living();
     let living_refs: Vec<&str> = living.iter().map(String::as_str).collect();
 
-    // Dawn, the discussion, the Election, its result, the Vote and its result.
+    // Dawn, the Election, its result, the discussion, the Vote and its result.
     for _ in 0..6 {
         for name in &living {
             let mut others = table.ids(&living_refs);

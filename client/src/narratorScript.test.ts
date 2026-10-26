@@ -298,12 +298,17 @@ describe("the dawn", () => {
 });
 
 describe("the Day", () => {
-  test("the debate, the Election and the Vote are fixed lines", () => {
-    expect(heard(cuesAt({ type: "discussion" }, everyone, false, { type: "dawn", deaths: [], robbery: false }))).toEqual(["discussion"]);
-    expect(heard(cuesAt({ type: "election", voted: [], yourBallot: null }, everyone, false, { type: "discussion" }))).toEqual([
-      "election",
-    ]);
+  test("the first Day's Election, then the debate and the Vote, are fixed lines", () => {
+    const dawn: Moment = { type: "dawn", deaths: [], robbery: false };
+    const electionResult: Moment = { type: "electionResult", ballots: [], mayor: 2, byLot: false };
+
+    expect(heard(cuesAt({ type: "election", voted: [], yourBallot: null }, everyone, false, dawn))).toEqual(["election"]);
+    expect(heard(cuesAt({ type: "discussion" }, everyone, false, electionResult))).toEqual(["discussion"]);
     expect(heard(cuesAt(vote, everyone, false, { type: "discussion" }))).toEqual(["vote"]);
+  });
+
+  test("a later Day's debate follows the dawn", () => {
+    expect(heard(cuesAt({ type: "discussion" }, everyone, false, { type: "dawn", deaths: [], robbery: false }))).toEqual(["discussion"]);
   });
 
   test("the Mayor's name is said live, and whether it was drawn", () => {
