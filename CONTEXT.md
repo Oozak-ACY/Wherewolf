@@ -9,7 +9,7 @@ A person taking part in a Game. Every participant is a Player; nobody sits out t
 _Avoid_: User, participant
 
 **Host**:
-The Player who created the Lobby. Only they can configure the Roles and start the Game. Their phone is the Table device. Once the Game starts they play as an ordinary Player, except that until a Mayor is elected they may end the Day's debate early, even if they have been eliminated.
+The Player who created the Lobby. Only they can configure the Roles and start the Game. Their phone is the Table device. Once the Game starts they play as an ordinary Player.
 _Avoid_: Admin, owner, game master
 
 **Narrator**:
@@ -29,7 +29,7 @@ A Player whose browser has lost contact. They keep their seat and reclaim it by 
 _Avoid_: Offline, AFK, absent
 
 **Mayor**:
-A title (not a Role) that the living Players elect on the first Day; a tied Election is drawn by lot. The Mayor may end the Day's debate early, and settles ties in the Vote (if they don't in time, nobody is eliminated). When eliminated, the Mayor names a living successor, or one is drawn by lot.
+A title (not a Role) that the living Players elect on the first Day, before its debate; a tied Election is drawn by lot. The Mayor may end the Day's debate early, and settles ties in the Vote (if they don't in time, nobody is eliminated). When eliminated, the Mayor names a living successor, or one is drawn by lot.
 _Avoid_: Captain, sheriff, chief
 
 ## Game structure
@@ -73,7 +73,7 @@ What an Elimination sets off: the Hunter's shot, the Mayor naming a successor, o
 _Avoid_: On-death effect, last will
 
 **Election**:
-The vote on the first Day in which the living Players choose the Mayor.
+The vote on the first Day in which the living Players choose the Mayor. It opens once the dawn's Death triggers are resolved, before the debate, so the debate always has a Mayor to end it early.
 _Avoid_: Mayor vote (ambiguous with the Vote)
 
 **Settings**:
@@ -101,7 +101,7 @@ _Remote only._ Who may see and hear whom at the current Moment, as the Narrator 
 _Avoid_: Permissions, rooms
 
 **Moment**:
-One stretch of a Game that the Narrator announces and times on its own: the Role reveal (untimed: it ends once every living Player has confirmed seeing their Role), a Night Turn, the dawn announcement, the Day discussion, the Election and its result, the Vote, the Mayor's tie-break, the Vote's result, the Hunter's shot, the Mayor's succession, the result of each, or the victory screen. The current Moment decides what each Player sees and may do.
+One stretch of a Game that the Narrator announces and times on its own: the Role reveal (untimed: it ends once every living Player has confirmed seeing their Role), a Night Turn, the dawn announcement, the Election and its result, the Day discussion, the Vote, the Mayor's tie-break, the Vote's result, the Hunter's shot, the Mayor's succession, the result of each, or the victory screen. The current Moment decides what each Player sees and may do.
 Each Moment opens only once the Narrator has announced it: while the Table device says its lines, the Moment is held (no timer, nobody acts in it), every phone that isn't asleep shows the same neutral waiting screen, and the acting Role sleeps on until their Turn opens. It opens when the Table device has said its last line, or after 30 seconds if it never says so. A change the Narrator says nothing new about, like the Seer reading what she saw, is not announced.
 _Avoid_: Step, stage
 
