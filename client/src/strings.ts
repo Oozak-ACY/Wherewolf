@@ -84,8 +84,8 @@ export const fr = {
     hiddenRolesOn: "Le rôle des morts reste caché aux vivants : le tour de nuit d'un rôle mort dure un temps tiré au hasard.",
     hiddenRolesOff: "Le rôle de chaque mort est révélé à tous.",
     seconds: "s",
-    less: (role: string) => `Un ${role} de moins`,
-    more: (role: string) => `Un ${role} de plus`,
+    less: (role: Role) => `${aRole(role)} de moins`,
+    more: (role: Role) => `${aRole(role)} de plus`,
     timer: {
       discussion: "Débat du jour",
       election: "Élection du Maire",
@@ -255,40 +255,48 @@ export const fr = {
   roles: {
     werewolf: {
       name: "Loup-Garou",
+      article: "un",
       power: "Chaque nuit, avec les autres Loups-Garous, tu choisis une victime à dévorer.",
     },
     seer: {
       name: "Voyante",
+      article: "une",
       power: "Chaque nuit, tu découvres le rôle d'un joueur de ton choix.",
     },
     witch: {
       name: "Sorcière",
+      article: "une",
       power:
         "Tu as une potion de guérison pour sauver la victime des Loups, et une potion de poison pour tuer. Chacune ne sert qu'une fois.",
     },
     hunter: {
       name: "Chasseur",
+      article: "un",
       power: "Quand tu meurs, tu abats aussitôt un joueur de ton choix.",
     },
     cupid: {
       name: "Cupidon",
+      article: "un",
       power: "La première nuit, tu désignes deux Amoureux, toi compris si tu veux.",
     },
     thief: {
       name: "Voleur",
+      article: "un",
       power:
         "La deuxième nuit, tu peux voler le rôle d'un joueur : à l'aube, tu prends sa carte telle quelle et il devient Villageois. Sinon, tu restes Villageois.",
     },
     littleGirl: {
       name: "Petite Fille",
+      article: "une",
       power:
         "La nuit, pendant le tour des Loups-Garous, tu peux entrouvrir les yeux pour les espionner. Attention à ne pas te faire prendre !",
     },
     villager: {
       name: "Villageois",
+      article: "un",
       power: "Aucun pouvoir : seulement ton flair et ta voix pour démasquer les Loups.",
     },
-  } satisfies Record<Role, { name: string; power: string }>,
+  } satisfies Record<Role, { name: string; article: "un" | "une"; power: string }>,
 
   camps: {
     village: { name: "Village", goal: "Éliminer tous les Loups-Garous." },
@@ -338,3 +346,9 @@ export const fr = {
     paused: "La partie est en pause jusqu'au retour de l'hôte.",
   } satisfies Record<Rejection, string>,
 };
+
+/** The Role with its indefinite article, capitalised: "Une Sorcière". */
+function aRole(role: Role): string {
+  const { article, name } = fr.roles[role];
+  return `${article.charAt(0).toUpperCase()}${article.slice(1)} ${name}`;
+}

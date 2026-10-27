@@ -60,7 +60,7 @@ export function SettingsPanel({ view, onChange, onStart }: Props) {
               {isHost ? (
                 <span className="stepper">
                   <button
-                    aria-label={fr.settings.less(name)}
+                    aria-label={fr.settings.less(role)}
                     disabled={count === 0}
                     onClick={() => setRoles({ ...settings.roles, [role]: count - 1 })}
                   >
@@ -68,7 +68,7 @@ export function SettingsPanel({ view, onChange, onStart }: Props) {
                   </button>
                   <strong>{count}</strong>
                   <button
-                    aria-label={fr.settings.more(name)}
+                    aria-label={fr.settings.more(role)}
                     disabled={roleTotal >= MAX_PLAYERS || count >= (MAX_COUNTS[role] ?? Infinity)}
                     onClick={() => setRoles({ ...settings.roles, [role]: count + 1 })}
                   >
