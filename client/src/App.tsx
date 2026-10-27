@@ -9,7 +9,7 @@ import type { PlayerView } from "./generated/PlayerView";
 import type { Rejection } from "./generated/Rejection";
 import type { Settings } from "./generated/Settings";
 import { speaksAloud, unlockSpeech } from "./narrator";
-import { NarratorBar } from "./NarratorBar";
+import { NarratorBarView } from "./NarratorBarView";
 import { narratorBar } from "./narratorBar";
 import { nightTurn } from "./nightTurn";
 import { NightTurnView } from "./NightTurnView";
@@ -367,7 +367,7 @@ function Lobby(props: {
     <>
       {/* First so the options menu stays open from one screen to the next */}
       {bar && (
-        <NarratorBar
+        <NarratorBarView
           bar={bar}
           endsAt={props.endsAt}
           paused={view.paused}

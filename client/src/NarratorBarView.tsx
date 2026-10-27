@@ -7,7 +7,7 @@ import { fr } from "./strings";
  * Atop every in-Game screen the Phase and the Narrator's line and the time
  * left with the Player's card and the options menu
  */
-export function NarratorBar(props: {
+export function NarratorBarView(props: {
   bar: Bar;
   endsAt: number | null;
   paused: boolean;
