@@ -70,7 +70,7 @@ function view(role: Role | null, moment: Moment, changes: Partial<PlayerView> = 
 }
 
 const actingRole = { seersTurn: "seer", werewolvesTurn: "werewolf", witchsTurn: "witch" } as const;
-const roles: Role[] = ["villager", "hunter", "seer", "werewolf", "witch"];
+const roles: Role[] = ["villager", "hunter", "littleGirl", "seer", "werewolf", "witch"];
 
 describe("a phone at Night", () => {
   for (const [turn, moment] of Object.entries(nightTurns)) {

@@ -7,6 +7,7 @@ import type { Timers } from "./generated/Timers";
 import {
   fr,
   MAX_CUPIDS,
+  MAX_LITTLE_GIRLS,
   MAX_PLAYERS,
   MAX_THIEVES,
   MAX_WITCHES,
@@ -14,11 +15,17 @@ import {
   TIMER_MIN_SECONDS,
 } from "./strings";
 
-// The order the Night calls them in, then the Villagers.
-const ROLES: Role[] = ["werewolf", "cupid", "thief", "seer", "witch", "hunter", "villager"];
+// The order the Night calls them in, then the Little Girl, who peeks during
+// the Werewolves' Turn, and the Villagers.
+const ROLES: Role[] = ["werewolf", "cupid", "thief", "seer", "witch", "hunter", "littleGirl", "villager"];
 
 /** The most of each Role a Game may hold, when there is a limit. */
-const MAX_COUNTS: Partial<Record<Role, number>> = { witch: MAX_WITCHES, cupid: MAX_CUPIDS, thief: MAX_THIEVES };
+const MAX_COUNTS: Partial<Record<Role, number>> = {
+  witch: MAX_WITCHES,
+  cupid: MAX_CUPIDS,
+  thief: MAX_THIEVES,
+  littleGirl: MAX_LITTLE_GIRLS,
+};
 const TIMERS = Object.keys(fr.settings.timer) as (keyof Timers)[];
 
 type Props = {

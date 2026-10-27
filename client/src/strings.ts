@@ -7,13 +7,15 @@ import type { Role } from "./generated/Role";
 import type { Timers } from "./generated/Timers";
 import type { MicProblem } from "./useCall";
 
-// Mirror MIN_PLAYERS, MAX_PLAYERS, MAX_WITCHES, MAX_CUPIDS, MAX_THIEVES, TIMER_BOUNDS
+// Mirror MIN_PLAYERS, MAX_PLAYERS, MAX_WITCHES, MAX_CUPIDS, MAX_THIEVES, MAX_LITTLE_GIRLS,
+// TIMER_BOUNDS
 // and GRACE_PERIOD_BOUNDS (the same as TIMER_BOUNDS) in crates/engine/src/lib.rs.
 export const MIN_PLAYERS = 5;
 export const MAX_PLAYERS = 12;
 export const MAX_WITCHES = 1;
 export const MAX_CUPIDS = 1;
 export const MAX_THIEVES = 1;
+export const MAX_LITTLE_GIRLS = 1;
 export const TIMER_MIN_SECONDS = 10;
 export const TIMER_MAX_SECONDS = 1800;
 
@@ -276,6 +278,11 @@ export const fr = {
       name: "Voleur",
       power:
         "La deuxième nuit, tu peux voler le rôle d'un joueur : à l'aube, tu prends sa carte telle quelle et il devient Villageois. Sinon, tu restes Villageois.",
+    },
+    littleGirl: {
+      name: "Petite Fille",
+      power:
+        "La nuit, pendant le tour des Loups-Garous, tu peux entrouvrir les yeux pour les espionner. Attention à ne pas te faire prendre !",
     },
     villager: {
       name: "Villageois",

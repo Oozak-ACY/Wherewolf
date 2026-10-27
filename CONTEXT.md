@@ -115,11 +115,15 @@ _Avoid_: Character, class, card
 The side a Player wins or loses with: the Village, the Werewolves, or the Lovers.
 _Avoid_: Team, faction
 
-**Werewolf**, **Villager**, **Seer**, **Witch**, **Hunter**, **Cupid**, **Thief**:
+**Werewolf**, **Villager**, **Seer**, **Witch**, **Hunter**, **Cupid**, **Thief**, **Little Girl**:
 The Roles available. All but the Werewolf belong to the Village.
 
 **Thief**:
 A Village Role that acts only on the second Night, in the first Turn: the Thief may choose a living Player to rob, or nobody. The Theft takes effect at dawn: the Thief takes the robbed Player's Role as it stands (a spent potion stays spent), and the robbed Player holds a Villager card and plays with the Village from then on. The Mayor title and the Lovers bond stay with the robbed Player. A Thief who robs nobody plays as a Villager.
+
+**Little Girl**:
+A Village Role, at most one per Game, with no Turn and nothing to do on her phone. During the Werewolves' Turn she may peek at the table to spot who wakes up; the Werewolves, if they catch her, can only make her their Victim like anyone else. The Narrator never mentions her, and the Werewolves' Turn is not lengthened for her: the longer they take, the more she can see.
+_Avoid_: Petite Fille (in English text), Spy, Girl
 
 **Theft**:
 The Thief's swap of Roles, taking effect at the dawn after the second Night, once that dawn's deaths and their Death triggers are resolved and before victory is checked. Until then the robbed Player keeps acting with their Role. It is cancelled if the Thief or the robbed Player died that Night. Whenever a Thief is in the Settings, the Narrator says, as the Discussion that follows that dawn opens (once the Theft has taken effect), that a house was robbed and everyone should check their card, whether or not a Theft took place. If a Camp wins at that dawn there is no Discussion, and no robbery line.

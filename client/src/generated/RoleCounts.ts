@@ -3,4 +3,4 @@
 /**
  * How many of each Role are in play.
  */
-export type RoleCounts = { werewolf: number, seer: number, witch: number, hunter: number, cupid: number, thief: number, villager: number, };
+export type RoleCounts = { werewolf: number, seer: number, witch: number, hunter: number, cupid: number, thief: number, littleGirl: number, villager: number, };

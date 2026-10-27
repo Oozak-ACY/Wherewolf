@@ -180,6 +180,8 @@ pub enum Role {
     Hunter,
     Cupid,
     Thief,
+    /// Has no Turn: she may peek at the table during the Werewolves' Turn.
+    LittleGirl,
     Villager,
 }
 
@@ -193,6 +195,7 @@ impl Role {
             | Role::Hunter
             | Role::Cupid
             | Role::Thief
+            | Role::LittleGirl
             | Role::Villager => Camp::Village,
         }
     }
@@ -247,6 +250,7 @@ pub struct PlayerSummary {
 
 /// How many of each Role are in play.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct RoleCounts {
     pub werewolf: u8,
@@ -255,6 +259,7 @@ pub struct RoleCounts {
     pub hunter: u8,
     pub cupid: u8,
     pub thief: u8,
+    pub little_girl: u8,
     pub villager: u8,
 }
 
@@ -275,6 +280,7 @@ impl RoleCounts {
             hunter,
             cupid: 0,
             thief: 0,
+            little_girl: 0,
             villager: (players.max(5) as u8).saturating_sub(special),
         }
     }
@@ -290,6 +296,7 @@ impl RoleCounts {
             (Role::Hunter, self.hunter),
             (Role::Cupid, self.cupid),
             (Role::Thief, self.thief),
+            (Role::LittleGirl, self.little_girl),
             (Role::Villager, self.villager),
         ]
         .into_iter()
@@ -305,6 +312,7 @@ impl RoleCounts {
             self.hunter,
             self.cupid,
             self.thief,
+            self.little_girl,
             self.villager,
         ]
         .iter()
@@ -725,6 +733,9 @@ pub const MAX_CUPIDS: u8 = 1;
 
 /// A Game has at most one Thief.
 pub const MAX_THIEVES: u8 = 1;
+
+/// A Game has at most one Little Girl.
+pub const MAX_LITTLE_GIRLS: u8 = 1;
 
 /// The Night the Thief wakes on, and after which the Theft takes effect.
 const THIEFS_NIGHT: u32 = 2;
@@ -1229,6 +1240,7 @@ impl Engine {
                     || settings.roles.witch > MAX_WITCHES
                     || settings.roles.cupid > MAX_CUPIDS
                     || settings.roles.thief > MAX_THIEVES
+                    || settings.roles.little_girl > MAX_LITTLE_GIRLS
                     || !timers_valid
                     || !GRACE_PERIOD_BOUNDS.contains(&settings.grace_period)
                 {

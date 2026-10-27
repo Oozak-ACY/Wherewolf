@@ -8,6 +8,7 @@ Drop one image per Role here, named after the Role, and it replaces the placehol
 | Voyante | `seer.png` |
 | Sorcière | `witch.png` |
 | Chasseur | `hunter.png` |
+| Petite Fille | `littleGirl.png` |
 | Villageois | `villager.png` |
 
 Portrait images (about 3:4) look best. Until a file exists, the card shows the Role's initial.
