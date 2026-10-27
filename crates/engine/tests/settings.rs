@@ -62,6 +62,7 @@ fn roles(werewolf: u8, seer: u8, witch: u8, hunter: u8, villager: u8) -> RoleCou
         hunter,
         cupid: 0,
         thief: 0,
+        little_girl: 0,
         villager,
     }
 }
@@ -339,7 +340,8 @@ fn each_role_card_shows_its_camp() {
             | Role::Witch
             | Role::Hunter
             | Role::Cupid
-            | Role::Thief => Camp::Village,
+            | Role::Thief
+            | Role::LittleGirl => Camp::Village,
         };
         assert_eq!(card.camp, expected, "{:?}", card.role);
     }

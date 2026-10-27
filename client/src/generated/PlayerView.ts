@@ -72,8 +72,8 @@ audience: Array<PlayerId>,
  */
 seesCountdown: boolean, 
 /**
- * Whether this Player may end the Day's debate now: the Mayor, or the
- * Host (even dead) while no Mayor is elected, during the debate.
+ * Whether this Player may end the Day's debate now: the living Mayor,
+ * during the debate.
  */
 mayEndDebate: boolean, 
 /**

@@ -9,7 +9,7 @@ A person taking part in a Game. Every participant is a Player; nobody sits out t
 _Avoid_: User, participant
 
 **Host**:
-The Player who created the Lobby. Only they can configure the Roles and start the Game. Their phone is the Table device. Once the Game starts they play as an ordinary Player, except that until a Mayor is elected they may end the Day's debate early, even if they have been eliminated.
+The Player who created the Lobby. Only they can configure the Roles and start the Game. Their phone is the Table device. Once the Game starts they play as an ordinary Player, with no special power during the Day.
 _Avoid_: Admin, owner, game master
 
 **Narrator**:
@@ -29,7 +29,7 @@ A Player whose browser has lost contact. They keep their seat and reclaim it by 
 _Avoid_: Offline, AFK, absent
 
 **Mayor**:
-A title (not a Role) that the living Players elect on the first Day; a tied Election is drawn by lot. The Mayor may end the Day's debate early, and settles ties in the Vote (if they don't in time, nobody is eliminated). When eliminated, the Mayor names a living successor, or one is drawn by lot.
+A title (not a Role) that the living Players elect on the first Day, before its debate; a tied Election is drawn by lot. The living Mayor alone may end the Day's debate early, and settles ties in the Vote (if they don't in time, nobody is eliminated). When eliminated, the Mayor names a living successor, or one is drawn by lot.
 _Avoid_: Captain, sheriff, chief
 
 ## Game structure
@@ -73,7 +73,7 @@ What an Elimination sets off: the Hunter's shot, the Mayor naming a successor, o
 _Avoid_: On-death effect, last will
 
 **Election**:
-The vote on the first Day in which the living Players choose the Mayor.
+The vote on the first Day, right after the dawn and before the debate, in which the living Players choose the Mayor.
 _Avoid_: Mayor vote (ambiguous with the Vote)
 
 **Settings**:
@@ -101,7 +101,7 @@ _Remote only._ Who may see and hear whom at the current Moment, as the Narrator 
 _Avoid_: Permissions, rooms
 
 **Moment**:
-One stretch of a Game that the Narrator announces and times on its own: the Role reveal (untimed: it ends once every living Player has confirmed seeing their Role), a Night Turn, the dawn announcement, the Day discussion, the Election and its result, the Vote, the Mayor's tie-break, the Vote's result, the Hunter's shot, the Mayor's succession, the result of each, or the victory screen. The current Moment decides what each Player sees and may do.
+One stretch of a Game that the Narrator announces and times on its own: the Role reveal (untimed: it ends once every living Player has confirmed seeing their Role), a Night Turn, the dawn announcement, the Election and its result (on the first Day only, before the discussion), the Day discussion, the Vote, the Mayor's tie-break, the Vote's result, the Hunter's shot, the Mayor's succession, the result of each, or the victory screen. The current Moment decides what each Player sees and may do.
 Each Moment opens only once the Narrator has announced it: while the Table device says its lines, the Moment is held (no timer, nobody acts in it), every phone that isn't asleep shows the same neutral waiting screen, and the acting Role sleeps on until their Turn opens. It opens when the Table device has said its last line, or after 30 seconds if it never says so. A change the Narrator says nothing new about, like the Seer reading what she saw, is not announced.
 _Avoid_: Step, stage
 
@@ -115,11 +115,15 @@ _Avoid_: Character, class, card
 The side a Player wins or loses with: the Village, the Werewolves, or the Lovers.
 _Avoid_: Team, faction
 
-**Werewolf**, **Villager**, **Seer**, **Witch**, **Hunter**, **Cupid**, **Thief**:
+**Werewolf**, **Villager**, **Seer**, **Witch**, **Hunter**, **Cupid**, **Thief**, **Little Girl**:
 The Roles available. All but the Werewolf belong to the Village.
 
 **Thief**:
 A Village Role that acts only on the second Night, in the first Turn: the Thief may choose a living Player to rob, or nobody. The Theft takes effect at dawn: the Thief takes the robbed Player's Role as it stands (a spent potion stays spent), and the robbed Player holds a Villager card and plays with the Village from then on. The Mayor title and the Lovers bond stay with the robbed Player. A Thief who robs nobody plays as a Villager.
+
+**Little Girl**:
+A Village Role, at most one per Game, with no Turn and nothing to do on her phone. During the Werewolves' Turn she may peek at the table to spot who wakes up; the Werewolves, if they catch her, can only make her their Victim like anyone else. The Narrator never mentions her, and the Werewolves' Turn is not lengthened for her: the longer they take, the more she can see.
+_Avoid_: Petite Fille (in English text), Spy, Girl
 
 **Theft**:
 The Thief's swap of Roles, taking effect at the dawn after the second Night, once that dawn's deaths and their Death triggers are resolved and before victory is checked. Until then the robbed Player keeps acting with their Role. It is cancelled if the Thief or the robbed Player died that Night. Whenever a Thief is in the Settings, the Narrator says, as the Discussion that follows that dawn opens (once the Theft has taken effect), that a house was robbed and everyone should check their card, whether or not a Theft took place. If a Camp wins at that dawn there is no Discussion, and no robbery line.

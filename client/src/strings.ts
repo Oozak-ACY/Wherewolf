@@ -7,13 +7,15 @@ import type { Role } from "./generated/Role";
 import type { Timers } from "./generated/Timers";
 import type { MicProblem } from "./useCall";
 
-// Mirror MIN_PLAYERS, MAX_PLAYERS, MAX_WITCHES, MAX_CUPIDS, MAX_THIEVES, TIMER_BOUNDS
+// Mirror MIN_PLAYERS, MAX_PLAYERS, MAX_WITCHES, MAX_CUPIDS, MAX_THIEVES, MAX_LITTLE_GIRLS,
+// TIMER_BOUNDS
 // and GRACE_PERIOD_BOUNDS (the same as TIMER_BOUNDS) in crates/engine/src/lib.rs.
 export const MIN_PLAYERS = 5;
 export const MAX_PLAYERS = 12;
 export const MAX_WITCHES = 1;
 export const MAX_CUPIDS = 1;
 export const MAX_THIEVES = 1;
+export const MAX_LITTLE_GIRLS = 1;
 export const TIMER_MIN_SECONDS = 10;
 export const TIMER_MAX_SECONDS = 1800;
 
@@ -98,8 +100,8 @@ export const fr = {
     hiddenRolesOn: "Le rôle des morts reste caché aux vivants : le tour de nuit d'un rôle mort dure un temps tiré au hasard.",
     hiddenRolesOff: "Le rôle de chaque mort est révélé à tous.",
     seconds: "s",
-    less: (role: string) => `Un ${role} de moins`,
-    more: (role: string) => `Un ${role} de plus`,
+    less: (role: Role) => `${aRole(role)} de moins`,
+    more: (role: Role) => `${aRole(role)} de plus`,
     timer: {
       discussion: "Débat du jour",
       election: "Élection du Maire",
@@ -126,7 +128,6 @@ export const fr = {
     stillReading: (reading: number) =>
       reading === 1 ? "1 joueur lit encore son rôle." : `${reading} joueurs lisent encore leur rôle.`,
     roleConfirmed: "La nuit tombera quand tout le monde aura vu son rôle.",
-    endDebateToElection: "Passer à l'élection du maire",
     endDebateToVote: "Passer au vote",
     spectator: "spectateur",
     cupidPick: "Choisis les deux Amoureux. Tu peux te choisir.",
@@ -298,35 +299,48 @@ export const fr = {
   roles: {
     werewolf: {
       name: "Loup-Garou",
+      article: "un",
       power: "Chaque nuit, avec les autres Loups-Garous, tu choisis une victime à dévorer.",
     },
     seer: {
       name: "Voyante",
+      article: "une",
       power: "Chaque nuit, tu découvres le rôle d'un joueur de ton choix.",
     },
     witch: {
       name: "Sorcière",
+      article: "une",
       power:
         "Tu as une potion de guérison pour sauver la victime des Loups, et une potion de poison pour tuer. Chacune ne sert qu'une fois.",
     },
     hunter: {
       name: "Chasseur",
+      article: "un",
       power: "Quand tu meurs, tu abats aussitôt un joueur de ton choix.",
     },
     cupid: {
       name: "Cupidon",
+      article: "un",
       power: "La première nuit, tu désignes deux Amoureux, toi compris si tu veux.",
     },
     thief: {
       name: "Voleur",
+      article: "un",
       power:
         "La deuxième nuit, tu peux voler le rôle d'un joueur : à l'aube, tu prends sa carte telle quelle et il devient Villageois. Sinon, tu restes Villageois.",
     },
+    littleGirl: {
+      name: "Petite Fille",
+      article: "une",
+      power:
+        "La nuit, pendant le tour des Loups-Garous, tu peux entrouvrir les yeux pour les espionner. Attention à ne pas te faire prendre !",
+    },
     villager: {
       name: "Villageois",
+      article: "un",
       power: "Aucun pouvoir : seulement ton flair et ta voix pour démasquer les Loups.",
     },
-  } satisfies Record<Role, { name: string; power: string }>,
+  } satisfies Record<Role, { name: string; article: "un" | "une"; power: string }>,
 
   camps: {
     village: { name: "Village", goal: "Éliminer tous les Loups-Garous." },
@@ -376,3 +390,9 @@ export const fr = {
     paused: "La partie est en pause jusqu'au retour de l'hôte.",
   } satisfies Record<Rejection, string>,
 };
+
+/** The Role with its indefinite article, capitalised: "Une Sorcière". */
+function aRole(role: Role): string {
+  const { article, name } = fr.roles[role];
+  return `${article.charAt(0).toUpperCase()}${article.slice(1)} ${name}`;
+}

@@ -97,8 +97,8 @@ pub enum Command {
     /// The Vote: designate a Player to eliminate, or abstain with `None`.
     /// Can be changed until the Vote ends.
     Vote { designated: Option<PlayerId> },
-    /// The Day's debate: end it now, as its timer would. Only the Mayor, or
-    /// the Host (even dead) while no Mayor is elected.
+    /// The Day's debate: end it now, as its timer would. Only the living
+    /// Mayor.
     EndDebate,
     /// The Mayor, on a tied Vote: choose which of the tied Players is
     /// eliminated.
@@ -180,6 +180,8 @@ pub enum Role {
     Hunter,
     Cupid,
     Thief,
+    /// Has no Turn: she may peek at the table during the Werewolves' Turn.
+    LittleGirl,
     Villager,
 }
 
@@ -193,6 +195,7 @@ impl Role {
             | Role::Hunter
             | Role::Cupid
             | Role::Thief
+            | Role::LittleGirl
             | Role::Villager => Camp::Village,
         }
     }
@@ -247,6 +250,7 @@ pub struct PlayerSummary {
 
 /// How many of each Role are in play.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct RoleCounts {
     pub werewolf: u8,
@@ -255,6 +259,7 @@ pub struct RoleCounts {
     pub hunter: u8,
     pub cupid: u8,
     pub thief: u8,
+    pub little_girl: u8,
     pub villager: u8,
 }
 
@@ -275,6 +280,7 @@ impl RoleCounts {
             hunter,
             cupid: 0,
             thief: 0,
+            little_girl: 0,
             villager: (players.max(5) as u8).saturating_sub(special),
         }
     }
@@ -290,6 +296,7 @@ impl RoleCounts {
             (Role::Hunter, self.hunter),
             (Role::Cupid, self.cupid),
             (Role::Thief, self.thief),
+            (Role::LittleGirl, self.little_girl),
             (Role::Villager, self.villager),
         ]
         .into_iter()
@@ -305,6 +312,7 @@ impl RoleCounts {
             self.hunter,
             self.cupid,
             self.thief,
+            self.little_girl,
             self.villager,
         ]
         .iter()
@@ -441,8 +449,8 @@ pub struct PlayerView {
     /// With Hidden Roles on, during a Night Turn, only the Players acting in
     /// it and the Spectators do: its length could give a Feigned Turn away.
     pub sees_countdown: bool,
-    /// Whether this Player may end the Day's debate now: the Mayor, or the
-    /// Host (even dead) while no Mayor is elected, during the debate.
+    /// Whether this Player may end the Day's debate now: the living Mayor,
+    /// during the debate.
     pub may_end_debate: bool,
     /// Whether the Game is Paused: the Host is Disconnected during a Game
     /// not yet won. No timer runs and every Game action is refused until
@@ -539,8 +547,8 @@ pub enum Moment {
     },
     /// Day: the living debate.
     Discussion,
-    /// The first Day: the living elect the Mayor. Ballots stay secret until
-    /// everyone has voted or the timer ends.
+    /// The first Day, before the debate: the living elect the Mayor. Ballots
+    /// stay secret until everyone has voted or the timer ends.
     Election {
         /// Who has already voted, but not for whom.
         voted: Vec<PlayerId>,
@@ -730,8 +738,14 @@ pub const MAX_CUPIDS: u8 = 1;
 /// A Game has at most one Thief.
 pub const MAX_THIEVES: u8 = 1;
 
+/// A Game has at most one Little Girl.
+pub const MAX_LITTLE_GIRLS: u8 = 1;
+
 /// The Night the Thief wakes on, and after which the Theft takes effect.
 const THIEFS_NIGHT: u32 = 2;
+
+/// The Night whose dawn opens on the Election: the first.
+const ELECTION_NIGHT: u32 = 1;
 
 /// Long enough for a first name, short enough to fit under a video tile.
 pub const MAX_NAME_CHARS: usize = 20;
@@ -1230,6 +1244,7 @@ impl Engine {
                     || settings.roles.witch > MAX_WITCHES
                     || settings.roles.cupid > MAX_CUPIDS
                     || settings.roles.thief > MAX_THIEVES
+                    || settings.roles.little_girl > MAX_LITTLE_GIRLS
                     || !timers_valid
                     || !GRACE_PERIOD_BOUNDS.contains(&settings.grace_period)
                 {
@@ -1545,9 +1560,7 @@ impl Engine {
             MomentState::WitchsTurn { .. } => self.end_witchs_turn(),
             MomentState::Dawn { .. } => self.resolve_triggers(Resume::Day),
             MomentState::Discussion => self.end_debate(),
-            MomentState::ElectionResult { .. } => self.game_mut().go_to(MomentState::Vote {
-                ballots: Vec::new(),
-            }),
+            MomentState::ElectionResult { .. } => self.game_mut().go_to(MomentState::Discussion),
             MomentState::Election { .. } => self.end_election(),
             MomentState::Vote { .. } => self.end_vote(),
             // The Mayor did not choose: nobody is eliminated.
@@ -1743,8 +1756,7 @@ impl Engine {
     }
 
     /// It is the Day's debate, and the Player on this seat may end it: the
-    /// Mayor, or the Host while no Mayor is elected, even a Host killed on
-    /// the first Night.
+    /// living Mayor.
     fn require_debate_leader(&self, token: &SeatToken) -> Result<(), Rejection> {
         let player = self.seat_of(token)?.id;
         let debate = matches!(self.state(), Some(MomentState::Discussion));
@@ -2143,25 +2155,16 @@ impl Engine {
         });
     }
 
-    /// The Day's debate is over: the Election follows on the first Day (the
-    /// Mayor is elected then only), the Vote afterwards.
+    /// The Day's debate is over: the Vote follows.
     fn end_debate(&mut self) {
-        let next = if self.mayor().is_none() {
-            MomentState::Election {
-                ballots: Vec::new(),
-            }
-        } else {
-            MomentState::Vote {
-                ballots: Vec::new(),
-            }
-        };
-        self.game_mut().go_to(next);
+        self.game_mut().go_to(MomentState::Vote {
+            ballots: Vec::new(),
+        });
     }
 
-    /// Who may end the Day's debate early: the Mayor, or the Host (living or
-    /// not) while no Mayor is elected.
+    /// Who may end the Day's debate early: the living Mayor.
     fn debate_leader(&self) -> Option<PlayerId> {
-        self.mayor().or_else(|| self.seats.first().map(|s| s.id))
+        self.mayor().filter(|&mayor| self.is_alive(mayor))
     }
 
     /// The Vote is over: it is revealed, and the most-designated Player dies.
@@ -2218,10 +2221,20 @@ impl Engine {
                 .go_to(MomentState::Succession { mayor, then }),
             None => match then {
                 Resume::Day => {
-                    if self.game.as_ref().is_some_and(|g| g.night == THIEFS_NIGHT) {
+                    let night = self.game.as_ref().map_or(0, |g| g.night);
+                    if night == THIEFS_NIGHT {
                         self.carry_out_theft();
                     }
-                    self.unless_decided(MomentState::Discussion);
+                    // The first Day elects the Mayor before its debate (the
+                    // Mayor is elected then only).
+                    let day = if night == ELECTION_NIGHT {
+                        MomentState::Election {
+                            ballots: Vec::new(),
+                        }
+                    } else {
+                        MomentState::Discussion
+                    };
+                    self.unless_decided(day);
                 }
                 Resume::Night => {
                     let night = self.nightfall();

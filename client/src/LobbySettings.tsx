@@ -9,6 +9,7 @@ import { cardImageUrl } from "./RoleCardView";
 import {
   fr,
   MAX_CUPIDS,
+  MAX_LITTLE_GIRLS,
   MAX_PLAYERS,
   MAX_THIEVES,
   MAX_WITCHES,
@@ -17,7 +18,12 @@ import {
 } from "./strings";
 
 /** The most of each Role a Game may hold when there is a limit */
-const MAX_COUNTS: Partial<Record<Role, number>> = { witch: MAX_WITCHES, cupid: MAX_CUPIDS, thief: MAX_THIEVES };
+const MAX_COUNTS: Partial<Record<Role, number>> = {
+  witch: MAX_WITCHES,
+  cupid: MAX_CUPIDS,
+  thief: MAX_THIEVES,
+  littleGirl: MAX_LITTLE_GIRLS,
+};
 const TIMERS = Object.keys(fr.settings.timer) as (keyof Timers)[];
 
 type Props = {
@@ -54,14 +60,14 @@ export function RoleCards({ view, onChange }: Props) {
               {isHost(view) && (
                 <span className="stepper">
                   <button
-                    aria-label={fr.settings.less(name)}
+                    aria-label={fr.settings.less(role)}
                     disabled={count === 0}
                     onClick={() => setRoles({ ...settings.roles, [role]: count - 1 })}
                   >
                     −
                   </button>
                   <button
-                    aria-label={fr.settings.more(name)}
+                    aria-label={fr.settings.more(role)}
                     disabled={total >= MAX_PLAYERS || count >= (MAX_COUNTS[role] ?? Infinity)}
                     onClick={() => setRoles({ ...settings.roles, [role]: count + 1 })}
                   >

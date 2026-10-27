@@ -4,8 +4,8 @@ import type { Role } from "./generated/Role";
 import type { RoleCounts } from "./generated/RoleCounts";
 import { fr } from "./strings";
 
-/** The order the Night calls them in then the Villagers */
-export const ROLES: Role[] = ["werewolf", "cupid", "thief", "seer", "witch", "hunter", "villager"];
+/** The order the Night calls them in then the Little Girl, who peeks during the Werewolves' Turn, and the Villagers */
+export const ROLES: Role[] = ["werewolf", "cupid", "thief", "seer", "witch", "hunter", "littleGirl", "villager"];
 
 /** How many Roles are in play all Roles together */
 export function roleTotal(roles: RoleCounts): number {

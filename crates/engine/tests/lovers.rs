@@ -40,6 +40,7 @@ const ROLES: RoleCounts = RoleCounts {
     hunter: 1,
     cupid: 1,
     thief: 0,
+    little_girl: 0,
     villager: 4,
 };
 
@@ -342,7 +343,7 @@ fn a_lover_killed_by_the_werewolves_dies_at_dawn_and_the_partner_dies_of_grief_r
     }
 
     table.time_runs_out();
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    assert!(matches!(table.moment_for_all(), Moment::Election { .. }));
 }
 
 #[test]
@@ -382,7 +383,7 @@ fn a_lover_poisoned_by_the_witch_dies_at_dawn_and_the_partner_dies_of_grief() {
 
     assert_eq!(table.moment_for_all(), table.grief(&grieving));
     table.time_runs_out();
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    assert!(matches!(table.moment_for_all(), Moment::Election { .. }));
 }
 
 #[test]
@@ -400,7 +401,7 @@ fn a_lover_shot_by_the_hunter_takes_the_partner_with_them() {
 
     assert_eq!(table.moment_for_all(), table.grief(&grieving));
     table.time_runs_out();
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    assert!(matches!(table.moment_for_all(), Moment::Election { .. }));
 }
 
 #[test]
@@ -422,7 +423,7 @@ fn a_hunter_who_dies_of_grief_shoots_next() {
     let player = table.id(&shot);
     table.act(&hunter, Command::Shoot { player });
     table.time_runs_out();
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    assert!(matches!(table.moment_for_all(), Moment::Election { .. }));
 }
 
 #[test]
@@ -487,7 +488,7 @@ fn both_lovers_dying_the_same_night_die_at_dawn_and_grief_kills_nobody_twice() {
     assert_eq!(deaths, both);
 
     table.time_runs_out();
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    assert!(matches!(table.moment_for_all(), Moment::Election { .. }));
 }
 
 #[test]
@@ -507,7 +508,7 @@ fn a_hunter_lover_dying_the_same_night_as_the_partner_still_shoots_and_grief_kil
     table.act(&hunter, Command::Shoot { player });
     table.time_runs_out();
 
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    assert!(matches!(table.moment_for_all(), Moment::Election { .. }));
 }
 
 #[test]
@@ -547,6 +548,7 @@ const SMALL: RoleCounts = RoleCounts {
     hunter: 0,
     cupid: 1,
     thief: 0,
+    little_girl: 0,
     villager: 2,
 };
 
@@ -671,7 +673,7 @@ fn the_werewolves_outside_the_couple_win_once_they_are_as_many_as_everyone_else(
     table.night(Some(&table.villager(1)), None);
     // Two Werewolves outside the couple, against the two Lovers and Cupid.
     table.time_runs_out();
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    assert!(matches!(table.moment_for_all(), Moment::Election { .. }));
     table.until_the_vote(&cupid);
 
     table.vote_out(&cupid);

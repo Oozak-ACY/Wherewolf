@@ -109,6 +109,7 @@ impl Table {
             hunter: 0,
             cupid: 0,
             thief: 0,
+            little_girl: 0,
             villager: count as u8 - werewolves,
         };
         table.act("P1", Command::UpdateSettings { settings });
@@ -206,7 +207,7 @@ fn by_day_the_living_see_each_other_and_never_the_spectators() {
     let living = table.living();
     let living_refs: Vec<&str> = living.iter().map(String::as_str).collect();
 
-    // Dawn, the discussion, the Election, its result, the Vote and its result.
+    // Dawn, the Election, its result, the discussion, the Vote and its result.
     for _ in 0..6 {
         for name in &living {
             let mut others = table.ids(&living_refs);
@@ -372,6 +373,7 @@ fn during_the_seers_turn_she_and_every_living_player_see_and_hear_nobody() {
         hunter: 0,
         cupid: 0,
         thief: 0,
+        little_girl: 0,
         villager: 4,
     };
     table.act("P1", Command::UpdateSettings { settings });

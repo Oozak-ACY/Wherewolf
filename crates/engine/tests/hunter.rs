@@ -38,6 +38,7 @@ const ONE_HUNTER: RoleCounts = RoleCounts {
     hunter: 1,
     cupid: 0,
     thief: 0,
+    little_girl: 0,
     villager: 4,
 };
 
@@ -49,6 +50,7 @@ const TWO_HUNTERS: RoleCounts = RoleCounts {
     hunter: 2,
     cupid: 0,
     thief: 0,
+    little_girl: 0,
     villager: 3,
 };
 
@@ -225,7 +227,7 @@ impl Table {
         }
     }
 
-    /// From the Discussion, every living Player votes against `designated`.
+    /// From the dawn on, every living Player votes against `designated`.
     /// On the first Day, they elect as Mayor a Villager who survives every
     /// script here, so no succession gets in the way.
     fn village_eliminates(&mut self, designated: &str) {
@@ -295,7 +297,7 @@ fn a_hunter_killed_at_night_shoots_after_the_dawn_announcement() {
     }
 
     table.time_runs_out();
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    assert!(matches!(table.moment_for_all(), Moment::Election { .. }));
 }
 
 #[test]
@@ -359,7 +361,7 @@ fn when_the_hunter_does_not_shoot_in_time_the_shot_is_lost() {
         .count();
     assert_eq!(living_after, living_before);
     table.time_runs_out();
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    assert!(matches!(table.moment_for_all(), Moment::Election { .. }));
 }
 
 #[test]
@@ -423,7 +425,7 @@ fn a_hunter_shot_by_a_hunter_shoots_in_turn() {
     );
 
     table.time_runs_out();
-    assert_eq!(table.moment_for_all(), Moment::Discussion);
+    assert!(matches!(table.moment_for_all(), Moment::Election { .. }));
 }
 
 #[test]
