@@ -43,7 +43,7 @@ The state of a Game while the Host is Disconnected: every timer stops and the Na
 _Avoid_: Frozen, on hold
 
 **Game**:
-One complete session of Werewolf, from the moment the Host starts it until one Camp wins, or until nobody is left alive (a draw). Takes 5 to 12 Players. It opens with each Player seeing their Role on their phone; the first Night falls only once every living Player has confirmed they have seen it (the Role reveal).
+One complete session of Werewolf, from the moment the Host starts it until one Camp wins, or until nobody is left alive (a draw). Takes 5 to 15 Players. It opens with each Player seeing their Role on their phone; the first Night falls only once every living Player has confirmed they have seen it (the Role reveal).
 _Avoid_: Match, party
 
 **Phase**:
@@ -65,7 +65,7 @@ The Player the Werewolves choose to kill during their Turn — any living Player
 _Avoid_: Target, prey
 
 **Elimination**:
-Any Player's death, whether by the Werewolves, the Witch's poison, the Vote, the Hunter's shot or grief. The Player becomes a Spectator, and their Role is revealed to everyone unless Hidden Roles is on.
+Any Player's death, whether by the Werewolves, the Assassin, the Witch's poison, the Vote, the Hunter's shot or grief. The Player becomes a Spectator, and their Role is revealed to everyone unless Hidden Roles is on.
 _Avoid_: Kill (for the generic case), removal
 
 **Death trigger**:
@@ -112,11 +112,15 @@ The secret card dealt to a Player at the start of a Game, which decides their Ca
 _Avoid_: Character, class, card
 
 **Camp**:
-The side a Player wins or loses with: the Village, the Werewolves, or the Lovers.
+The side a Player wins or loses with: the Village, the Werewolves, the Lovers, or the Assassin (a Camp of one).
 _Avoid_: Team, faction
 
-**Werewolf**, **Villager**, **Seer**, **Witch**, **Hunter**, **Cupid**, **Thief**, **Little Girl**:
-The Roles available. All but the Werewolf belong to the Village.
+**Werewolf**, **Villager**, **Seer**, **Witch**, **Hunter**, **Cupid**, **Thief**, **Little Girl**, **Assassin**:
+The Roles available. All but the Werewolf and the Assassin belong to the Village.
+
+**Assassin**:
+A solo Role, at most one per Game, forming a Camp of their own. Each Night, in their own Turn right after the Werewolves', the Assassin may choose one other living Player to kill (a Werewolf included), or nobody; that Player dies at dawn unless the Witch saves them. The Witch learns who is dying tonight, never who chose them, and her one life potion saves a Player from every attack that Night. The Assassin can be the Werewolves' Victim like anyone else. They win only as the last Player alive; while they live, neither the Village nor the Werewolves can win.
+_Avoid_: Killer, Serial killer
 
 **Thief**:
 A Village Role that acts only on the second Night, in the first Turn: the Thief may choose a living Player to rob, or nobody. The Theft takes effect at dawn: the Thief takes the robbed Player's Role as it stands (a spent potion stays spent), and the robbed Player holds a Villager card and plays with the Village from then on. The Mayor title and the Lovers bond stay with the robbed Player. A Thief who robs nobody plays as a Villager.
@@ -133,5 +137,5 @@ _Avoid_: Steal, swap
 A Village Role that acts only on the first Night: Cupid names two different Players (themself allowed) as the Lovers. If their timer runs out, the Narrator draws the two at random.
 
 **Lovers**:
-The two Players Cupid named. Right after Cupid's Turn they wake together in their own Turn: each sees who their partner is (not their Role) and confirms. The bond is between the two Players, not their Roles. When one Lover is eliminated, the other dies of grief, as a Death trigger. Their Camp follows their current Roles (so a Theft can change it): two Lovers from the same Camp keep it; a Werewolf and a non-Werewolf form the Lovers Camp, which wins only if they are the last two alive. Each keeps their Role's abilities.
+The two Players Cupid named. Right after Cupid's Turn they wake together in their own Turn: each sees who their partner is (not their Role) and confirms. The bond is between the two Players, not their Roles. When one Lover is eliminated, the other dies of grief, as a Death trigger. Their Camp follows their current Roles (so a Theft can change it): two Lovers from the same Camp keep it; two Lovers from different Camps (a Werewolf and a non-Werewolf, or the Assassin and anyone) form the Lovers Camp, which wins only if they are the last two alive. Each keeps their Role's abilities.
 _Avoid_: Couple, lovebirds
