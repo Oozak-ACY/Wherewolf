@@ -2012,19 +2012,18 @@ impl Engine {
         self.game.as_ref().is_some_and(Game::is_over)
     }
 
-    /// The Camp `seat` plays for: the Lovers Camp in a mixed couple (one a
-    /// Werewolf, the other not), otherwise their Role's.
+    /// The Camp `seat` plays for: the Lovers Camp in a mixed couple (Lovers
+    /// whose Roles are of different Camps), otherwise their Role's.
     fn camp_of(&self, seat: &Seat) -> Camp {
-        let werewolf = |s: &Seat| s.role == Some(Role::Werewolf);
+        let role_camp = |s: &Seat| s.role.map_or(Camp::Village, Role::camp);
         let partner = self
             .game
             .as_ref()
             .and_then(|g| g.partner_of(seat.id))
             .and_then(|id| self.seats.iter().find(|s| s.id == id));
-        match (seat.role, partner) {
-            (_, Some(partner)) if werewolf(seat) != werewolf(partner) => Camp::Lovers,
-            (Some(role), _) => role.camp(),
-            (None, _) => Camp::Village,
+        match partner {
+            Some(partner) if role_camp(seat) != role_camp(partner) => Camp::Lovers,
+            _ => role_camp(seat),
         }
     }
 
@@ -2299,21 +2298,28 @@ impl Engine {
         self.winner().is_some() || self.living().next().is_none()
     }
 
-    /// The Village wins once every Werewolf is dead, a Werewolf Lover
-    /// included, which takes precedence; a mixed couple of Lovers wins as the
-    /// last two alive; the Werewolves win once they are at least as many as
-    /// everyone else, the Lovers counted among everyone else. Nobody wins
+    /// The Assassin wins as the only Player alive (never as a Lover, whose
+    /// partner always dies of grief); the Village once every Werewolf and
+    /// the Assassin are dead, a Lover among them included, which takes
+    /// precedence; a mixed couple of Lovers as the last two alive; the
+    /// Werewolves, once the Assassin is dead, when they are at least as many
+    /// as everyone else, the Lovers counted among everyone else. Nobody wins
     /// while nobody is alive.
     fn winner(&self) -> Option<Camp> {
         let living = self.living().count();
         let in_camp = |camp| self.living().filter(|s| self.camp_of(s) == camp).count();
+        let alive = |role| self.living().any(|s| s.role == Some(role));
         let werewolves = in_camp(Camp::Werewolves);
         if living == 0 {
             None
-        } else if !self.living().any(|s| s.role == Some(Role::Werewolf)) {
+        } else if living == 1 && in_camp(Camp::Assassin) == 1 {
+            Some(Camp::Assassin)
+        } else if !alive(Role::Werewolf) && !alive(Role::Assassin) {
             Some(Camp::Village)
         } else if living == 2 && in_camp(Camp::Lovers) == 2 {
             Some(Camp::Lovers)
+        } else if alive(Role::Assassin) {
+            None
         } else if werewolves >= living - werewolves {
             Some(Camp::Werewolves)
         } else {

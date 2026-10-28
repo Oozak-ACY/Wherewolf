@@ -125,6 +125,7 @@ describe("the outcome of the Game", () => {
     expect(outcome("village")).toEqual({ title: "Le Village triomphe", pill: "Village" });
     expect(outcome("werewolves")).toEqual({ title: "Les Loups-Garous triomphent", pill: "Loups-Garous" });
     expect(outcome("lovers")).toEqual({ title: "Les Amoureux triomphent", pill: "Amoureux" });
+    expect(outcome("assassin")).toEqual({ title: "L'Assassin triomphe", pill: "Assassin" });
   });
 
   test("is a draw without a pill when nobody is left alive", () => {

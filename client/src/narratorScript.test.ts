@@ -386,7 +386,7 @@ describe("the Day", () => {
     expect(heard(cuesAt({ type: "victory", winner: "village" }))).toEqual(["villageWins"]);
     expect(heard(cuesAt({ type: "victory", winner: "werewolves" }))).toEqual(["werewolvesWin"]);
     expect(heard(cuesAt({ type: "victory", winner: "lovers" }))).toEqual(["loversWin"]);
-  });
+    expect(heard(cuesAt({ type: "victory", winner: "assassin" }))).toEqual(["assassinWins"]);  });
 
   test("a Game nobody survived ends on a fixed line of its own", () => {
     expect(heard(cuesAt({ type: "victory", winner: null }))).toEqual(["nobodySurvived"]);

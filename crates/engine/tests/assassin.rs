@@ -200,6 +200,90 @@ impl Table {
         }
     }
 
+    fn living(&self) -> Vec<String> {
+        self.everyone()
+            .into_iter()
+            .filter(|n| self.alive(n))
+            .collect()
+    }
+
+    /// Everyone dealt `role`, in seat order.
+    fn with_role(&self, role: Role) -> Vec<String> {
+        self.dealt
+            .iter()
+            .filter(|(_, r)| *r == role)
+            .map(|(name, _)| name.clone())
+            .collect()
+    }
+
+    /// Cupid binds `first` and `second`, and the Lovers' Turn runs out.
+    fn bind(&mut self, first: &str, second: &str) {
+        self.until(|m| matches!(m, Moment::CupidsTurn));
+        let lovers = vec![self.id(first), self.id(second)];
+        let cupid = self.dealt(Role::Cupid);
+        self.act(&cupid, Command::ChooseLovers { lovers });
+        self.time_runs_out();
+    }
+
+    /// The rest of this Night up to the dawn, the Werewolves killing
+    /// `victim`, or nobody.
+    fn night(&mut self, victim: Option<&str>) {
+        if let Some(victim) = victim {
+            self.werewolves_kill(victim);
+        }
+        self.until(|m| matches!(m, Moment::Dawn { .. }));
+    }
+
+    /// From the dawn to the Vote: on the first Day, every living Player
+    /// elects `mayor`.
+    fn until_the_vote(&mut self, mayor: &str) {
+        loop {
+            match self.moment() {
+                Moment::Vote { .. } => return,
+                Moment::Election { .. } => {
+                    let candidate = self.id(mayor);
+                    for voter in self.living() {
+                        self.act(&voter, Command::Elect { candidate });
+                    }
+                }
+                _ => self.time_runs_out(),
+            }
+        }
+    }
+
+    /// Every living Player votes against `designated`, and the result is
+    /// announced.
+    fn vote_out(&mut self, designated: &str) {
+        let designated = Some(self.id(designated));
+        for voter in self.living() {
+            self.act(&voter, Command::Vote { designated });
+        }
+        self.time_runs_out();
+    }
+
+    /// The last two alive vote against each other, the Mayor eliminates
+    /// `designated`, and the result is announced.
+    fn tie_broken_against(&mut self, mayor: &str, designated: &str) {
+        let living = self.living();
+        assert_eq!(living.len(), 2, "the last two alive");
+        for (voter, other) in [(&living[0], &living[1]), (&living[1], &living[0])] {
+            let designated = Some(self.id(other));
+            self.act(voter, Command::Vote { designated });
+        }
+        assert!(matches!(self.moment(), Moment::TieBreak { .. }));
+        let player = self.id(designated);
+        self.act(mayor, Command::BreakTie { player });
+        self.time_runs_out();
+    }
+
+    /// The winner, once the Game is over: `Some(None)` for a draw.
+    fn victory(&self) -> Option<Option<Camp>> {
+        match self.moment() {
+            Moment::Victory { winner } => Some(*winner),
+            _ => None,
+        }
+    }
+
     /// The Turns of the rest of this Night, in order, letting each one's
     /// time run out, up to the dawn.
     fn rest_of_the_night(&mut self) -> Vec<&'static str> {
@@ -344,4 +428,175 @@ fn with_hidden_roles_on_an_eliminated_assassin_stays_hidden() {
             assert_eq!(table.revealed_to(&name, &assassin), None, "{name}");
         }
     }
+}
+
+/// One Werewolf, the Assassin and three Villagers.
+const DUEL: RoleCounts = RoleCounts {
+    werewolf: 1,
+    seer: 0,
+    witch: 0,
+    hunter: 0,
+    cupid: 0,
+    thief: 0,
+    little_girl: 0,
+    assassin: 1,
+    villager: 3,
+};
+
+/// Cupid, one Werewolf, the Assassin and two Villagers.
+const WITH_CUPID: RoleCounts = RoleCounts {
+    cupid: 1,
+    villager: 2,
+    ..DUEL
+};
+
+#[test]
+fn with_no_werewolf_left_the_game_goes_on_until_the_assassin_alone_survives() {
+    let mut table = Table::start_with(DUEL, false);
+    let (wolf, assassin) = (table.dealt(Role::Werewolf), table.assassin());
+    let villagers = table.with_role(Role::Villager);
+    table.night(Some(&villagers[0]));
+    table.until_the_vote(&assassin);
+
+    table.vote_out(&wolf);
+    assert_eq!(table.victory(), None, "the Assassin still lives");
+
+    table.night(None);
+    table.until_the_vote(&assassin);
+    table.vote_out(&villagers[1]);
+    assert_eq!(table.victory(), None);
+
+    // The Day opens with the Assassin and one other Player: the Mayor
+    // breaks the tie.
+    table.night(None);
+    table.until_the_vote(&assassin);
+    table.tie_broken_against(&assassin, &villagers[2]);
+
+    assert_eq!(table.victory(), Some(Some(Camp::Assassin)));
+    assert_eq!(table.living(), [assassin]);
+}
+
+#[test]
+fn the_werewolves_at_parity_have_not_won_while_the_assassin_lives() {
+    let mut table = Table::start_with(DUEL, false);
+    let (wolf, assassin) = (table.dealt(Role::Werewolf), table.assassin());
+    let villagers = table.with_role(Role::Villager);
+    table.night(Some(&villagers[0]));
+    table.until_the_vote(&wolf);
+    table.vote_out(&villagers[1]);
+
+    // One Werewolf and the Assassin left at dawn: the Day goes on.
+    table.night(Some(&villagers[2]));
+    table.time_runs_out();
+    assert_eq!(table.victory(), None);
+
+    // The Werewolf, as Mayor, breaks the tie.
+    table.until_the_vote(&wolf);
+    table.tie_broken_against(&wolf, &assassin);
+
+    assert_eq!(table.victory(), Some(Some(Camp::Werewolves)));
+}
+
+#[test]
+fn the_assassin_dead_the_werewolves_win_at_parity() {
+    let roles = RoleCounts {
+        werewolf: 2,
+        villager: 2,
+        ..DUEL
+    };
+    let mut table = Table::start_with(roles, false);
+    let assassin = table.assassin();
+
+    table.night(Some(&assassin));
+    table.time_runs_out();
+
+    assert_eq!(table.victory(), Some(Some(Camp::Werewolves)));
+}
+
+#[test]
+fn the_village_wins_once_every_werewolf_and_the_assassin_are_dead() {
+    let mut table = Table::start_with(DUEL, false);
+    let (wolf, assassin) = (table.dealt(Role::Werewolf), table.assassin());
+    let villager = table.dealt(Role::Villager);
+    table.night(Some(&assassin));
+    table.until_the_vote(&villager);
+
+    table.vote_out(&wolf);
+
+    assert_eq!(table.victory(), Some(Some(Camp::Village)));
+}
+
+#[test]
+fn an_assassin_bound_to_a_villager_wins_with_them_as_the_last_two_alive() {
+    let mut table = Table::start_with(WITH_CUPID, false);
+    let (wolf, assassin, cupid) = (
+        table.dealt(Role::Werewolf),
+        table.assassin(),
+        table.dealt(Role::Cupid),
+    );
+    let villagers = table.with_role(Role::Villager);
+    table.bind(&assassin, &villagers[0]);
+    assert_eq!(table.card(&assassin).camp, Camp::Lovers);
+    assert_eq!(table.card(&villagers[0]).camp, Camp::Lovers);
+
+    table.night(Some(&cupid));
+    table.until_the_vote(&assassin);
+    table.vote_out(&wolf);
+    assert_eq!(table.victory(), None, "the Assassin still lives");
+
+    table.night(None);
+    table.until_the_vote(&assassin);
+    table.vote_out(&villagers[1]);
+
+    assert_eq!(table.victory(), Some(Some(Camp::Lovers)));
+}
+
+#[test]
+fn a_werewolf_bound_to_the_assassin_loses_to_the_village_once_both_are_dead() {
+    let roles = RoleCounts {
+        werewolf: 2,
+        ..WITH_CUPID
+    };
+    let mut table = Table::start_with(roles, false);
+    let (assassin, cupid) = (table.assassin(), table.dealt(Role::Cupid));
+    let wolves = table.with_role(Role::Werewolf);
+    let villager = table.dealt(Role::Villager);
+    table.bind(&wolves[0], &assassin);
+    assert_eq!(table.card(&wolves[0]).camp, Camp::Lovers);
+    assert_eq!(table.card(&assassin).camp, Camp::Lovers);
+
+    table.night(Some(&cupid));
+    table.until_the_vote(&villager);
+    table.vote_out(&wolves[1]);
+    assert_eq!(table.victory(), None);
+
+    table.night(None);
+    table.until_the_vote(&villager);
+    table.vote_out(&wolves[0]);
+    assert!(matches!(table.moment(), Moment::Grief { .. }));
+    table.time_runs_out();
+
+    assert_eq!(table.victory(), Some(Some(Camp::Village)));
+}
+
+#[test]
+fn a_werewolf_bound_to_the_assassin_wins_with_them_as_the_last_two_alive() {
+    let mut table = Table::start_with(WITH_CUPID, false);
+    let (wolf, assassin, cupid) = (
+        table.dealt(Role::Werewolf),
+        table.assassin(),
+        table.dealt(Role::Cupid),
+    );
+    let villagers = table.with_role(Role::Villager);
+    table.bind(&wolf, &assassin);
+
+    table.night(Some(&cupid));
+    table.until_the_vote(&villagers[0]);
+    table.vote_out(&villagers[0]);
+    assert_eq!(table.victory(), None);
+
+    table.night(Some(&villagers[1]));
+    table.time_runs_out();
+
+    assert_eq!(table.victory(), Some(Some(Camp::Lovers)));
 }
