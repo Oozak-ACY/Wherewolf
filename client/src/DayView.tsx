@@ -361,6 +361,8 @@ export function GameNotes({ view, moment }: { view: PlayerView; moment: Moment }
       {view.theft && (
         <p>{fr.game.theft(name(view.theft.thief), view.theft.robbed === null ? null : name(view.theft.robbed))}</p>
       )}
+      {/* Only a Spectator knows whom the Assassin chose until the next Night falls */}
+      {view.assassinTarget !== null && <p>{fr.game.assassinTarget(name(view.assassinTarget))}</p>}
     </>
   );
 }

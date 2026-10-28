@@ -25,6 +25,7 @@ const ACTING: Partial<Record<NonNullable<PlayerView["moment"]>["type"], (view: P
   thiefsTurn: holds("thief"),
   seersTurn: holds("seer"),
   werewolvesTurn: holds("werewolf"),
+  assassinsTurn: holds("assassin"),
   witchsTurn: holds("witch"),
 };
 

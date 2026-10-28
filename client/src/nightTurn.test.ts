@@ -41,6 +41,7 @@ function view(role: Role | null, moment: Moment, changes: Partial<PlayerView> = 
     mayor: null,
     lovers: [],
     theft: null,
+    assassinTarget: null,
     receives: [],
     audience: [],
     seesCountdown: true,
@@ -64,6 +65,7 @@ const turns: [Moment, Role, Partial<PlayerView>, { card: string; title: string }
     {},
     { card: "werewolf", title: "Loups-Garous" },
   ],
+  [{ type: "assassinsTurn" }, "assassin", {}, { card: "assassin", title: "Assassin" }],
   [
     { type: "witchsTurn", witch: { dying: [BOB], healed: null, poisoned: null, passed: false } },
     "witch",

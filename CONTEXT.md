@@ -85,7 +85,7 @@ A Setting: how long a Disconnected Player keeps their seat in the Lobby before i
 _Avoid_: Timeout, kick, AFK delay
 
 **Feigned Turn**:
-With Hidden Roles on, a Night Turn where nothing can happen: the Seer's or the Witch's when she is dead, or the Witch's when she has no potion she could use tonight. It lasts a random time, from a minimum set in the timers (10 seconds by default) up to the Turn's own timer, so that its length looks like a living Role taking their time.
+With Hidden Roles on, a Night Turn where nothing can happen: the Thief's, the Seer's, the Assassin's or the Witch's when they are dead, or the Witch's when she has no potion she could use tonight. It lasts a random time, from a minimum set in the timers (10 seconds by default) up to the Turn's own timer, so that its length looks like a living Role taking their time.
 _Avoid_: Fake turn, dummy turn
 
 **Hidden Roles**:

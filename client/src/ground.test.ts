@@ -41,6 +41,7 @@ function view(role: Role | null, moment: Moment | null, changes: Partial<PlayerV
     mayor: null,
     lovers: [],
     theft: null,
+    assassinTarget: null,
     receives: [],
     audience: [],
     seesCountdown: true,
@@ -59,6 +60,7 @@ const nightTurns: [Role, Moment, Partial<PlayerView>][] = [
   ["thief", { type: "thiefsTurn" }, {}],
   ["seer", { type: "seersTurn", inspection: null, passed: false }, {}],
   ["werewolf", { type: "werewolvesTurn", picks: [] }, {}],
+  ["assassin", { type: "assassinsTurn" }, {}],
   ["witch", { type: "witchsTurn", witch: { dying: [BOB], healed: null, poisoned: null, passed: false } }, {}],
 ];
 
@@ -136,6 +138,7 @@ describe("the pick rows", () => {
     ["Cupid", "cupid", { type: "cupidsTurn" }, {}],
     ["the Thief", "thief", { type: "thiefsTurn" }, {}],
     ["the Seer", "seer", { type: "seersTurn", inspection: null, passed: false }, {}],
+    ["the Assassin", "assassin", { type: "assassinsTurn" }, {}],
     [
       "the Witch's poison",
       "witch",

@@ -20,6 +20,7 @@ type Props = {
   onChooseLovers: (lovers: PlayerId[]) => void;
   onConfirmPartner: () => void;
   onRob: (player: PlayerId) => void;
+  onKill: (player: PlayerId) => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
   onHeal: (player: PlayerId) => void;
@@ -146,6 +147,23 @@ export function NightTurnView(props: Props) {
             ))}
           </ul>
         </>
+      );
+      break;
+
+    case "assassinsTurn":
+      content = mode ? (
+        <>
+          {head(<p>{fr.game.assassinPick}</p>)}
+          <Choice
+            mode={mode}
+            players={others}
+            confirmLabel={fr.game.confirm.kill}
+            onChoose={props.onKill}
+            actions={[{ label: fr.game.assassinPass, onChoose: props.onPass }]}
+          />
+        </>
+      ) : (
+        choosing(fr.game.assassinChoosing)
       );
       break;
 

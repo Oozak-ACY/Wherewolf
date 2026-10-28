@@ -86,6 +86,36 @@ describe("Cupid and the Lovers, on the first Night", () => {
   });
 });
 
+const assassinsTurn: Moment = { type: "assassinsTurn" };
+
+describe("the Assassin, every Night", () => {
+  test("the Werewolves go back to sleep, then the Assassin wakes", () => {
+    expect(heard(narratorCues(view(werewolvesTurn), view(assassinsTurn)))).toEqual([
+      "werewolvesSleep",
+      "assassinsTurn",
+    ]);
+  });
+
+  test("the Assassin goes back to sleep before the Witch wakes, to a bottle smash", () => {
+    expect(heard(narratorCues(view(assassinsTurn), view(witchsTurn)))).toEqual([
+      "assassinSleeps",
+      "sound:bottle",
+      "witchsTurn",
+    ]);
+  });
+
+  test("the Assassin goes back to sleep before the dawn", () => {
+    expect(heard(narratorCues(view(assassinsTurn), view({ type: "dawn", deaths: [], robbery: false }))).slice(0, 2)).toEqual([
+      "assassinSleeps",
+      "background:day",
+    ]);
+  });
+
+  test("every phone shows the same line, never naming the Assassin", () => {
+    expect(narratorText(view(assassinsTurn))).toBe(fr.narrator.fixed.assassinsTurn);
+  });
+});
+
 const thiefsTurn: Moment = { type: "thiefsTurn" };
 
 describe("the Thief, on the second Night", () => {

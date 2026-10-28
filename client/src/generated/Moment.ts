@@ -37,7 +37,7 @@ passed: boolean, } | { "type": "werewolvesTurn",
  * Each Werewolf's current pick, live. Only the Werewolves and the
  * Spectators see them.
  */
-picks: Array<Pick> | null, } | { "type": "witchsTurn", 
+picks: Array<Pick> | null, } | { "type": "assassinsTurn" } | { "type": "witchsTurn", 
 /**
  * What the Witch knows and did this Turn. Only the Witch and the
  * Spectators see it.

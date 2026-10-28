@@ -41,6 +41,7 @@ const SLEEP_LINES: Partial<Record<MomentType, FixedLine>> = {
   thiefsTurn: "thiefSleeps",
   seersTurn: "seerSleeps",
   werewolvesTurn: "werewolvesSleep",
+  assassinsTurn: "assassinSleeps",
   witchsTurn: "witchSleeps",
 };
 
@@ -116,6 +117,8 @@ function momentCues(moment: Moment, { players, settings }: NarratorView): Cue[] 
       return [fixed("seersTurn")];
     case "werewolvesTurn":
       return [sound("howl"), fixed("werewolvesTurn")];
+    case "assassinsTurn":
+      return [fixed("assassinsTurn")];
     case "witchsTurn":
       return [sound("bottle"), fixed("witchsTurn")];
     case "dawn":

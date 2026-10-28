@@ -108,6 +108,7 @@ fn the_timers_start_at_their_defaults() {
             thief: 30,
             seer: 30,
             werewolves: 60,
+            assassin: 30,
             witch: 30,
             hunter: 30,
             mayor_successor: 30,

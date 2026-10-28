@@ -40,6 +40,9 @@ pub enum ClientMessage {
     Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.
     PickVictim { victim: PlayerId },
+    /// The Assassin's Turn: kill a living Player other than themself at
+    /// dawn.
+    Kill { player: PlayerId },
     /// Witch's Turn: save a Player dying tonight with the healing potion,
     /// once a Game.
     Heal { player: PlayerId },
@@ -47,8 +50,9 @@ pub enum ClientMessage {
     /// potion, once a Game.
     Poison { player: PlayerId },
     /// Do nothing in this Moment: the Seer inspects nobody, a Werewolf picks
-    /// nobody, the Witch uses no more potions, the eliminated Hunter shoots
-    /// nobody, the Mayor on a tie eliminates nobody. Not on succession.
+    /// nobody, the Assassin kills nobody, the Witch uses no more potions, the
+    /// eliminated Hunter shoots nobody, the Mayor on a tie eliminates nobody.
+    /// Not on succession.
     Pass,
     /// The Election: vote for a living Player, yourself included, to be
     /// Mayor. Can be changed until the Election ends.

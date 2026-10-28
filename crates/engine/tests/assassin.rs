@@ -276,6 +276,16 @@ impl Table {
         self.time_runs_out();
     }
 
+    /// Lets the rest of the Night run out, and who dies at its dawn. `None`
+    /// if the Game ended first.
+    fn dawn_deaths(&mut self) -> Option<Vec<PlayerId>> {
+        self.until(|m| matches!(m, Moment::Dawn { .. } | Moment::Victory { .. }));
+        match self.moment() {
+            Moment::Dawn { deaths, .. } => Some(deaths.clone()),
+            _ => None,
+        }
+    }
+
     /// The winner, once the Game is over: `Some(None)` for a draw.
     fn victory(&self) -> Option<Option<Camp>> {
         match self.moment() {
@@ -303,6 +313,7 @@ fn turn_name(moment: &Moment) -> &'static str {
         Moment::ThiefsTurn => "Thief",
         Moment::SeersTurn { .. } => "Seer",
         Moment::WerewolvesTurn { .. } => "Werewolves",
+        Moment::AssassinsTurn => "Assassin",
         Moment::WitchsTurn { .. } => "Witch",
         other => panic!("not a Night Turn: {other:?}"),
     }
@@ -358,7 +369,7 @@ fn the_assassin_is_dealt_a_card_of_their_own_camp() {
 }
 
 #[test]
-fn the_assassin_has_no_turn_yet_and_the_night_order_is_unchanged() {
+fn the_assassin_wakes_every_night_right_after_the_werewolves() {
     let mut with_assassin = Table::start();
     let mut without_assassin = Table::start_with(
         RoleCounts {
@@ -369,10 +380,249 @@ fn the_assassin_has_no_turn_yet_and_the_night_order_is_unchanged() {
         false,
     );
 
-    let night = with_assassin.rest_of_the_night();
+    assert_eq!(
+        with_assassin.rest_of_the_night(),
+        ["Seer", "Werewolves", "Assassin", "Witch"]
+    );
+    assert_eq!(
+        without_assassin.rest_of_the_night(),
+        ["Seer", "Werewolves", "Witch"]
+    );
 
-    assert_eq!(night, ["Seer", "Werewolves", "Witch"]);
-    assert_eq!(night, without_assassin.rest_of_the_night());
+    with_assassin.until(|m| matches!(m, Moment::SeersTurn { .. }));
+    assert_eq!(
+        with_assassin.rest_of_the_night(),
+        ["Seer", "Werewolves", "Assassin", "Witch"],
+        "the second Night"
+    );
+}
+
+#[test]
+fn the_assassins_turn_lasts_their_timer_which_defaults_to_thirty_seconds() {
+    let mut table = Table::start();
+    assert_eq!(table.view("P1").settings.timers.assassin, 30);
+
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+
+    assert_eq!(table.outputs.timer().map(|t| t.seconds), Some(30));
+}
+
+#[test]
+fn the_assassins_target_dies_at_dawn_and_their_turn_ends_on_confirming() {
+    let mut table = Table::start_with(DUEL, false);
+    let assassin = table.assassin();
+    let villager = table.dealt(Role::Villager);
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+
+    let player = table.id(&villager);
+    table.act(&assassin, Command::Kill { player });
+
+    assert_eq!(table.dawn_deaths(), Some(vec![player]));
+    assert!(!table.alive(&villager));
+}
+
+#[test]
+fn the_assassin_can_kill_a_werewolf() {
+    let mut table = Table::start_with(DUEL, false);
+    let (wolf, assassin) = (table.dealt(Role::Werewolf), table.assassin());
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+
+    let player = table.id(&wolf);
+    table.act(&assassin, Command::Kill { player });
+
+    assert_eq!(table.dawn_deaths(), Some(vec![player]));
+}
+
+#[test]
+fn only_the_assassin_kills_and_never_themself_nor_the_dead() {
+    let mut table = Table::start_with(DUEL, false);
+    let (wolf, assassin) = (table.dealt(Role::Werewolf), table.assassin());
+    let villagers = table.with_role(Role::Villager);
+    table.werewolves_kill(&villagers[0]);
+    table.until(|m| matches!(m, Moment::Dawn { .. }));
+    let (dead, living, itself) = (
+        table.id(&villagers[0]),
+        table.id(&villagers[1]),
+        table.id(&assassin),
+    );
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+
+    let mut kill = |name: &str, player| table.engine.handle(&seat(name), Command::Kill { player });
+    assert_eq!(kill(&assassin, itself), Err(Rejection::Yourself));
+    assert_eq!(kill(&assassin, dead), Err(Rejection::NotInPlay));
+    assert_eq!(kill(&wolf, living), Err(Rejection::NotYourTurn));
+    assert_eq!(kill(&villagers[0], living), Err(Rejection::Spectating));
+}
+
+#[test]
+fn the_assassin_kills_only_in_their_turn() {
+    let mut table = Table::start_with(DUEL, false);
+    let assassin = table.assassin();
+    table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
+
+    let player = table.id(&table.dealt(Role::Villager));
+    assert_eq!(
+        table
+            .engine
+            .handle(&seat(&assassin), Command::Kill { player }),
+        Err(Rejection::NotNow)
+    );
+}
+
+#[test]
+fn passing_kills_nobody() {
+    let mut table = Table::start_with(DUEL, false);
+    let assassin = table.assassin();
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+
+    table.act(&assassin, Command::Pass);
+
+    assert_eq!(table.dawn_deaths(), Some(vec![]));
+}
+
+#[test]
+fn the_assassins_time_running_out_kills_nobody() {
+    let mut table = Table::start_with(DUEL, false);
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+
+    table.time_runs_out();
+
+    assert_eq!(table.dawn_deaths(), Some(vec![]));
+}
+
+#[test]
+fn the_werewolves_can_make_the_assassin_their_victim() {
+    let mut table = Table::start_with(DUEL, false);
+    let assassin = table.assassin();
+
+    table.werewolves_kill(&assassin);
+    table.time_runs_out();
+
+    assert_eq!(table.dawn_deaths(), Some(vec![table.id(&assassin)]));
+}
+
+#[test]
+fn a_player_chosen_by_both_dies_once() {
+    let mut table = Table::start_with(DUEL, false);
+    let assassin = table.assassin();
+    let villager = table.dealt(Role::Villager);
+    table.werewolves_kill(&villager);
+
+    let player = table.id(&villager);
+    table.act(&assassin, Command::Kill { player });
+
+    assert_eq!(table.dawn_deaths(), Some(vec![player]));
+}
+
+#[test]
+fn the_victim_and_the_target_both_die_named_in_seat_order() {
+    let mut table = Table::start_with(DUEL, false);
+    let assassin = table.assassin();
+    let villagers = table.with_role(Role::Villager);
+    table.werewolves_kill(&villagers[1]);
+
+    let player = table.id(&villagers[0]);
+    table.act(&assassin, Command::Kill { player });
+
+    let mut both = vec![table.id(&villagers[0]), table.id(&villagers[1])];
+    both.sort();
+    assert_eq!(table.dawn_deaths(), Some(both));
+}
+
+#[test]
+fn the_witch_sees_the_target_among_the_dying_and_may_save_them() {
+    let mut table = Table::start();
+    let (assassin, witch) = (table.assassin(), table.dealt(Role::Witch));
+    let villagers = table.with_role(Role::Villager);
+    table.werewolves_kill(&villagers[1]);
+    let target = table.id(&villagers[0]);
+    table.act(&assassin, Command::Kill { player: target });
+
+    let mut dying = vec![target, table.id(&villagers[1])];
+    dying.sort();
+    let Some(Moment::WitchsTurn { witch: Some(sight) }) = table.view(&witch).moment.clone() else {
+        panic!("the Witch's Turn, as she sees it");
+    };
+    assert_eq!(sight.dying, dying);
+
+    table.act(&witch, Command::Heal { player: target });
+    table.act(&witch, Command::Pass);
+
+    assert_eq!(table.dawn_deaths(), Some(vec![table.id(&villagers[1])]));
+}
+
+#[test]
+fn one_potion_saves_a_player_chosen_by_both() {
+    let mut table = Table::start();
+    let (assassin, witch) = (table.assassin(), table.dealt(Role::Witch));
+    let villager = table.dealt(Role::Villager);
+    table.werewolves_kill(&villager);
+    let player = table.id(&villager);
+    table.act(&assassin, Command::Kill { player });
+
+    table.act(&witch, Command::Heal { player });
+    table.act(&witch, Command::Pass);
+
+    assert_eq!(table.dawn_deaths(), Some(vec![]));
+}
+
+#[test]
+fn spectators_see_the_assassins_turn_and_their_choice_but_the_living_do_not() {
+    let mut table = Table::start_with(DUEL, false);
+    let assassin = table.assassin();
+    let villagers = table.with_role(Role::Villager);
+    table.night(Some(&villagers[0]));
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+    assert_eq!(
+        table.view(&villagers[0]).moment,
+        Some(Moment::AssassinsTurn)
+    );
+
+    let player = table.id(&villagers[1]);
+    table.act(&assassin, Command::Kill { player });
+
+    assert_eq!(table.view(&villagers[0]).assassin_target, Some(player));
+    for name in [&assassin, &villagers[1], &villagers[2]] {
+        assert_eq!(table.view(name).assassin_target, None, "{name}");
+    }
+}
+
+#[test]
+fn the_assassin_acts_alone_seeing_and_heard_by_nobody() {
+    let mut table = Table::start();
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+
+    for name in table.everyone() {
+        assert!(table.view(&name).receives.is_empty(), "{name}");
+    }
+}
+
+#[test]
+fn with_hidden_roles_off_a_dead_assassins_turn_is_skipped() {
+    let mut table = Table::start();
+    let assassin = table.assassin();
+    table.night(Some(&assassin));
+    table.until(|m| matches!(m, Moment::SeersTurn { .. }));
+
+    assert_eq!(table.rest_of_the_night(), ["Seer", "Werewolves", "Witch"]);
+}
+
+#[test]
+fn with_hidden_roles_on_a_dead_assassins_turn_is_feigned() {
+    let mut table = Table::start_with(WITH_ASSASSIN, true);
+    let assassin = table.assassin();
+    table.night(Some(&assassin));
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+
+    let seconds = table.outputs.timer().unwrap().seconds;
+    assert!((10..=30).contains(&seconds), "{seconds}");
+    let player = table.id(&table.dealt(Role::Witch));
+    assert_eq!(
+        table
+            .engine
+            .handle(&seat(&assassin), Command::Kill { player }),
+        Err(Rejection::Spectating)
+    );
 }
 
 #[test]

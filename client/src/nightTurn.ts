@@ -13,6 +13,7 @@ const TURNS: Partial<Record<Moment["type"], NightTurn>> = {
   thiefsTurn: { card: "thief", title: fr.roles.thief.name },
   seersTurn: { card: "seer", title: fr.roles.seer.name },
   werewolvesTurn: { card: "werewolf", title: fr.camps.werewolves.name },
+  assassinsTurn: { card: "assassin", title: fr.roles.assassin.name },
   witchsTurn: { card: "witch", title: fr.roles.witch.name },
 };
 

@@ -42,6 +42,7 @@ function view(role: Role | null, moment: Moment | null, changes: Partial<PlayerV
     mayor: null,
     lovers: [],
     theft: null,
+    assassinTarget: null,
     receives: [],
     audience: [],
     seesCountdown: true,

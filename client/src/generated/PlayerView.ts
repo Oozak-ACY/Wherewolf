@@ -56,6 +56,11 @@ lovers: Array<PlayerId>,
  */
 theft: Theft | null, 
 /**
+ * Whom the Assassin chose to kill this Night, once they have: only to
+ * the Spectators, until the next Night falls. `None` for everyone else.
+ */
+assassinTarget: PlayerId | null, 
+/**
  * The visibility plan, from this Player's side: who they may see and
  * hear right now.
  */

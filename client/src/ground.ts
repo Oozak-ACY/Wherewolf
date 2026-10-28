@@ -51,6 +51,8 @@ export function picking(view: PlayerView): Picking | null {
       return alive && role === "thief" ? "confirm" : null;
     case "seersTurn":
       return alive && role === "seer" && !moment.inspection && !moment.passed ? "confirm" : null;
+    case "assassinsTurn":
+      return alive && role === "assassin" ? "confirm" : null;
     case "witchsTurn":
       return alive && view.role?.potions?.poison && moment.witch && !moment.witch.passed ? "confirm" : null;
     case "werewolvesTurn":

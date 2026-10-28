@@ -165,6 +165,7 @@ export function useLobby(code: string) {
   );
   const confirmPartner = useCallback(() => command({ type: "confirmPartner" }), [command]);
   const rob = useCallback((player: PlayerId) => command({ type: "rob", player }), [command]);
+  const kill = useCallback((player: PlayerId) => command({ type: "kill", player }), [command]);
   const inspect = useCallback(
     (player: PlayerId) => command({ type: "inspect", player }),
     [command],
@@ -234,6 +235,7 @@ export function useLobby(code: string) {
     chooseLovers,
     confirmPartner,
     rob,
+    kill,
     inspect,
     pickVictim,
     heal,
