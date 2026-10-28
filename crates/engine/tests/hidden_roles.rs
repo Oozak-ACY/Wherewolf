@@ -210,7 +210,8 @@ impl Table {
         let witch = self.one(Role::Witch);
         self.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
         self.werewolves_pick(&self.villager(0));
-        self.act(&witch, Command::Heal);
+        let player = self.id(&self.villager(0));
+        self.act(&witch, Command::Heal { player });
         let player = self.id(&self.villager(1));
         self.act(&witch, Command::Poison { player });
         self.next_night(&self.villager(0));
@@ -351,7 +352,7 @@ fn the_werewolves_turn_ends_once_they_agree_in_both_modes() {
         assert!(
             matches!(
                 table.moment(&witch),
-                Moment::WitchsTurn { witch: Some(sight) } if sight.victim == Some(victim)
+                Moment::WitchsTurn { witch: Some(sight) } if sight.dying == [victim]
             ),
             "hidden_roles: {hidden_roles}"
         );
@@ -366,7 +367,8 @@ fn the_witchs_turn_ends_once_she_has_no_potion_left_to_use_in_both_modes() {
         table.until(|m| matches!(m, Moment::WerewolvesTurn { .. }));
         table.werewolves_pick(&table.villager(0));
 
-        table.act(&witch, Command::Heal);
+        let player = table.id(&table.villager(0));
+        table.act(&witch, Command::Heal { player });
         assert!(matches!(table.moment("P1"), Moment::WitchsTurn { .. }));
         let player = table.id(&table.villager(1));
         table.act(&witch, Command::Poison { player });
@@ -583,7 +585,7 @@ fn on_a_living_witch_with_her_potions_spent_has_her_turn_feigned() {
 
     assert!(matches!(
         table.moment(&witch),
-        Moment::WitchsTurn { witch: Some(sight) } if sight.victim == Some(victim_id)
+        Moment::WitchsTurn { witch: Some(sight) } if sight.dying == [victim_id]
     ));
     assert!((10..=30).contains(&table.timer().seconds));
     // Passing changes nothing: her Turn still lasts its feigned time.

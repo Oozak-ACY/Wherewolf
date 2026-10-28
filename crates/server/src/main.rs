@@ -571,8 +571,8 @@ async fn serve_connection(socket: WebSocket, code: String, state: AppState) {
             ClientMessage::Pass => {
                 lobby.command(&seat, Command::Pass, &outbox);
             }
-            ClientMessage::Heal => {
-                lobby.command(&seat, Command::Heal, &outbox);
+            ClientMessage::Heal { player } => {
+                lobby.command(&seat, Command::Heal { player }, &outbox);
             }
             ClientMessage::Poison { player } => {
                 lobby.command(&seat, Command::Poison { player }, &outbox);

@@ -59,7 +59,7 @@ const nightTurns: [Role, Moment, Partial<PlayerView>][] = [
   ["thief", { type: "thiefsTurn" }, {}],
   ["seer", { type: "seersTurn", inspection: null, passed: false }, {}],
   ["werewolf", { type: "werewolvesTurn", picks: [] }, {}],
-  ["witch", { type: "witchsTurn", witch: { victim: BOB, healed: false, poisoned: null, passed: false } }, {}],
+  ["witch", { type: "witchsTurn", witch: { dying: [BOB], healed: null, poisoned: null, passed: false } }, {}],
 ];
 
 describe("the ground", () => {
@@ -139,7 +139,7 @@ describe("the pick rows", () => {
     [
       "the Witch's poison",
       "witch",
-      { type: "witchsTurn", witch: { victim: BOB, healed: false, poisoned: null, passed: false } },
+      { type: "witchsTurn", witch: { dying: [BOB], healed: null, poisoned: null, passed: false } },
       {},
     ],
     ["the Hunter", "hunter", { type: "huntersShot", hunter: CHLOE }, {}],
@@ -176,13 +176,13 @@ describe("the pick rows", () => {
       "to the Witch without her poison",
       view(
         "witch",
-        { type: "witchsTurn", witch: { victim: BOB, healed: false, poisoned: null, passed: false } },
+        { type: "witchsTurn", witch: { dying: [BOB], healed: null, poisoned: null, passed: false } },
         { role: { role: "witch", camp: "village", fellowWerewolves: [], potions: { healing: true, poison: false } } },
       ),
     ],
     [
       "to the Witch once she has passed",
-      view("witch", { type: "witchsTurn", witch: { victim: BOB, healed: false, poisoned: null, passed: true } }),
+      view("witch", { type: "witchsTurn", witch: { dying: [BOB], healed: null, poisoned: null, passed: true } }),
     ],
     ["to anyone but the Hunter", view("villager", { type: "huntersShot", hunter: BOB })],
     ["to anyone but the Mayor at a tie-break", view("villager", { type: "tieBreak", ballots: [], tied: [ALICE, BOB] }, { mayor: BOB })],

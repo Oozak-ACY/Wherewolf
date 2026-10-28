@@ -65,7 +65,7 @@ const turns: [Moment, Role, Partial<PlayerView>, { card: string; title: string }
     { card: "werewolf", title: "Loups-Garous" },
   ],
   [
-    { type: "witchsTurn", witch: { victim: BOB, healed: false, poisoned: null, passed: false } },
+    { type: "witchsTurn", witch: { dying: [BOB], healed: null, poisoned: null, passed: false } },
     "witch",
     {},
     { card: "witch", title: "Sorcière" },

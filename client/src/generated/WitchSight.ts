@@ -6,13 +6,13 @@ import type { PlayerId } from "./PlayerId";
  */
 export type WitchSight = { 
 /**
- * The Werewolves' Victim tonight, if they chose one.
+ * Everyone dying tonight, in seat order, never why.
  */
-victim: PlayerId | null, 
+dying: Array<PlayerId>, 
 /**
- * Whether she saved the Victim tonight.
+ * Who she saved tonight, one of the dying.
  */
-healed: boolean, 
+healed: PlayerId | null, 
 /**
  * Who she poisoned tonight.
  */

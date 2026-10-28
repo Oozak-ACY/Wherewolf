@@ -22,7 +22,7 @@ type Props = {
   onRob: (player: PlayerId) => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
-  onHeal: () => void;
+  onHeal: (player: PlayerId) => void;
   onPass: () => void;
   onPoison: (player: PlayerId) => void;
 };
@@ -157,8 +157,19 @@ export function NightTurnView(props: Props) {
         <>
           {head(
             <>
-              <p>{witch.victim === null ? fr.game.witchNoVictim : fr.game.witchVictim(name(witch.victim))}</p>
-              {witch.healed && witch.victim !== null && <p>{fr.game.witchHealed(name(witch.victim))}</p>}
+              {witch.dying.length === 0 ? (
+                <p>{fr.game.witchNobodyDying}</p>
+              ) : (
+                <>
+                  <p>{fr.game.witchDying(witch.dying.length)}</p>
+                  <ul className="ballots">
+                    {witch.dying.map((id) => (
+                      <li key={id}>{name(id)}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {witch.healed !== null && <p>{fr.game.witchHealed(name(witch.healed))}</p>}
               {witch.poisoned !== null && <p>{fr.game.witchPoisoned(name(witch.poisoned))}</p>}
               {witch.passed && <p className="muted">{fr.game.witchPassed}</p>}
             </>,
@@ -168,7 +179,7 @@ export function NightTurnView(props: Props) {
             <WitchsChoice
               mode={mode}
               potions={potions}
-              victim={witch.victim}
+              dying={witch.dying}
               living={living}
               name={name}
               onHeal={props.onHeal}
@@ -255,22 +266,29 @@ function WerewolvesPick(props: {
   );
 }
 
-/** The Witch's save or poison or nothing more each picked then confirmed */
+/** The Witch's save of one of tonight's dying or poison or nothing more each picked then confirmed */
 function WitchsChoice(props: {
   mode: Picking | null;
   potions: Potions;
-  victim: PlayerId | null;
+  dying: PlayerId[];
   living: PlayerSummary[];
   name: (id: PlayerId) => string;
-  onHeal: () => void;
+  onHeal: (player: PlayerId) => void;
   onPoison: (player: PlayerId) => void;
   onPass: () => void;
 }) {
-  const { potions, victim } = props;
+  const { potions, dying } = props;
   const actions: Action[] = [];
-  if (potions.healing && victim !== null) {
-    const name = props.name(victim);
-    actions.push({ label: fr.game.heal(name), confirmLabel: fr.game.confirm.heal(name), quiet: false, onChoose: props.onHeal });
+  if (potions.healing) {
+    for (const id of dying) {
+      const name = props.name(id);
+      actions.push({
+        label: fr.game.heal(name),
+        confirmLabel: fr.game.confirm.heal(name),
+        quiet: false,
+        onChoose: () => props.onHeal(id),
+      });
+    }
   }
   actions.push({ label: fr.game.pass, onChoose: props.onPass });
   return (

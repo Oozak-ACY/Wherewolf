@@ -173,7 +173,10 @@ export function useLobby(code: string) {
     (victim: PlayerId) => command({ type: "pickVictim", victim }),
     [command],
   );
-  const heal = useCallback(() => command({ type: "heal" }), [command]);
+  const heal = useCallback(
+    (player: PlayerId) => command({ type: "heal", player }),
+    [command],
+  );
   const pass = useCallback(() => command({ type: "pass" }), [command]);
   const poison = useCallback(
     (player: PlayerId) => command({ type: "poison", player }),

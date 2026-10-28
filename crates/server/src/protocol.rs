@@ -40,8 +40,9 @@ pub enum ClientMessage {
     Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.
     PickVictim { victim: PlayerId },
-    /// Witch's Turn: save the Victim with the healing potion, once a Game.
-    Heal,
+    /// Witch's Turn: save a Player dying tonight with the healing potion,
+    /// once a Game.
+    Heal { player: PlayerId },
     /// Witch's Turn: eliminate a living Player at dawn with the poison
     /// potion, once a Game.
     Poison { player: PlayerId },

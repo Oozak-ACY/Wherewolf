@@ -472,7 +472,8 @@ fn the_thief_takes_the_witchs_role_as_it_stands_her_spent_potion_staying_spent()
     let villager = table.dealt(Role::Villager);
     // The first Night, she saves the Villager.
     table.werewolves_kill(&villager);
-    table.act(&witch, Command::Heal);
+    let player = table.id(&villager);
+    table.act(&witch, Command::Heal { player });
     table.act(&witch, Command::Pass);
     table.until_the_next_night();
 
@@ -491,8 +492,15 @@ fn the_thief_takes_the_witchs_role_as_it_stands_her_spent_potion_staying_spent()
 
     // The third Night, the Thief is the Witch.
     table.werewolves_kill(&villager);
-    assert_eq!(table.refused(&thief, Command::Heal), Rejection::PotionUsed);
-    assert_eq!(table.refused(&witch, Command::Heal), Rejection::NotYourTurn);
+    let player = table.id(&villager);
+    assert_eq!(
+        table.refused(&thief, Command::Heal { player }),
+        Rejection::PotionUsed
+    );
+    assert_eq!(
+        table.refused(&witch, Command::Heal { player }),
+        Rejection::NotYourTurn
+    );
 }
 
 #[test]

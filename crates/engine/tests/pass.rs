@@ -196,12 +196,12 @@ impl Table {
         (werewolves[0].clone(), werewolves[1].clone())
     }
 
-    /// The Victim the Witch is told about, at the start of her Turn.
-    fn witch_told(&self) -> Option<PlayerId> {
+    /// Who the Witch is told is dying, at the start of her Turn.
+    fn witch_told(&self) -> Vec<PlayerId> {
         let Moment::WitchsTurn { witch: Some(sight) } = self.moment(&self.one(Role::Witch)) else {
             panic!("not the Witch's Turn: {:?}", self.moment("P1"));
         };
-        sight.victim
+        sight.dying.clone()
     }
 }
 
@@ -215,7 +215,7 @@ fn every_werewolf_passing_ends_their_turn_with_no_victim_in_both_modes() {
         table.act(&first, Command::Pass);
         table.act(&second, Command::Pass);
 
-        assert_eq!(table.witch_told(), None, "hidden_roles: {hidden_roles}");
+        assert_eq!(table.witch_told(), [], "hidden_roles: {hidden_roles}");
     }
 }
 
@@ -250,7 +250,7 @@ fn a_victim_needs_every_werewolf_even_after_one_passed() {
 
     // A Werewolf who passed may still change their mind.
     table.act(&first, Command::PickVictim { victim });
-    assert_eq!(table.witch_told(), Some(victim));
+    assert_eq!(table.witch_told(), [victim]);
 }
 
 #[test]
@@ -266,7 +266,7 @@ fn when_time_runs_out_a_pass_counts_as_a_pick_for_nobody_in_both_modes() {
         table.time_runs_out();
 
         // One for nobody, one for the villager: a tie, so no Victim.
-        assert_eq!(table.witch_told(), None, "hidden_roles: {hidden_roles}");
+        assert_eq!(table.witch_told(), [], "hidden_roles: {hidden_roles}");
     }
 }
 

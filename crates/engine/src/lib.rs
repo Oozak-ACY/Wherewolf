@@ -78,8 +78,9 @@ pub enum Command {
     Inspect { player: PlayerId },
     /// Werewolves' Turn: choose (or change) the Victim.
     PickVictim { victim: PlayerId },
-    /// Witch's Turn: save the Victim with the healing potion, once a Game.
-    Heal,
+    /// Witch's Turn: save a Player dying tonight with the healing potion,
+    /// once a Game.
+    Heal { player: PlayerId },
     /// Witch's Turn: eliminate a living Player at dawn with the poison
     /// potion, once a Game.
     Poison { player: PlayerId },
@@ -148,8 +149,8 @@ pub enum Rejection {
     NotTwoPlayers,
     /// The Witch has already used this potion in this Game.
     PotionUsed,
-    /// There is no Victim to heal tonight.
-    NoVictim,
+    /// The Witch can only heal a Player dying tonight.
+    NotDying,
     /// A Spectator (an eliminated Player) can no longer act or vote.
     Spectating,
     /// The chosen Player has been eliminated, or is not in this Game.
@@ -530,7 +531,7 @@ pub enum Moment {
         /// Spectators see them.
         picks: Option<Vec<Pick>>,
     },
-    /// Night: the Witch learns the Victim and may use her potions.
+    /// Night: the Witch learns who is dying tonight and may use her potions.
     WitchsTurn {
         /// What the Witch knows and did this Turn. Only the Witch and the
         /// Spectators see it.
@@ -618,13 +619,13 @@ pub struct Inspection {
 }
 
 /// The Witch's Turn, as the Witch sees it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[ts(export)]
 pub struct WitchSight {
-    /// The Werewolves' Victim tonight, if they chose one.
-    pub victim: Option<PlayerId>,
-    /// Whether she saved the Victim tonight.
-    pub healed: bool,
+    /// Everyone dying tonight, in seat order, never why.
+    pub dying: Vec<PlayerId>,
+    /// Who she saved tonight, one of the dying.
+    pub healed: Option<PlayerId>,
     /// Who she poisoned tonight.
     pub poisoned: Option<PlayerId>,
     /// Whether she has passed: she uses no more potions tonight.
@@ -1075,7 +1076,7 @@ impl Game {
             },
             MomentState::WitchsTurn { sight } => Moment::WitchsTurn {
                 // The Witch and the Spectators see it.
-                witch: (viewer.role == Some(Role::Witch) || !viewer.alive).then_some(*sight),
+                witch: (viewer.role == Some(Role::Witch) || !viewer.alive).then(|| sight.clone()),
             },
             MomentState::Dawn { deaths, robbery } => Moment::Dawn {
                 deaths: deaths.clone(),
@@ -1364,16 +1365,16 @@ impl Engine {
                 self.require_in_play(Some(victim))?;
                 self.pick(werewolf, Some(victim));
             }
-            Command::Heal => {
+            Command::Heal { player } => {
                 self.require_witchs_turn(seat)?;
                 if !self.game_mut().potions.healing {
                     return Err(Rejection::PotionUsed);
                 }
                 let sight = self.witch_sight_mut();
-                if sight.victim.is_none() {
-                    return Err(Rejection::NoVictim);
+                if !sight.dying.contains(&player) {
+                    return Err(Rejection::NotDying);
                 }
-                sight.healed = true;
+                sight.healed = Some(player);
                 self.game_mut().potions.healing = false;
                 self.end_witchs_turn_if_done();
             }
@@ -2030,11 +2031,12 @@ impl Engine {
     /// The Werewolves have chosen their Victim, if any. The Witch wakes up
     /// next, unless her Turn is skipped: then the Night is over.
     fn end_werewolves_turn(&mut self, victim: Option<PlayerId>) {
+        let dying: Vec<PlayerId> = victim.into_iter().collect();
         if self.wakes(Role::Witch) {
             self.game_mut().go_to(MomentState::WitchsTurn {
                 sight: WitchSight {
-                    victim,
-                    healed: false,
+                    dying,
+                    healed: None,
                     poisoned: None,
                     passed: false,
                 },
@@ -2042,7 +2044,7 @@ impl Engine {
             self.feign_if_idle();
             self.end_witchs_turn_if_done();
         } else {
-            self.end_night(victim.into_iter().collect());
+            self.end_night(dying);
         }
     }
 
@@ -2053,7 +2055,7 @@ impl Engine {
         let Some(game) = &self.game else {
             unreachable!("the Game is running")
         };
-        let MomentState::WitchsTurn { sight } = game.state else {
+        let MomentState::WitchsTurn { sight } = &game.state else {
             unreachable!("only during the Witch's Turn")
         };
         let done = sight.passed || !self.witch_has_a_usable_potion();
@@ -2068,10 +2070,10 @@ impl Engine {
         let Some(game) = &self.game else {
             unreachable!("the Game is running")
         };
-        let MomentState::WitchsTurn { sight } = game.state else {
+        let MomentState::WitchsTurn { sight } = &game.state else {
             unreachable!("only during the Witch's Turn")
         };
-        let can_heal = game.potions.healing && sight.victim.is_some() && !sight.healed;
+        let can_heal = game.potions.healing && !sight.dying.is_empty() && sight.healed.is_none();
         can_heal || game.potions.poison
     }
 
@@ -2103,14 +2105,15 @@ impl Engine {
         self.game_mut().feigned = Some(shortest + drawn);
     }
 
-    /// The Witch's Turn is over, and with it the Night: the Victim dies
-    /// unless she saved them, and so does whoever she poisoned.
+    /// The Witch's Turn is over, and with it the Night: everyone dying
+    /// tonight dies but the one she saved, and so does whoever she poisoned.
     fn end_witchs_turn(&mut self) {
-        let MomentState::WitchsTurn { sight } = self.game_mut().state else {
+        let MomentState::WitchsTurn { sight } = &self.game_mut().state else {
             unreachable!("only during the Witch's Turn")
         };
-        let killed = sight.victim.filter(|_| !sight.healed);
-        self.end_night(killed.into_iter().chain(sight.poisoned).collect());
+        let killed = sight.dying.iter().filter(|&&p| Some(p) != sight.healed);
+        let deaths = killed.copied().chain(sight.poisoned).collect();
+        self.end_night(deaths);
     }
 
     /// The Night is over: `deaths` die, and the village wakes up. They are

@@ -203,6 +203,12 @@ impl Table {
         }
     }
 
+    fn heal(&self, player: &str) -> Command {
+        Command::Heal {
+            player: self.id(player),
+        }
+    }
+
     fn poison(&self, player: &str) -> Command {
         Command::Poison {
             player: self.id(player),
@@ -212,7 +218,7 @@ impl Table {
     /// What `name` sees of the Witch's Turn.
     fn sight_of(&self, name: &str) -> Option<WitchSight> {
         match self.moment(name) {
-            Moment::WitchsTurn { witch } => *witch,
+            Moment::WitchsTurn { witch } => witch.clone(),
             other => panic!("{name} sees {other:?}"),
         }
     }
@@ -283,7 +289,7 @@ fn the_werewolves_agreeing_on_a_victim_wakes_the_witch() {
 }
 
 #[test]
-fn the_witch_sees_the_victim_and_nobody_else_living_does() {
+fn the_witch_sees_who_is_dying_tonight_and_nobody_else_living_does() {
     let mut table = Table::start();
     let witch = table.witch();
     let victim = table.villager(0);
@@ -293,8 +299,8 @@ fn the_witch_sees_the_victim_and_nobody_else_living_does() {
     assert_eq!(
         table.sight_of(&witch),
         Some(WitchSight {
-            victim: Some(table.id(&victim)),
-            healed: false,
+            dying: vec![table.id(&victim)],
+            healed: None,
             poisoned: None,
             passed: false,
         })
@@ -305,7 +311,7 @@ fn the_witch_sees_the_victim_and_nobody_else_living_does() {
 }
 
 #[test]
-fn the_witch_sees_when_there_is_no_victim_and_cannot_heal() {
+fn the_witch_sees_when_nobody_is_dying_and_cannot_heal() {
     let mut table = Table::start();
     let witch = table.witch();
 
@@ -314,13 +320,27 @@ fn the_witch_sees_when_there_is_no_victim_and_cannot_heal() {
     assert_eq!(
         table.sight_of(&witch),
         Some(WitchSight {
-            victim: None,
-            healed: false,
+            dying: Vec::new(),
+            healed: None,
             poisoned: None,
             passed: false,
         })
     );
-    assert_eq!(table.refused(&witch, Command::Heal), Rejection::NoVictim);
+    let command = table.heal(&table.villager(0));
+    assert_eq!(table.refused(&witch, command), Rejection::NotDying);
+}
+
+#[test]
+fn the_witch_cannot_heal_someone_who_is_not_dying_tonight() {
+    let mut table = Table::start();
+    let witch = table.witch();
+    let [victim, other] = [table.villager(0), table.villager(1)];
+    table.werewolves_kill(&victim);
+
+    let command = table.heal(&other);
+
+    assert_eq!(table.refused(&witch, command), Rejection::NotDying);
+    assert_eq!(table.potions(&witch).map(|p| p.healing), Some(true));
 }
 
 #[test]
@@ -330,9 +350,14 @@ fn healing_saves_the_victim() {
     let victim = table.villager(0);
     table.werewolves_kill(&victim);
 
-    table.act(&witch, Command::Heal);
+    let command = table.heal(&victim);
+    table.act(&witch, command);
 
-    assert!(table.sight_of(&witch).unwrap().healed);
+    assert_eq!(
+        table.sight_of(&witch).unwrap().healed,
+        Some(table.id(&victim))
+    );
+    assert_eq!(table.potions(&witch).map(|p| p.healing), Some(false));
     table.time_runs_out();
     assert_eq!(table.dawn_deaths(), Vec::new());
     assert!(table.alive(&victim));
@@ -344,7 +369,8 @@ fn the_witch_can_heal_herself() {
     let witch = table.witch();
     table.werewolves_kill(&witch);
 
-    table.act(&witch, Command::Heal);
+    let command = table.heal(&witch);
+    table.act(&witch, command);
     table.time_runs_out();
 
     assert_eq!(table.dawn_deaths(), Vec::new());
@@ -393,7 +419,8 @@ fn the_witch_can_heal_and_poison_on_the_same_night() {
     let [victim, poisoned] = [table.villager(0), table.villager(1)];
     table.werewolves_kill(&victim);
 
-    table.act(&witch, Command::Heal);
+    let command = table.heal(&victim);
+    table.act(&witch, command);
     let command = table.poison(&poisoned);
     table.act(&witch, command);
 
@@ -476,12 +503,15 @@ fn each_potion_works_once_per_game() {
         })
     );
     table.werewolves_kill(&victim);
-    table.act(&witch, Command::Heal);
-    assert_eq!(table.refused(&witch, Command::Heal), Rejection::PotionUsed);
+    let command = table.heal(&victim);
+    table.act(&witch, command);
+    let command = table.heal(&victim);
+    assert_eq!(table.refused(&witch, command), Rejection::PotionUsed);
     table.time_runs_out();
     table.next_night();
     table.werewolves_kill(&later);
-    assert_eq!(table.refused(&witch, Command::Heal), Rejection::PotionUsed);
+    let command = table.heal(&later);
+    assert_eq!(table.refused(&witch, command), Rejection::PotionUsed);
 
     let command = table.poison(&poisoned);
     table.act(&witch, command);
@@ -527,15 +557,14 @@ fn only_the_witch_uses_potions_and_only_during_her_turn() {
     let witch = table.witch();
     let [villager, target] = [table.villager(0), table.villager(1)];
 
-    assert_eq!(table.refused(&witch, Command::Heal), Rejection::NotNow);
+    let command = table.heal(&target);
+    assert_eq!(table.refused(&witch, command), Rejection::NotNow);
     let command = table.poison(&target);
     assert_eq!(table.refused(&witch, command), Rejection::NotNow);
 
     table.werewolves_kill(&target);
-    assert_eq!(
-        table.refused(&villager, Command::Heal),
-        Rejection::NotYourTurn
-    );
+    let command = table.heal(&target);
+    assert_eq!(table.refused(&villager, command), Rejection::NotYourTurn);
     let command = table.poison(&target);
     assert_eq!(table.refused(&villager, command), Rejection::NotYourTurn);
 }
@@ -583,10 +612,14 @@ fn spectators_see_what_the_witch_sees_and_does() {
     table.next_night();
     table.werewolves_kill(&victim);
 
-    table.act(&witch, Command::Heal);
+    let command = table.heal(&victim);
+    table.act(&witch, command);
 
     assert_eq!(table.sight_of(&dead), table.sight_of(&witch));
-    assert!(table.sight_of(&dead).unwrap().healed);
+    assert_eq!(
+        table.sight_of(&dead).unwrap().healed,
+        Some(table.id(&victim))
+    );
 }
 
 #[test]

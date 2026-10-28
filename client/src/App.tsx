@@ -258,7 +258,7 @@ function Lobby(props: {
   onRob: (player: PlayerId) => void;
   onInspect: (player: PlayerId) => void;
   onPickVictim: (victim: PlayerId) => void;
-  onHeal: () => void;
+  onHeal: (player: PlayerId) => void;
   onPass: () => void;
   onPoison: (player: PlayerId) => void;
   onVote: (designated: PlayerId | null) => void;

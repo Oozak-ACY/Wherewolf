@@ -175,8 +175,8 @@ describe("the Night", () => {
   });
 
   test("nothing a Role does during its Turn makes a sound", () => {
-    const before: Moment = { type: "witchsTurn", witch: { victim: 2, healed: false, poisoned: null, passed: false } };
-    const healed: Moment = { type: "witchsTurn", witch: { victim: 2, healed: true, poisoned: 3, passed: false } };
+    const before: Moment = { type: "witchsTurn", witch: { dying: [2], healed: null, poisoned: null, passed: false } };
+    const healed: Moment = { type: "witchsTurn", witch: { dying: [2], healed: 2, poisoned: 3, passed: false } };
     const picked: Moment = { type: "werewolvesTurn", picks: [{ werewolf: 1, victim: 2 }] };
 
     expect(narratorCues(view(before), view(healed))).toEqual([]);
@@ -184,12 +184,12 @@ describe("the Night", () => {
   });
 
   test("no bottle on a potion: the Witch's choice makes no sound, during her Turn or after it", () => {
-    const woken: Moment = { type: "witchsTurn", witch: { victim: 2, healed: false, poisoned: null, passed: false } };
+    const woken: Moment = { type: "witchsTurn", witch: { dying: [2], healed: null, poisoned: null, passed: false } };
     const dawn: Moment = { type: "dawn", deaths: [3], robbery: false };
     const choices: Moment[] = [
-      { type: "witchsTurn", witch: { victim: 2, healed: true, poisoned: null, passed: false } },
-      { type: "witchsTurn", witch: { victim: 2, healed: false, poisoned: 3, passed: false } },
-      { type: "witchsTurn", witch: { victim: 2, healed: false, poisoned: null, passed: true } },
+      { type: "witchsTurn", witch: { dying: [2], healed: 2, poisoned: null, passed: false } },
+      { type: "witchsTurn", witch: { dying: [2], healed: null, poisoned: 3, passed: false } },
+      { type: "witchsTurn", witch: { dying: [2], healed: null, poisoned: null, passed: true } },
     ];
 
     for (const choice of choices) {
