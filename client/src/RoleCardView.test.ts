@@ -113,6 +113,34 @@ describe("the Role card face down then face up", () => {
   });
 });
 
+describe("the Assassin's card", () => {
+  test("shows the Assassin art, the Assassin Camp and its goal", () => {
+    const card: RoleCard = { role: "assassin", camp: "assassin", fellowWerewolves: [], potions: null };
+    const view = {
+      you: 1,
+      players: [{ id: 1, name: "Alice", connected: true, alive: true, revealedRole: null }],
+      role: card,
+      lovers: [],
+      moment: { type: "roleReveal", confirmed: false, stillReading: 1 },
+      spectating: false,
+    } as unknown as PlayerView;
+
+    const html = renderToStaticMarkup(
+      createElement(RoleCardView, { card, view, face: "up", onReveal: () => {}, onConfirm: () => {}, onClose: () => {} }),
+    ).replaceAll("&#x27;", "'");
+
+    for (const text of [
+      fr.roles.assassin.name,
+      fr.roles.assassin.power,
+      fr.camps.assassin.name,
+      fr.camps.assassin.goal,
+      "/roles/assassin.webp",
+    ]) {
+      expect(html).toContain(text);
+    }
+  });
+});
+
 describe("the artwork of a card", () => {
   test("is the stained glass webp named after the Role", () => {
     expect(cardImageUrl("werewolf")).toBe("/roles/werewolf.webp");

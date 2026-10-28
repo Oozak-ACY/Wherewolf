@@ -8,6 +8,7 @@ import { isHost, ROLES, roleTotal } from "./lobby";
 import { cardImageUrl } from "./RoleCardView";
 import {
   fr,
+  MAX_ASSASSINS,
   MAX_CUPIDS,
   MAX_LITTLE_GIRLS,
   MAX_PLAYERS,
@@ -23,6 +24,7 @@ const MAX_COUNTS: Partial<Record<Role, number>> = {
   cupid: MAX_CUPIDS,
   thief: MAX_THIEVES,
   littleGirl: MAX_LITTLE_GIRLS,
+  assassin: MAX_ASSASSINS,
 };
 const TIMERS = Object.keys(fr.settings.timer) as (keyof Timers)[];
 

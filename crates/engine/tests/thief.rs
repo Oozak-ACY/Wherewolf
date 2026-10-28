@@ -38,6 +38,7 @@ const WITH_THIEF: RoleCounts = RoleCounts {
     cupid: 0,
     thief: 1,
     little_girl: 0,
+    assassin: 0,
     villager: 1,
 };
 
@@ -50,6 +51,7 @@ const WITH_CUPID: RoleCounts = RoleCounts {
     cupid: 1,
     thief: 1,
     little_girl: 0,
+    assassin: 0,
     villager: 1,
 };
 
@@ -669,6 +671,7 @@ fn victory_that_dawn_is_checked_with_the_roles_after_the_theft() {
         cupid: 0,
         thief: 1,
         little_girl: 0,
+        assassin: 0,
         villager: 1,
     };
     let mut table = Table::start_with(roles, 11, false);

@@ -63,6 +63,7 @@ fn roles(werewolf: u8, seer: u8, witch: u8, hunter: u8, villager: u8) -> RoleCou
         cupid: 0,
         thief: 0,
         little_girl: 0,
+        assassin: 0,
         villager,
     }
 }
@@ -335,6 +336,7 @@ fn each_role_card_shows_its_camp() {
         let card = view(&outputs, &player(n)).role.clone().unwrap();
         let expected = match card.role {
             Role::Werewolf => Camp::Werewolves,
+            Role::Assassin => Camp::Assassin,
             Role::Villager
             | Role::Seer
             | Role::Witch

@@ -11,5 +11,6 @@ describe("the role count buttons", () => {
   test("agree with a masculine Role", () => {
     expect(fr.settings.more("werewolf")).toBe("Un Loup-Garou de plus");
     expect(fr.settings.less("hunter")).toBe("Un Chasseur de moins");
+    expect(fr.settings.more("assassin")).toBe("Un Assassin de plus");
   });
 });

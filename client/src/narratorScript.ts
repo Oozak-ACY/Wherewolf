@@ -48,6 +48,7 @@ const VICTORY_LINES: Record<Camp, FixedLine> = {
   village: "villageWins",
   werewolves: "werewolvesWin",
   lovers: "loversWin",
+  assassin: "assassinWins",
 };
 
 /** The Phase whose background plays at each Moment. None during the Role reveal. */

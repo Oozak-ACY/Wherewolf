@@ -38,6 +38,7 @@ const WITH_LITTLE_GIRL: RoleCounts = RoleCounts {
     cupid: 0,
     thief: 0,
     little_girl: 1,
+    assassin: 0,
     villager: 2,
 };
 
@@ -285,6 +286,7 @@ fn she_has_no_turn_and_the_night_order_is_unchanged() {
     let mut without_her = Table::start_with(
         RoleCounts {
             little_girl: 0,
+            assassin: 0,
             villager: 3,
             ..WITH_LITTLE_GIRL
         },

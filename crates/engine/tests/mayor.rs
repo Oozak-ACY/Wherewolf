@@ -39,6 +39,7 @@ const WITH_HUNTER: RoleCounts = RoleCounts {
     cupid: 0,
     thief: 0,
     little_girl: 0,
+    assassin: 0,
     villager: 4,
 };
 

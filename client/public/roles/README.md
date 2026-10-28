@@ -11,6 +11,7 @@ One stained glass card per Role, plus the Mayor title, named after it:
 | Cupidon | `cupid.webp` |
 | Voleur | `thief.webp` |
 | Petite Fille | `littleGirl.webp` |
+| Assassin | `assassin.webp` |
 | Villageois | `villager.webp` |
 | Maire | `mayor.webp` |
 

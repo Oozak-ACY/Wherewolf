@@ -8,7 +8,7 @@ import type { Timers } from "./generated/Timers";
 import type { MicProblem } from "./useCall";
 
 // Mirror MIN_PLAYERS, MAX_PLAYERS, MAX_WITCHES, MAX_CUPIDS, MAX_THIEVES, MAX_LITTLE_GIRLS,
-// TIMER_BOUNDS
+// MAX_ASSASSINS, TIMER_BOUNDS
 // and GRACE_PERIOD_BOUNDS (the same as TIMER_BOUNDS) in crates/engine/src/lib.rs.
 export const MIN_PLAYERS = 5;
 export const MAX_PLAYERS = 12;
@@ -16,6 +16,7 @@ export const MAX_WITCHES = 1;
 export const MAX_CUPIDS = 1;
 export const MAX_THIEVES = 1;
 export const MAX_LITTLE_GIRLS = 1;
+export const MAX_ASSASSINS = 1;
 export const TIMER_MIN_SECONDS = 10;
 export const TIMER_MAX_SECONDS = 1800;
 
@@ -210,6 +211,7 @@ export const fr = {
       village: "Le Village triomphe",
       werewolves: "Les Loups-Garous triomphent",
       lovers: "Les Amoureux triomphent",
+      assassin: "L'Assassin triomphe",
     } satisfies Record<Camp, string>,
     draw: "Personne n'a survécu",
     winningCamp: "Vainqueur",
@@ -257,6 +259,7 @@ export const fr = {
       villageWins: "Le Village gagne : les Loups-Garous sont morts.",
       werewolvesWin: "Les Loups-Garous gagnent : le village est à eux.",
       loversWin: "Les Amoureux gagnent : seuls au monde, ils vivront leur amour.",
+      assassinWins: "L'Assassin gagne : il est le dernier survivant.",
       nobodySurvived: "Personne n'a survécu.",
     },
     // Lines with names, spoken live.
@@ -335,6 +338,11 @@ export const fr = {
       power:
         "La nuit, pendant le tour des Loups-Garous, tu peux entrouvrir les yeux pour les espionner. Attention à ne pas te faire prendre !",
     },
+    assassin: {
+      name: "Assassin",
+      article: "un",
+      power: "Chaque nuit, tu peux tuer le joueur de ton choix, Loup-Garou compris. Tu joues seul contre tous.",
+    },
     villager: {
       name: "Villageois",
       article: "un",
@@ -349,6 +357,7 @@ export const fr = {
       goal: "Être au moins aussi nombreux que les autres joueurs encore en vie.",
     },
     lovers: { name: "Amoureux", goal: "Être, ton Amoureux et toi, les deux derniers survivants." },
+    assassin: { name: "Assassin", goal: "Être le dernier joueur en vie." },
   } satisfies Record<Camp, { name: string; goal: string }>,
 
   call: {

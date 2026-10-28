@@ -3,4 +3,4 @@
 /**
  * The secret card dealt to a Player when the Game starts.
  */
-export type Role = "werewolf" | "seer" | "witch" | "hunter" | "cupid" | "thief" | "littleGirl" | "villager";
+export type Role = "werewolf" | "seer" | "witch" | "hunter" | "cupid" | "thief" | "littleGirl" | "assassin" | "villager";

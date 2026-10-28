@@ -41,6 +41,7 @@ const ROLES: RoleCounts = RoleCounts {
     cupid: 1,
     thief: 0,
     little_girl: 0,
+    assassin: 0,
     villager: 4,
 };
 
@@ -549,6 +550,7 @@ const SMALL: RoleCounts = RoleCounts {
     cupid: 1,
     thief: 0,
     little_girl: 0,
+    assassin: 0,
     villager: 2,
 };
 

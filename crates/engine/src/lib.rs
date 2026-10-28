@@ -183,6 +183,8 @@ pub enum Role {
     Thief,
     /// Has no Turn: she may peek at the table during the Werewolves' Turn.
     LittleGirl,
+    /// A Camp of their own: they win only as the last Player alive.
+    Assassin,
     Villager,
 }
 
@@ -191,6 +193,7 @@ impl Role {
     pub fn camp(self) -> Camp {
         match self {
             Role::Werewolf => Camp::Werewolves,
+            Role::Assassin => Camp::Assassin,
             Role::Seer
             | Role::Witch
             | Role::Hunter
@@ -211,6 +214,8 @@ pub enum Camp {
     Werewolves,
     /// A Werewolf and a non-Werewolf Lover: they win as the last two alive.
     Lovers,
+    /// The Assassin alone.
+    Assassin,
 }
 
 /// A Player's own Role, as only they see it.
@@ -261,6 +266,7 @@ pub struct RoleCounts {
     pub cupid: u8,
     pub thief: u8,
     pub little_girl: u8,
+    pub assassin: u8,
     pub villager: u8,
 }
 
@@ -282,6 +288,7 @@ impl RoleCounts {
             cupid: 0,
             thief: 0,
             little_girl: 0,
+            assassin: 0,
             villager: (players.max(5) as u8).saturating_sub(special),
         }
     }
@@ -298,6 +305,7 @@ impl RoleCounts {
             (Role::Cupid, self.cupid),
             (Role::Thief, self.thief),
             (Role::LittleGirl, self.little_girl),
+            (Role::Assassin, self.assassin),
             (Role::Villager, self.villager),
         ]
         .into_iter()
@@ -314,6 +322,7 @@ impl RoleCounts {
             self.cupid,
             self.thief,
             self.little_girl,
+            self.assassin,
             self.villager,
         ]
         .iter()
@@ -741,6 +750,9 @@ pub const MAX_THIEVES: u8 = 1;
 
 /// A Game has at most one Little Girl.
 pub const MAX_LITTLE_GIRLS: u8 = 1;
+
+/// A Game has at most one Assassin.
+pub const MAX_ASSASSINS: u8 = 1;
 
 /// The Night the Thief wakes on, and after which the Theft takes effect.
 const THIEFS_NIGHT: u32 = 2;
@@ -1246,6 +1258,7 @@ impl Engine {
                     || settings.roles.cupid > MAX_CUPIDS
                     || settings.roles.thief > MAX_THIEVES
                     || settings.roles.little_girl > MAX_LITTLE_GIRLS
+                    || settings.roles.assassin > MAX_ASSASSINS
                     || !timers_valid
                     || !GRACE_PERIOD_BOUNDS.contains(&settings.grace_period)
                 {

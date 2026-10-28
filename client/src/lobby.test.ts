@@ -47,7 +47,7 @@ describe("a Player's avatar", () => {
 });
 
 test("the Role total adds up every Role in play", () => {
-  const roles = { werewolf: 2, cupid: 0, thief: 0, seer: 1, witch: 1, hunter: 0, littleGirl: 0, villager: 2 } as RoleCounts;
+  const roles = { werewolf: 2, cupid: 0, thief: 0, seer: 1, witch: 1, hunter: 0, littleGirl: 0, assassin: 1, villager: 2 } as RoleCounts;
 
-  expect(roleTotal(roles)).toBe(6);
+  expect(roleTotal(roles)).toBe(7);
 });
