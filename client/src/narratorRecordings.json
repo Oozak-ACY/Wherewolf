@@ -11,6 +11,8 @@
   "seerSleeps": "La Voyante referme les yeux sur ce qu'elle a vu.",
   "werewolvesTurn": "Les Loups-Garous se réveillent.",
   "werewolvesSleep": "Les Loups-Garous regagnent l'ombre et se rendorment.",
+  "assassinsTurn": "L'Assassin se réveille.",
+  "assassinSleeps": "L'Assassin essuie sa lame et se rendort.",
   "witchsTurn": "La Sorcière se réveille.",
   "witchSleeps": "La Sorcière range ses fioles et se rendort.",
   "dawn": "Le jour se lève.",
@@ -26,5 +28,6 @@
   "villageWins": "Le Village gagne : les Loups-Garous sont morts.",
   "werewolvesWin": "Les Loups-Garous gagnent : le village est à eux.",
   "loversWin": "Les Amoureux gagnent : seuls au monde, ils vivront leur amour.",
+  "assassinWins": "L'Assassin gagne : il est le dernier survivant.",
   "nobodySurvived": "Personne n'a survécu."
 }
