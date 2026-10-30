@@ -216,6 +216,15 @@ impl Table {
             .collect()
     }
 
+    /// Through a first Night and Day where nobody dies, to the Thief's Turn,
+    /// where they rob the Assassin.
+    fn rob_the_assassin(&mut self) {
+        self.until(|m| matches!(m, Moment::ThiefsTurn));
+        let player = self.id(&self.assassin());
+        let thief = self.dealt(Role::Thief);
+        self.act(&thief, Command::Rob { player });
+    }
+
     /// Cupid binds `first` and `second`, and the Lovers' Turn runs out.
     fn bind(&mut self, first: &str, second: &str) {
         self.until(|m| matches!(m, Moment::CupidsTurn));
@@ -700,6 +709,13 @@ const WITH_CUPID: RoleCounts = RoleCounts {
     ..DUEL
 };
 
+/// One Werewolf, the Thief, the Assassin and two Villagers.
+const WITH_THIEF: RoleCounts = RoleCounts {
+    thief: 1,
+    villager: 2,
+    ..DUEL
+};
+
 #[test]
 fn with_no_werewolf_left_the_game_goes_on_until_the_assassin_alone_survives() {
     let mut table = Table::start_with(DUEL, false);
@@ -849,4 +865,108 @@ fn a_werewolf_bound_to_the_assassin_wins_with_them_as_the_last_two_alive() {
     table.time_runs_out();
 
     assert_eq!(table.victory(), Some(Some(Camp::Lovers)));
+}
+
+#[test]
+fn with_hidden_roles_on_the_witch_left_with_her_healing_potion_really_wakes_for_the_target() {
+    let mut table = Table::start_with(WITH_ASSASSIN, true);
+    let (assassin, witch) = (table.assassin(), table.dealt(Role::Witch));
+    let villagers = table.with_role(Role::Villager);
+    table.until(|m| matches!(m, Moment::WitchsTurn { .. }));
+    let poisoned = table.id(&villagers[0]);
+    table.act(&witch, Command::Poison { player: poisoned });
+    table.until(|m| matches!(m, Moment::Discussion));
+
+    // Nobody is the Werewolves' Victim: only the Assassin's target is dying.
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+    let target = table.id(&villagers[1]);
+    table.act(&assassin, Command::Kill { player: target });
+    table.act(&witch, Command::Heal { player: target });
+
+    // Her Turn was not feigned: with no potion left to use, it is over.
+    assert_eq!(
+        table.moment(),
+        &Moment::Dawn {
+            deaths: vec![],
+            robbery: false,
+        }
+    );
+}
+
+#[test]
+fn the_robbed_assassins_second_night_kill_happens_at_dawn_then_they_hold_a_villager_card() {
+    let mut table = Table::start_with(WITH_THIEF, false);
+    let (assassin, thief, wolf) = (
+        table.assassin(),
+        table.dealt(Role::Thief),
+        table.dealt(Role::Werewolf),
+    );
+    let villagers = table.with_role(Role::Villager);
+    table.rob_the_assassin();
+    table.werewolves_kill(&villagers[0]);
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+    table.act(
+        &assassin,
+        Command::Kill {
+            player: table.id(&wolf),
+        },
+    );
+
+    let mut deaths = vec![table.id(&villagers[0]), table.id(&wolf)];
+    deaths.sort();
+    assert_eq!(table.dawn_deaths(), Some(deaths));
+    table.time_runs_out();
+    assert_eq!(table.card(&thief).role, Role::Assassin);
+    assert_eq!(table.card(&assassin).role, Role::Villager);
+}
+
+#[test]
+fn the_thief_who_robbed_the_assassin_kills_from_the_third_night() {
+    let mut table = Table::start_with(WITH_THIEF, false);
+    let (assassin, thief) = (table.assassin(), table.dealt(Role::Thief));
+    let villagers = table.with_role(Role::Villager);
+    table.rob_the_assassin();
+    table.night(None);
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+
+    let player = table.id(&villagers[0]);
+    assert_eq!(
+        table
+            .engine
+            .handle(&seat(&assassin), Command::Kill { player }),
+        Err(Rejection::NotYourTurn)
+    );
+    table.act(&thief, Command::Kill { player });
+
+    assert_eq!(table.dawn_deaths(), Some(vec![player]));
+}
+
+#[test]
+fn victory_at_the_thefts_dawn_is_checked_with_the_roles_after_the_theft() {
+    let mut table = Table::start_with(WITH_THIEF, false);
+    let (assassin, thief, wolf) = (
+        table.assassin(),
+        table.dealt(Role::Thief),
+        table.dealt(Role::Werewolf),
+    );
+    table.rob_the_assassin();
+    table.until(|m| matches!(m, Moment::AssassinsTurn));
+    table.act(
+        &assassin,
+        Command::Kill {
+            player: table.id(&wolf),
+        },
+    );
+    table.night(None);
+
+    // No Werewolf is left, but the Thief now holds the Assassin card. (With
+    // both alive, an Assassin lives before and after the Theft alike, so
+    // what this shows is the Thief, not the robbed Player, being the one
+    // whose death lets the Village win.)
+    table.time_runs_out();
+    assert_eq!(table.moment(), &Moment::Discussion);
+
+    table.until(|m| matches!(m, Moment::Vote { .. }));
+    table.vote_out(&thief);
+    assert_eq!(table.victory(), Some(Some(Camp::Village)));
 }
