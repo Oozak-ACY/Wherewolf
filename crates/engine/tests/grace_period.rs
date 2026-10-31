@@ -280,11 +280,11 @@ fn a_freed_player_comes_back_as_a_newcomer_at_the_end() {
 
 #[test]
 fn a_freed_player_is_refused_when_the_lobby_has_filled_up() {
-    let mut lobby = Lobby::of(12);
+    let mut lobby = Lobby::of(15);
     lobby.act("P2", Command::Disconnect);
     let grace = lobby.grace_period_of("P2");
     lobby.report(grace, 60).unwrap();
-    lobby.act("P13", join("P13"));
+    lobby.act("P16", join("P16"));
 
     assert_eq!(lobby.try_act("P2", join("P2")), Err(Rejection::LobbyFull));
 }

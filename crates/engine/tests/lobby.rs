@@ -67,10 +67,10 @@ fn names_of_you<'a>(outputs: &'a Outputs, name: &str) -> &'a str {
 }
 
 #[test]
-fn a_thirteenth_player_is_refused_and_nobody_else_is_affected() {
+fn a_sixteenth_player_is_refused_and_nobody_else_is_affected() {
     let mut lobby = lobby();
-    let twelve: Vec<String> = (1..=12).map(|n| format!("P{n}")).collect();
-    for name in &twelve {
+    let fifteen: Vec<String> = (1..=15).map(|n| format!("P{n}")).collect();
+    for name in &fifteen {
         lobby.handle(&seat(name), join(name)).unwrap();
     }
 
@@ -78,7 +78,7 @@ fn a_thirteenth_player_is_refused_and_nobody_else_is_affected() {
     assert_eq!(refused, Err(Rejection::LobbyFull));
 
     let outputs = lobby.handle(&seat("P1"), join("P1")).unwrap();
-    assert_eq!(names(view(&outputs, "P1")).len(), 12);
+    assert_eq!(names(view(&outputs, "P1")).len(), 15);
     assert!(outputs.view_for(&seat("Late")).is_none());
 }
 
@@ -116,8 +116,8 @@ fn when_another_player_leaves_the_host_stays() {
 #[test]
 fn a_seat_freed_by_leaving_can_be_taken_by_someone_else() {
     let mut lobby = lobby();
-    let twelve: Vec<String> = (1..=12).map(|n| format!("P{n}")).collect();
-    for name in &twelve {
+    let fifteen: Vec<String> = (1..=15).map(|n| format!("P{n}")).collect();
+    for name in &fifteen {
         lobby.handle(&seat(name), join(name)).unwrap();
     }
     lobby.handle(&seat("P5"), Command::Leave).unwrap();
@@ -206,8 +206,8 @@ fn a_host_who_disconnects_is_still_host_when_they_come_back() {
 #[test]
 fn a_player_can_reclaim_their_seat_in_a_full_lobby() {
     let mut lobby = lobby();
-    let twelve: Vec<String> = (1..=12).map(|n| format!("P{n}")).collect();
-    for name in &twelve {
+    let fifteen: Vec<String> = (1..=15).map(|n| format!("P{n}")).collect();
+    for name in &fifteen {
         lobby.handle(&seat(name), join(name)).unwrap();
     }
     lobby.handle(&seat("P7"), Command::Disconnect).unwrap();

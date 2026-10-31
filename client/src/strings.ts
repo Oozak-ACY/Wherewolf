@@ -11,7 +11,7 @@ import type { MicProblem } from "./useCall";
 // MAX_ASSASSINS, TIMER_BOUNDS
 // and GRACE_PERIOD_BOUNDS (the same as TIMER_BOUNDS) in crates/engine/src/lib.rs.
 export const MIN_PLAYERS = 5;
-export const MAX_PLAYERS = 12;
+export const MAX_PLAYERS = 15;
 export const MAX_WITCHES = 1;
 export const MAX_CUPIDS = 1;
 export const MAX_THIEVES = 1;

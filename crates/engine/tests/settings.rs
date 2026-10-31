@@ -76,6 +76,9 @@ fn the_narrator_suggests_a_role_set_for_the_player_count() {
         (8, roles(2, 1, 1, 1, 3)),
         (9, roles(3, 1, 1, 1, 3)),
         (12, roles(3, 1, 1, 1, 6)),
+        (13, roles(4, 1, 1, 1, 6)),
+        (14, roles(4, 1, 1, 1, 7)),
+        (15, roles(4, 1, 1, 1, 8)),
     ];
     for (count, expected) in table {
         let (_, outputs) = lobby_of(count);
@@ -212,6 +215,27 @@ fn settings_out_of_bounds_are_refused() {
     }
 }
 
+#[test]
+fn roles_can_add_up_to_fifteen_but_not_sixteen() {
+    let (mut lobby, outputs) = lobby_of(6);
+    let mut settings = settings_seen_by(&outputs, "P1");
+
+    settings.roles = roles(4, 1, 1, 1, 8);
+    let accepted = lobby.handle(
+        &seat("P1"),
+        Command::UpdateSettings {
+            settings: settings.clone(),
+        },
+    );
+    assert!(accepted.is_ok());
+
+    settings.roles = roles(4, 1, 1, 1, 9);
+    assert_eq!(
+        lobby.handle(&seat("P1"), Command::UpdateSettings { settings }),
+        Err(Rejection::InvalidSettings)
+    );
+}
+
 fn join(name: &str) -> Command {
     Command::Join {
         name: name.to_string(),
@@ -259,8 +283,8 @@ fn the_game_cannot_start_unless_there_are_as_many_roles_as_players() {
 }
 
 #[test]
-fn the_game_can_start_with_five_to_twelve_players_and_matching_roles() {
-    for count in [5, 12] {
+fn the_game_can_start_with_five_to_fifteen_players_and_matching_roles() {
+    for count in [5, 15] {
         let (_, outputs) = lobby_of(count);
         assert_eq!(
             view(&outputs, "P1").start_blocked_by,
@@ -331,9 +355,9 @@ fn the_deal_comes_from_the_injected_randomness() {
 
 #[test]
 fn each_role_card_shows_its_camp() {
-    let (_, outputs) = started(12, 3);
+    let (_, outputs) = started(15, 3);
 
-    for n in 1..=12 {
+    for n in 1..=15 {
         let card = view(&outputs, &player(n)).role.clone().unwrap();
         let expected = match card.role {
             Role::Werewolf => Camp::Werewolves,
@@ -352,15 +376,15 @@ fn each_role_card_shows_its_camp() {
 
 #[test]
 fn werewolves_see_the_other_werewolves_and_nobody_else_sees_any_role() {
-    let (_, outputs) = started(12, 5);
-    let werewolves: HashSet<PlayerId> = (1..=12)
+    let (_, outputs) = started(15, 5);
+    let werewolves: HashSet<PlayerId> = (1..=15)
         .map(|n| view(&outputs, &player(n)))
         .filter(|v| v.role.as_ref().unwrap().role == Role::Werewolf)
         .map(|v| v.you)
         .collect();
-    assert_eq!(werewolves.len(), 3);
+    assert_eq!(werewolves.len(), 4);
 
-    for n in 1..=12 {
+    for n in 1..=15 {
         let view = view(&outputs, &player(n));
         let seen: HashSet<PlayerId> = view
             .role

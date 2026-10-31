@@ -258,7 +258,7 @@ fn the_host_can_put_one_little_girl_in_the_game_but_not_two() {
 
 #[test]
 fn the_narrator_suggests_no_little_girl() {
-    for players in 5..=12 {
+    for players in 5..=15 {
         assert_eq!(
             RoleCounts::suggested(players).little_girl,
             0,

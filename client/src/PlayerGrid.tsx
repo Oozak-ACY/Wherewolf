@@ -3,9 +3,9 @@ import type { PlayerView } from "./generated/PlayerView";
 import { cardImageUrl } from "./RoleCardView";
 import { fr } from "./strings";
 
-/** Fewer, bigger tiles while the Lobby fills up; 12 still fit a portrait phone. */
-export function gridSize(count: number): "small" | "medium" | "large" {
-  return count <= 4 ? "small" : count <= 9 ? "medium" : "large";
+/** Fewer, bigger tiles while the Lobby fills up; 15 still fit a portrait phone. */
+export function gridSize(count: number): "small" | "medium" | "large" | "crowded" {
+  return count <= 4 ? "small" : count <= 9 ? "medium" : count <= 12 ? "large" : "crowded";
 }
 
 /** One tile per seated Player, in the order they joined. */

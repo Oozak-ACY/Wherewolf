@@ -355,7 +355,7 @@ fn the_host_can_put_one_assassin_in_the_game_but_not_two() {
 
 #[test]
 fn the_narrator_suggests_no_assassin() {
-    for players in 5..=12 {
+    for players in 5..=15 {
         assert_eq!(
             RoleCounts::suggested(players).assassin,
             0,

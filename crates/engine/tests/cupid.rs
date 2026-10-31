@@ -258,7 +258,7 @@ fn cupid_counts_toward_the_one_role_per_player_rule() {
 
 #[test]
 fn the_narrator_suggests_no_cupid() {
-    for players in 5..=12 {
+    for players in 5..=15 {
         assert_eq!(RoleCounts::suggested(players).cupid, 0, "{players} Players");
     }
 }

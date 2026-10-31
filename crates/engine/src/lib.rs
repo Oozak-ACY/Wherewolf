@@ -282,7 +282,8 @@ impl RoleCounts {
         let (werewolf, hunter) = match players {
             0..=5 => (1, 0),
             6..=8 => (2, 1),
-            _ => (3, 1),
+            9..=12 => (3, 1),
+            _ => (4, 1),
         };
         let special = werewolf + 1 + 1 + hunter;
         Self {
@@ -749,9 +750,9 @@ impl Outputs {
     }
 }
 
-/// A Game takes 5 to 12 Players.
+/// A Game takes 5 to 15 Players.
 pub const MIN_PLAYERS: usize = 5;
-pub const MAX_PLAYERS: usize = 12;
+pub const MAX_PLAYERS: usize = 15;
 
 /// A Game has at most one Witch: her potions are the Game's, not hers.
 pub const MAX_WITCHES: u8 = 1;

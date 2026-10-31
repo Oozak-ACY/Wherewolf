@@ -458,7 +458,7 @@ input::placeholder {
   color: var(--ww-vellum);
 }
 
-/* The call with one tile per Player and 12 tiles on one portrait screen */
+/* The call with one tile per Player and 15 tiles on one portrait screen */
 .call-grid {
   list-style: none;
   margin: 0;
@@ -473,6 +473,10 @@ input::placeholder {
 .call-grid[data-size="large"] {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   --tile-ratio: 1 / 1;
+}
+
+.call-grid[data-size="crowded"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .tile {
